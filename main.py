@@ -5,8 +5,10 @@ import traceback
 from Error import ErrorHandler
 import Exec
 
+from sty import fg
+
 # Prettifying the ast
-import json
+from Utils import prettify_ast
 
 # Dont forget to close the file
 with open("tests/test.adk", "r") as f:
@@ -39,7 +41,8 @@ while True:
   
   try:
     ast = parser.parse()
-    print(json.dumps(ast, indent=2))
+    # Cant use because it crashes on tokens.
+    print(prettify_ast(ast)) #Helps me see the ast so I don't have to go through Parser forever.
     Executor = Exec.Executor(text, ast['body']).run()
   except Exception as e:
     if "py_error is True" not in str(e): traceback.print_exc()

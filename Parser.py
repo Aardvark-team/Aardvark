@@ -1,4 +1,4 @@
-from Data import TokenTypes
+from Data import TokenTypes, OrderOfOps
 from Error import Highlight, styles
 from sty import fg
 
@@ -24,8 +24,8 @@ class Parser:
     ## UTILITY
 
     # Get the next token
-    def peek(self):
-        return self.tokens[self.pos] if not self.isEOF() else None
+    def peek(self, n=0):
+        return self.tokens[self.pos + n] if not self.isEOF() else None
 
     # Compare the next token with type, value
     def compare(self, Type, value=None):
@@ -129,7 +129,6 @@ class Parser:
                 'did_you_mean': curr_line
             }
         )
-
     # Is at the end of file
     def isEOF(self):
         return self.pos >= len(self.tokens)
@@ -165,19 +164,21 @@ class Parser:
 
     # Primary:
     # 	[number]
-    #	[string]
+    #	  [string]
     # 	[identifier]
     #   [boolean]
     #   FunctionDefinition
     #   FunctionCall
-    def pPrimary(self):
+    def pPrimary(self, require=False):
         tok = self.peek()
         ast_node = None
-
+        
         if self.isEOF():
+          if require:
             self.eofError(TokenTypes[random.choice(
                 [ "String", "Number", "Identifier" ]
             )])
+          else: return None
 
         if tok.type == TokenTypes["Operator"] and tok.value == "!":
             self.eat("Operator", "!")
@@ -302,12 +303,38 @@ class Parser:
                     ast_node["positions"]["end"] = last.end
 
             return ast_node
+        if require:
+          # Throw an error
+          raise Exception(
+              f"Unexpected token {tok.type.name.upper()}, expected STRING, NUMBER, ARRAY, SET, FUNCTION CALL or IDENTIFIER."
+          )
 
-        # Throw an error
-        raise Exception(
-            f"Unexpected token {tok.type.name.upper()}, expected STRING, NUMBER, ARRAY, SET, FUNCTION CALL or IDENTIFIER."
-        )
-
+      
+    # Expression:
+    #   
+    def pExpression(self, level = len(OrderOfOps)-1, require=False):
+        if level < 0: left = self.pPrimary(require=require)
+        else: left = self.pExpression(level - 1, require=require)
+        if self.peek() and self.compare(TokenTypes["Operator"]) and level in OrderOfOps and self.peek().value in OrderOfOps[level]:
+            op = self.eat(TokenTypes["Operator"])
+            right = self.pExpression(level, require = False)
+            return {
+              'type': 'Operator',
+              'left': left,
+              'right': right,
+              'operator': op.value,
+              'positions': {
+                'start': (left or {}).get('positions', {}).get('start', op.start),
+                'end': (right or {}).get('positions', {}).get('end', op.end) #to handle if there is no right
+              }
+            }
+        return left
+    # Expression:
+    # 	Additive
+    # def pExpression(self):
+    #    return self.pAdditive()
+      
+    
     # Object:
     # 	{ [string] : Expression (, [string] : Expression ) }
     def pObject(self, starter):
@@ -383,76 +410,16 @@ class Parser:
             "type": "FunctionCall",
             "name": name.value,
             "arguments": arguments,
+            "tokens": {
+              "name": name
+            },
+          
             "positions": {
                 "start": name.start,
                 "end": closing_par.end
             }
         }
 
-    # Multiplicative:
-    # 	Primary
-    # 	Primary ( * | / ) Multiplicative
-    def pMultiplicative(self):
-        left = self.pPrimary()
-
-        if (self.peek() and self.compare(TokenTypes["Operator"])
-                and self.peek().value in ["*", "/"]):
-            op = self.eat(TokenTypes["Operator"])
-            right = self.pMultiplicative()
-
-            return {
-                "type": "BinaryExpression",
-                "left": left,
-                "right": right,
-                "operator": op.value,
-                "positions": {
-                    "start": left["positions"]["start"],
-                    "end": right["positions"]["end"]
-                }
-            }
-
-        return left
-
-    # Additive:
-    # 	Multiplicative
-    # 	Multiplicative ( + | - ) Additive
-    def pAdditive(self):
-        left = self.pMultiplicative()
-
-        if (self.peek() and self.compare(TokenTypes["Operator"])
-                and self.peek().value in ["+", "-"]):
-            op = self.eat(TokenTypes["Operator"])
-            right = self.pAdditive()
-
-            return {
-                "type": "BinaryExpression",
-                "left": left,
-                "right": right,
-                "operator": op.value,
-                "positions": {
-                    "start": left["positions"]["start"],
-                    "end": right["positions"]["end"]
-                }
-            }
-
-        return left
-
-    # Condition:
-    # 	Expression ( != | = | < | > | <= | >= ) Expression
-    #   ! Expression
-    def pCondition(self):
-        expr = self.pExpression()
-
-        if expr["type"] not in ["LogicalExpression", "BooleanLiteral"]:
-            # Throw error
-            raise Exception("Not a valid condition.")
-
-        return expr
-
-    # Expression:
-    # 	Additive
-    def pExpression(self):
-        return self.pAdditive()
 
     # pFunctionDefinition:
     # 	function [identifier] ( [identifier] [identifier] ( , [identifier] [identifier] ) )
@@ -595,7 +562,7 @@ class Parser:
     # 	while condition Statement
     def pWhileLoop(self):
         starter = self.eat(TokenTypes["Keyword"], "while")
-        condition = self.pCondition()
+        condition = self.pExpression()
 
         if self.compare(TokenTypes["Delimiter"], "{"):
             body, lasti = self.eatBlockScope()
@@ -864,7 +831,7 @@ class Parser:
         if self.compare(TokenTypes["Keyword"], "class"):
             return self.pClassDefinition()
 
-        return self.pExpression()
+        return self.pExpression(require=True)
 
     # Program:
     #	Statement ( [linebreak] Statement )

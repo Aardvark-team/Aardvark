@@ -18,8 +18,8 @@ class Token:
         self.columnend = columnend
         self.type = toktype
         self.length = end - start
-        self.start = { "line": line, "col": start }
-        self.end = { "line": line, "col": end }
+        self.start = { "line": line, "col": columnstart }
+        self.end = { "line": line, "col": columnend }
         self.start_index = start
         self.end_index = end
         self.value = value
@@ -27,7 +27,8 @@ class Token:
         self.variation = variation
 
     def __repr__(self):
-        return f"{self.type.name} at ({self.start}, {self.end}) on line #{self.line+1}: \"{self.value}\"\n"
+        return f"Token({self.type.name}, '{self.value}', from {self.start['line']}:{self.start['col']} to {self.end['line']}:{self.end['col']})"
+        #return f"{self.type.name} at ({self.start}, {self.end}) on line #{self.line+1}: \"{self.value}\"\n"
 
 
 class Lexer:
@@ -98,7 +99,9 @@ class Lexer:
         """
         Takes code and converts it to tokens.
         """
-        if not data: raise ValueError("String cannot be empty")
+        if not data: 
+          self.output = []
+          return []
         self.data += data
         self.curChar = self.data[self.index]
         while self.index < len(self.data):
@@ -197,6 +200,9 @@ class Lexer:
                         break
                     value += self.curChar
 
+                # Support newlines
+                value = value.replace("\\n", "\n")
+                
                 self.addToken("String", begin, self.index, self.line,
                               startcolumn, self.column, value, variation)
 

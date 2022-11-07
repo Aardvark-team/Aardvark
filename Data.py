@@ -40,28 +40,30 @@ class Group:
 Booleans = {"true", "false"}
 
 PureOperators = {
-    "=",  # is equal to
+    "=",  #equals
     "!",  #not, and factorial
+    '~', #about
     "<",  #less than
     ">",  #more than
+    "==",
     "<=",  #less than or equal to
     ">=",  #more than or equal to
     "!=",  #not equal to
+    "~=", #about equal to
     "&",  #and
     "|",  #or
     "x|",  #xor (exculsive or)
-    "=",  #equal to
     "+",  #add
     "-",  #subtract
     "/",  #divide
     "*",  #multiplication
     "^",  #exponet 
     "%",  #mod
-    "@",  #at. Kinda between a pointer and reference.
-    "$",  #idk
+    "@",  #at. reference
     "?",  # x.y? will be null if x.y doesn't exist or if it is null
     "->",  # For defining a function return type
-    "<-",  #idk, we can use it for something maybe.
+    #"$",  #idk
+    #"<-",  #idk, we can use it for something maybe.
 }
 #!& should be valid, not and.
 #!| should be valid, not or.
@@ -72,7 +74,24 @@ Operators = PureOperators | {
     'and',  #and operator
     'or',  #or operATOR
     'xor',  #XOR
+    'in'
 }
+OrderOfOps = {
+  0: ['?'],
+  1: ['~', '!', '@'],
+  2: ['^'],
+  3: ['*', '/'],
+  4: ['-', '+'],
+  5: ['%'],
+  6: ['=', '~=', '<', '>', '<=', '>=', '!=', 'in', '=='],
+  7: ['&', '|', 'x|', 'and', 'or', 'xor'],
+  8: ['->'],
+  9: [],
+  10: [],
+  11: [],
+  12: [],
+  13: [],
+} #USE: https://stackoverflow.com/questions/28256/equation-expression-parser-with-precedence
 
 Quotes = {'"', "'", '`'}
 
@@ -122,12 +141,10 @@ Keywords = {
     'static',
     'include',
     'async',
-    'yield',
-    'let',  #Statements
+    'yield',  #Statements
     'as',
-    'from',
-    'in',
-    'is',
-    'copy',  #Other
+    'from',#other
 }
+
+
 #https://replit.com/@Programit/Redesign

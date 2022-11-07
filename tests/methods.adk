@@ -1,7 +1,4 @@
-
-# I think I will do extending
-# Ok.
-# I wil do... let me see... anonomous functions.
+#Parser test
 object.method().method2().method(3)
 object.method().property + 5
 object.method() * 2

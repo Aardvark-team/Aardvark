@@ -1,0 +1,2 @@
+let name = stdin.prompt("What is your name? ")
+stdout.write("Hello, ", name)

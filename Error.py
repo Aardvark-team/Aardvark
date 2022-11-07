@@ -88,11 +88,11 @@ def print_error(type: str, pos, msg, didyoumean, err_trace, code):
         'background': False
     })
 
-    underline_start = pos["underline"]["start"]
-    underline_end = pos["underline"]["end"]
-    marker_pos = pos["marker"]["start"]
-    marker_length = pos["marker"]["length"]
-
+    underline_start = max(pos.get("underline", {}).get("start"), 0)
+    underline_end = max(pos.get("underline", {}).get("end"), 0)
+    marker_pos = max(pos.get("marker", {}).get("start"), 0)
+    marker_length = max(pos.get("marker", {}).get("length"), 0)
+                        
     underline_str = len(code.split("\n")[-1]) * " "
 
     underline_str = underline_str[:underline_start] + \
@@ -147,7 +147,7 @@ class ErrorHandler:
         self.filename = filename
         self.py_error = py_error
 
-    def throw(self, type, message, options):
+    def throw(self, type, message, options = {}):
         options["filename"] = self.filename
         options["linestart"] = options["lineno"] - 1
         options["lineend"] = options["lineno"] + 1
@@ -195,7 +195,7 @@ if __name__ == "__main__":
             # ok
             'linestart': 1,#Line of the code's start
             'lineend': 2,#Line of the code's end
-            'lineno': 2,#Line the error is on
+            'lineno': 1,#Line the error is on
             'filename': 'main.adk',#File the error is in.
     
             # I cleaned up some of the positions so now they are in separate objects
