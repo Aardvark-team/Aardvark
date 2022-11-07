@@ -141,7 +141,8 @@ Keywords = {
     'static',
     'include',
     'async',
-    'yield',  #Statements
+    'yield',  
+    'let', #Statements
     'as',
     'from',#other
 }
