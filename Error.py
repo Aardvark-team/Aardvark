@@ -23,15 +23,15 @@ styles = {
 }
 
 
-def genLine(line, digits):
-    return ' ' * (digits - len(str(line))) + f'{line} │ '
+def genLine(linenum, digits):
+    return ' ' * (digits - len(str(linenum))) + f'{styles["default"]}{linenum} │ '
 
 
 def Highlight(code: str, opts={}):
     lexer = Lexer.Lexer("#", "</", "/>", True, True)
     lexer.tokenize(code)
     line = opts.get('startline', 1)
-    output = (styles['background'] if opts.get('background', True) else ''
+    output = (styles['background'] if opts.get('background', False) else ''
               ) + styles['default'] + (genLine(line, opts.get(
                   'leftpadding', 4)) if opts.get('linenums', True) else '')
     toknum = 0
@@ -40,25 +40,30 @@ def Highlight(code: str, opts={}):
         if token.start_index > last + 1:
             output += styles['default'] + code[last + 1:token.start_index]
         #To restore things the lexer left out.
+          
         if str(token.type) == 'String':
             output += styles[str(token.type)] + token.variation + str(
                 token.value) + token.variation
         #To give strings their quotes back.
+          
         elif token.value == '\n':
             line += 1
             output += styles['default'] + '\n' + (genLine(
                 line, opts.get('leftpadding', 4)) if opts.get(
                     'linenums', True) else '')
         #To render the line numbers when there is a newline.
+          
         elif str(token.type) == 'Identifier' and toknum < len(
                 lexer.output) - 1 and str(
                     lexer.output[toknum + 1].type
                 ) == 'Delimiter' and lexer.output[toknum + 1].value == '(':
             output += styles['Function'] + str(token.value)
         #For function calls
+                  
         elif str(token.type) in styles:
             output += styles[str(token.type)] + str(token.value)
         #Everything else that has a defined color.
+          
         else:
             output += styles['default'] + str(token.value)
         #The random stuff that uses a default color
@@ -76,31 +81,49 @@ def get_trace_line(index, line):
     return " " * len(header) + line["name"] + fileloc
 
 def print_error(type: str, pos, msg, didyoumean, err_trace, code):
-    padding = len(str(pos["lineend"])) + 1#To dynamicly adjust padding based on the larger line#
+    padding = len(str(pos["lineend"])) + 1#To dynamicly adjust padding based on the larger line num
     lineno = pos["lineno"]
     didyoumean_par = didyoumean
 
     if pos["linestart"] < 0: pos["linestart"] = 0
-    
+
     code = Highlight(code, {
-        'startline': pos["linestart"]+1,
+        'startline': 1,
         'leftpadding': padding,
         'background': False
     })
 
-    underline_start = max(pos.get("underline", {}).get("start"), 0)
-    underline_end = max(pos.get("underline", {}).get("end"), 0)
-    marker_pos = max(pos.get("marker", {}).get("start"), 0)
-    marker_length = max(pos.get("marker", {}).get("length"), 0)
-                        
-    underline_str = len(code.split("\n")[-1]) * " "
+    underline_start = pos.get("underline", {}).get("start")
+    underline_end = pos.get("underline", {}).get("end")
+    marker_pos = pos.get("marker", {}).get("start")
+    marker_length = pos.get("marker", {}).get("length")
 
-    underline_str = underline_str[:underline_start] + \
-                    "―" * (underline_end - underline_start) + \
-                    underline_str[underline_end:]
+    underline = (underline_start - 1) * ' ' + "―" * (underline_end - underline_start + 1)
+    marker = (marker_pos - 1) * ' ' + '^' * (marker_length)
+    underline_str = ""
 
+    # whats this big for loop
+    # This code helped me fix a few bugs
+    #It basicly is just a different implementation of what the code was already suppossed to do, and it fixed a couple bugs
+    # oh okay
+  #idk why the old code didn't work, and I was stuck and couldn't find the problem, so I just rewrote it.
+    
+    for i in range(len(max(underline, marker))): #Look over both strings, ^ takes precedense over -
+        if i >= len(underline) and i < len(marker):
+          underline_str += marker[i]
+        elif i >= len(marker):
+          underline_str += underline[i]
+        elif i < len(marker) and i < len(underline):
+          if marker[i] != ' ':
+            underline_str += marker[i]
+          elif underline[i] != ' ':
+            underline_str += underline[i]
+          else: underline_str += ' '
+        else: break
+    #Token lines and columns now start at 1
+    #This above code fixed a couple bugs.
     if marker_pos != None:
-        underline_str = underline_str[:marker_pos - 1] + \
+        underline_str = underline_str[:max(marker_pos - 1, 0)] + \
                         "^" * marker_length + \
                         underline_str[marker_pos - 1 + marker_length:]
 
@@ -108,19 +131,22 @@ def print_error(type: str, pos, msg, didyoumean, err_trace, code):
     error_underline = f'{" "*(padding+3)}{ef.bold + fg(225, 30, 10)}{underline_str}―>{ef.rs} {fg(225, 30, 10)}{msg}'
     
     code_lines = code.split("\n")
-    code_lines[lineno] = code_lines[lineno] + "\n" + error_underline + styles["default"]
+    code_lines[lineno-1] = code_lines[lineno-1] + "\n" + error_underline + styles["default"]
 
+    linestart = pos["linestart"] - (1 if pos["linestart"] > 0 else 0)
+    lineend = pos["lineend"] + (1 if pos["lineend"] + 1 < len(code_lines) else 0)
+    
     if didyoumean_par != None:
         lines_mean = code_lines.copy()
-        lines_mean[lineno] = f"{' ' * (padding - len(str(pos['lineno']+1)))}{styles['default']}{pos['lineno']+1} │ {didyoumean}"
+        lines_mean[lineno-1] = f"{' ' * (padding - len(str(lineno)))}{styles['default']}{lineno} │ {didyoumean}"
         #Highlight(didyoumean, {
         #    'startline': pos["lineno"]+1,
         #    'leftpadding': padding,
         #    'background': False
         #})
-        didyoumean = "\n".join(lines_mean[pos["linestart"]:pos["lineend"] + 1])
-    
-    code = "\n".join(code_lines[pos["linestart"]:pos["lineend"] + 1])
+        didyoumean = "\n".join(lines_mean[linestart:lineend])
+
+    code = "\n".join(code_lines[linestart:lineend])
     
     traceback = ""
     if err_trace != None:
@@ -133,7 +159,7 @@ def print_error(type: str, pos, msg, didyoumean, err_trace, code):
 {didyoumean}{fg.rs}'''
     else: didyoumean = fg.rs
     
-    output = f'''{fg(225, 30, 10)}ⓧ  {type}Error in {pos["filename"]}:{pos["lineno"]+1}:{marker_pos if marker_pos != None else underline_start}
+    output = f'''{fg(225, 30, 10)}ⓧ  {type}Error in {pos["filename"]}:{pos["lineno"]}:{marker_pos if marker_pos != None else underline_start}
 {traceback}{styles["default"]}{code}{didyoumean}'''
     print(output, file=sys.stderr)
 
@@ -149,7 +175,7 @@ class ErrorHandler:
 
     def throw(self, type, message, options = {}):
         options["filename"] = self.filename
-        options["linestart"] = options["lineno"] - 1
+        options["linestart"] = options["lineno"] - (1 if options["lineno"] > 0 else 0)
         options["lineend"] = options["lineno"] + 1
         
         print_error(
@@ -168,6 +194,7 @@ class ErrorHandler:
 
 if __name__ == "__main__":
     examplecode = '#print Hello World\nstdout|.write("Hello World\\n")\n#after'
+    print(examplecode)
     code_stack = [
         {
             "name": "this()",
@@ -194,8 +221,8 @@ if __name__ == "__main__":
         {
             # ok
             'linestart': 1,#Line of the code's start
-            'lineend': 2,#Line of the code's end
-            'lineno': 1,#Line the error is on
+            'lineend': 3,#Line of the code's end
+            'lineno': 2,#Line the error is on
             'filename': 'main.adk',#File the error is in.
     
             # I cleaned up some of the positions so now they are in separate objects
@@ -205,13 +232,13 @@ if __name__ == "__main__":
             },
     
             'underline': {
-                'start': 0,
+                'start': 1,
                 'end': 30
             }
         },
         '".write" is invalid. No object to get attribute of.',
-        'stdout.write("Hello World\\n")',
-        None,
+        Highlight('stdout.write("Hello World\\n")', {'linenums': False}),
+        code_stack,
         examplecode
     )
     #Wait, just noticed, the -- aren't working how they are suppossed to anyways.

@@ -41,8 +41,8 @@ class Lexer:
         self.tokenizeComments = tokenizeComments
         self.data = ""
         self.index = 0
-        self.line = 0
-        self.column = 0
+        self.line = 1
+        self.column = 1
         self.output = []
         self.empty = True
         self.AtEnd = False
@@ -93,7 +93,7 @@ class Lexer:
         #Self.empty means that we are on an empty line
         self.empty = True
         self.line += 1
-        self.column = 0
+        self.column = 1
 
     def tokenize(self, data: str):
         """
@@ -199,9 +199,6 @@ class Lexer:
                             and value[-1] != '\\') or self.AtEnd:
                         break
                     value += self.curChar
-
-                # Support newlines
-                value = value.replace("\\n", "\n")
                 
                 self.addToken("String", begin, self.index, self.line,
                               startcolumn, self.column, value, variation)

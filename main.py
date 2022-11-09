@@ -33,7 +33,7 @@ while True:
   
   # print("".join([ str(x) for x in lexer.output ]))
   
-  parser = Parser.Parser(ErrorHandler(
+  parser = Parser.Parser(text, ErrorHandler(
         text, 
         "<main>",
         py_error = True
@@ -41,7 +41,6 @@ while True:
   
   try:
     ast = parser.parse()
-    # Cant use because it crashes on tokens.
     print(prettify_ast(ast)) #Helps me see the ast so I don't have to go through Parser forever.
     Executor = Exec.Executor(text, ast['body']).run()
   except Exception as e:

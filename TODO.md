@@ -31,7 +31,7 @@
  - [x] Methods
  - [x] Function as this
  - [x] Extending
- - [ ] All operators (?, *, &, ^, %, !, ~, -, +, =, /, <, >, ->, =>, >=, <=, |, etc)
+ - [x] All operators (?, *, &, ^, %, !, ~, -, +, =, /, <, >, ->, =>, >=, <=, |, etc)
 
 # Tests
 ### Test 1 - fib
@@ -45,4 +45,4 @@
 - [ ] Executed
  
 # Execution
-- [ ] Start building
+- [x] Start building 

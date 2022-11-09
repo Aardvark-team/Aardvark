@@ -16,7 +16,9 @@ type_helper["ValueType"] = "<String | Int>"
 
 class Parser:
 
-    def __init__(self, err_handler, lexer):
+    def __init__(self, code, err_handler, lexer):
+        self.code = code
+        self.codelines = code.split('\n')
         self.tokens = lexer.output
         self.pos = 0
         self.err_handler = err_handler
@@ -46,14 +48,14 @@ class Parser:
     # Unexpected EOF
     def eofError(self, Type, value=None, is_type=False):
         last_tok = self.tokens[self.pos - 1]
-        curr_line = self.err_handler.code.split("\n")[last_tok.line]
+        curr_line = self.err_handler.code.split("\n")[last_tok.line-1]
         line_len = len(curr_line)
 
         value_type = value if value else type_helper.get(Type.name if not is_type else "ValueType", "[no suggestion]")
         if type(value_type) == list: value_type = random.choice(value_type)
 
         replacement = " " + value_type
-        curr_line = curr_line[:line_len + 1].rstrip()
+        curr_line = curr_line[:line_len].rstrip()
         line_end = replacement
         
         self.err_handler.throw(
@@ -97,7 +99,7 @@ class Parser:
         if self.isEOF(): return self.eofError(Type, value, is_type)
             
         next_tok = self.peek()
-        curr_line = self.err_handler.code.split("\n")[next_tok.line].rstrip()
+        curr_line = self.err_handler.code.split("\n")[next_tok.line-1].rstrip()
         line_len = len(curr_line)
 
         value_type = value if value else type_helper.get(Type.name if not is_type else "ValueType", "[no suggestion]")
@@ -117,7 +119,7 @@ class Parser:
                 'lineno': next_tok.line,
         
                 'marker': {
-                    'start': next_tok.start["col"] + 1,
+                    'start': next_tok.start["col"],
                     'length': next_tok.length + 1
                 },
         
@@ -200,7 +202,8 @@ class Parser:
             if tok.type == TokenTypes["Number"]:
                 if "." in tok.value: value = float(value)
                 else: value = int(value)
-
+            else:
+              value = value.replace('\\n', '\n')
             ast_node = {
                 # StringLiteral, NumberLiteral, etc...
                 "type": tok.type.name + "Literal",
@@ -305,6 +308,18 @@ class Parser:
             return ast_node
         if require:
           # Throw an error
+          self.err_handler.throw('Syntax', 'Unexpected End Of Expression', {
+            'lineno': tok.end['line'],
+            'marker': {
+              'start': tok.end['col'],
+              'length': 1
+            },
+            'underline': {
+              'start': tok.end['col'],
+              'end': len(self.codelines[tok.end['line']-1])
+            },
+            'did_you_mean': Highlight(self.codelines[tok.end['line']-1], {'background':None, 'linenums':False}) + styles['suggestion'] + ' <statement>' + fg.rs
+          })
           raise Exception(
               f"Unexpected token {tok.type.name.upper()}, expected STRING, NUMBER, ARRAY, SET, FUNCTION CALL or IDENTIFIER."
           )
@@ -440,10 +455,11 @@ class Parser:
 
         parameters = []
         while self.peek() and not self.compare(TokenTypes["Delimiter"], ")"):
+            var_type = None
             if len(parameters) > 0:
                 self.eat(TokenTypes["Delimiter"], ",")
-
-            var_type = self.eat(TokenTypes["Identifier"], is_type = True)
+            if self.compare('Identifier') and self.peek(1).type == TokenTypes['Identifier']:
+              var_type = self.eat(TokenTypes["Identifier"], is_type = True)
             var_name = self.eat(TokenTypes["Identifier"])
             
             #if self.compare(TokenTypes['Identifier']):
@@ -473,8 +489,11 @@ class Parser:
         if self.compare("Operator"):
             self.eat(TokenTypes["Operator"], "->")
             return_type = self.eat(TokenTypes["Identifier"], is_type = True)
-
-        body, lasti = self.eatBlockScope()
+        if self.compare('Delimiter', '{'):
+          body, lasti = self.eatBlockScope()
+        else:
+          body = self.pStatement(require=True)
+          lasti = body['positions']['end']
 
         return {
             "type": "FunctionDefinition",
@@ -591,7 +610,7 @@ class Parser:
         if self.compare(TokenTypes["Delimiter"], "{"):
             body, lasti = self.eatBlockScope()
         else:
-            statm = self.pStatement()
+            statm = self.pStatement(True)
             body = [statm]
             lasti = statm["positions"]["end"]
         closing_pos = lasti
@@ -652,9 +671,13 @@ class Parser:
             else:
                 declarations.append({'type': 'variable', 'names': [x.value]})
                 break
-        self.eat('Keyword', 'in')
+        self.eat('Operator', 'in')
         iterable = self.pExpression()  #Get the iterable.
-        body, lasti = self.eatBlockScope()
+        if self.compare('Delimiter', '{'):
+          body, lasti = self.eatBlockScope()
+        else:
+          body = self.pStatement(require = True)
+          lasti = body["positions"]["end"]
         return {
             'type': 'ForLoop',
             'declarations': declarations,
@@ -800,7 +823,7 @@ class Parser:
 
     # Statement:
     # 	VariableDefinition
-    def pStatement(self):
+    def pStatement(self, require=False):
         if self.compare(TokenTypes["Keyword"], "let"):
             return self.pVariableDefinition()
 
@@ -831,7 +854,7 @@ class Parser:
         if self.compare(TokenTypes["Keyword"], "class"):
             return self.pClassDefinition()
 
-        return self.pExpression(require=True)
+        return self.pExpression(require=require)
 
     # Program:
     #	Statement ( [linebreak] Statement )
