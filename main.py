@@ -6,7 +6,7 @@ from Error import ErrorHandler
 import Exec
 
 from sty import fg
-
+#Import module for colouring.
 # Prettifying the ast
 from Utils import prettify_ast
 
