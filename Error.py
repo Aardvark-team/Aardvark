@@ -26,7 +26,20 @@ styles = {
 def genLine(linenum, digits):
     return ' ' * (digits - len(str(linenum))) + f'{styles["default"]}{linenum} │ '
 
+def getTextByPos(start, end, codelines):
+      l = []
+      for i in range(start['line'] - 1, end['line']):
+        if i == start['line'] - 1:
+          l.append(codelines[i][start['col'] - 1:])
+        elif i == end['line']:
+          l.append(codelines[i][:end['col']])
+        else:
+          l.append(codelines[i])
+      return '\n'.join(l)
 
+def getAstText(expr, codelines):
+  return getTextByPos(expr['positions']['start'], expr['positions']['end'], codelines)
+  
 def Highlight(code: str, opts={}):
     lexer = Lexer.Lexer("#", "</", "/>", None, True, True)
     lexer.tokenize(code)

@@ -119,6 +119,10 @@ class String(str, Type):
       'length': len(value),
       'split': lambda sep=" ": self.value.split(sep.value if isinstance(sep, String) else sep),
       'slice': lambda start, end: self.value[start.value:end.value],
+      'startsWith': lambda prefix: self.startswith(x),
+      'endsWith': lambda suffix: self.endswith(x),
+      'replace': lambda x, y='': self.replace(x, y),
+      'contains': lambda x: x in y,
     }
     str.__init__(value)
   def __sub__(self, other):
@@ -126,8 +130,11 @@ class String(str, Type):
 
 class Number(Type, float):
   def __init__(self, value):
+    #print(value, type(value))
+    #TODO fix prime attr
     self.vars = {
-      'digits': [Number(int(x)) if x not in '.-' else x for x in list(str(value))] if len(str(value)) > 1 else [value]
+      'digits': [Number(int(x)) if x not in '.-' else x for x in list(str(value))] if len(str(value)) > 1 else [value],
+      'prime': Boolean(value > 1 and all(value % i for i in range(2, int(value ** 0.5) + 1)))
       #methods and attributes here
     }
     float.__init__(value)
@@ -141,6 +148,8 @@ class Number(Type, float):
     else: return str(float(self))
   def __index__(self):
     return int(self)
+  def __getitem__(self, *args):
+    return self.vars['digits'].__getitem__(*args)
 
 class Boolean(int, Type):
   def __init__(self, value):
@@ -168,8 +177,11 @@ class Function(Type):
 #TODO: Add: Array, Set, more...
 Null = __Null()
 
+Types = [Object, Scope, Type, __Null, Number, String, Function, Boolean]
+
 def pyToAdk(py):
-  if py == None: return Null
+  if type(py) in Types: return py
+  elif py == None: return Null
   elif isinstance(py, bool): return Boolean(py)
   elif isinstance(py, int) or isinstance(py, float): return Number(py)
   elif isinstance(py, str): return String(py)

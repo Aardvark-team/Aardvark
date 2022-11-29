@@ -38,7 +38,11 @@ class Executor:
       'typeof': lambda obj: type(obj).__name__,
       'dir': lambda x=None: x.vars if x else self.Global.vars,
       'null': Null,
+      'Math': Object({
+        
+      })
     }) #Define builtins here
+    #TODO: implement more builtins.
     self.errorhandler = errorhandler
   def defineVar(self, name, value, scope):
     if name in scope.getAll() and name not in list(scope.vars.keys()):
@@ -109,22 +113,8 @@ class Executor:
         return self.getVar(scope, expr['value'], expr['positions']['start'], undefinedError)
       case {'type': 'PropertyAccess'}:
         obj = self.ExecExpr(expr['value'], scope, undefinedError)
-        if not isinstance(obj, Object) and undefinedError:
-          #for rn, only objects have properties
-          return self.errorhandler.throw('Value', f'{obj} has no property {expr["property"]}.', {
-            'lineno': expr['positions']['start']['line'],
-           'marker': {
-             'start': expr['positions']['start']['col'] - 1,
-             'length': len(expr['value'])
-             },
-           'underline': {
-             'start': expr['positions']['start']['col'] - 2,
-             'end': expr['positions']['start']['col'] + len(expr['value'])
-           }
-          })
-        elif not isinstance(obj, Object): #If errors are surpressed, return None
-          return None
-        return self.getVar(obj, expr['property'], expr['tokens']['property'].start, undefinedError, message=f"Undefined property \"{{name}}\" of \"{obj.name}\"")
+        objname = obj.name if 'name' in dir(obj) else Error.getAstText(expr['value'], self.codelines)
+        return self.getVar(obj, expr['property'], expr['tokens']['property'].start, undefinedError, message=f"Undefined property \"{{name}}\" of \"{objname}\"")
       case {'type': 'Object'}:
         obj = Object()
         for k, v in expr['pairs'].items():
