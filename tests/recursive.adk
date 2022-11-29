@@ -1,0 +1,10 @@
+
+
+function repeat(char, i) {
+  if i > 0 {
+    return char + repeat(char, i - 1)
+  }
+  return ''
+}
+
+stdout.write(repeat("=", 10), "\n")

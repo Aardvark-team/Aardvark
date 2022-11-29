@@ -1,160 +1,130 @@
-#Recusively execute code.
+# Note, doing an operataion on a obj changes its type back to the python version.
+# So, I added a function to convert it to its Aardvark version.
+# Note, we need to add unit test.
+# Recusively execute code.
 import Error
 from Lexer import Token
 import sys
 from Operators import Operators
 import random
 from nltk import edit_distance
+from Types import Null, Object, Scope, Number, String, Boolean, pyToAdk, Function
 
-class Object:
-  def __init__(self, inherit={}, init=None):
-    self.vars = {}
-    self.vars.update(inherit)
-    if init:
-      init(self)
-    self._index = 0
-  def set(self, name, value):
-    self.vars[name] = value
-  def __setitem__(self, name, value):
-    return self.set(name, value)
-  def get(self, name, default = None):
-    return self.vars.get(name, default)
-  def __getitem__(self, name):
-    return self.get(name)
-  def delete(self, name):
-    del self.vars[name]
-  def __delattr__(self, name):
-    return self.delete()
-  def __delitem__(self, name):
-    return self.delete()
-  def __iter__(self):
-    return self.vars
-  def __next__(self):
-    if self._index >= len(self.vars) - 1:
-      self.index = 0
-      raise StopIteration
-    else: 
-      self._index += 1
-      return self.vars.keys()[self._index]
-  def __repr__(self):
-    return self.vars.__repr__()
-  def __str__(self):
-    return self.vars.__str__()
+def get_call_scope(scope):
+    call_scope = [ "scope " + str(id(scope)) ]
+    if scope.parent: call_scope += get_call_scope(scope.parent)
 
+    return call_scope
 
-class Scope(Object):
-  def __init__(self, vars = {}, parent=None):
-    self.vars = vars
-    self.parent = parent or None
-    self._index = 0
-    self._returned_value = None
-    self._has_returned = False
-  def set(self, name, value):
-    self.vars[name] = value
-  def __setitem__(self, name, value):
-    return self.set(name, value)
-  def get(self, name, default = None):
-    if self.parent:
-      return self.vars.get(name, self.parent.get(name, default)) #To allow access to higher scopes.
-    else:
-      return self.vars.get(name, default)
-  def __getitem__(self, name):
-    return self.get(name)
-  def delete(self, name):
-    del self.vars[name]
-  def __delattr__(self, name):
-    return self.delete()
-  def __delitem__(self, name):
-    return self.delete()
-  def __iter__(self):
-    return self
-  def __next__(self):
-    if self._index >= len(self.vars) - 1:
-      self.index = 0
-      raise StopIteration
-    else: 
-      self._index += 1
-      return self.vars.keys()[self._index]
-  def __repr__(self):
-    return self.vars.__repr__()
-  def __str__(self):
-    return self.vars.__str__()
-    
 class Executor:
-  def __init__(self, code, ast):
+  def __init__(self, code, ast, errorhandler):
     self.code = code
     self.codelines = code.split('\n')
     self.ast = ast
+    self.traceback = []
     self.Global = Scope({
       'stdout': Object({
         'write': lambda *args: print(*args, end=""), #Just simple for now
-      }),
+      }, name="stdout"),
       'stdin': Object({
         #Many of our stdin functions can't be implemented in python.
         'prompt': lambda x: input(x), #Also simple
-      }),
+        'readLine': lambda: input()
+      }, name="stdin"),
       'stderr': Object({
         'write': lambda *args: print(*args, end="", file=sys.stderr)
-      })
+      }, name="stderr"),
+      'slice': lambda str, start, end: str[start:end],
+      'typeof': lambda obj: type(obj).__name__,
+      'dir': lambda x=None: x.vars if x else self.Global.vars,
+      'null': Null,
     }) #Define builtins here
-    self.errorhandler = Error.ErrorHandler(
-        code, 
-        "<main>",
-        py_error = True
-    )#function x(y, z) stdout.write(y, z, '\n')
-  def makeFunct(self, name, params, code, scope):
+    self.errorhandler = errorhandler
+  def defineVar(self, name, value, scope):
+    if name in scope.getAll() and name not in list(scope.vars.keys()):
+      self.defineVar(name, value, scope.parent)
+    else:
+      scope[name] = value
+  def makeFunct(self, expr, parent):
+      name = expr['name']
+      params = expr['parameters']
+      code = expr['body']
+      AS = expr['as']
       def x(*args, **kwargs):
-        id = random.randint(0, 1000)
-        functscope = Scope(parent = scope)
+        functscope = Scope({}, parent = parent, is_func = True)
+        if AS:
+          functscope[AS] = x
         for i in range(len(params)):
           param = params[i]
           arg = args[i]
           if param['value_type'] != None:
             notImplemented(self.errorhandler, 'Type Checking', param)
-          functscope[param['name']] = arg
-          print(f'defined {param["name"]} as {arg} {id}')
-        self.Exec(code, functscope)
+          self.defineVar(param['name'], arg, functscope)
+        #self.traceback.append({
+        #  'name': f'{name}()',
+        #  'line':
+        #})
+        ret = self.Exec(code, functscope)
+        #self.traceback = self.traceback[:-1]
+        #print('ret', ret, functscope._returned_value)
+
+        #print(" -> ".join(get_call_scope(functscope)), functscope._returned_value)
         return functscope._returned_value
       if name:
-        scope[name] = x
-      return x
-  def getVar(self, scope, varname: str, start, error=True):
-    if scope.get(varname, False):
-        return scope[varname]
+        parent[name] = Function(x)
+      return Function(x)
+    
+  def getVar(self, scope, varname: str, start, error=True, message='Undefined variable "{name}"'):
+    val = scope.get(varname, None)
+    success = val != None
+
+    if success:
+        return pyToAdk(val)
     elif error:
         line = self.codelines[start['line']-1]
-        did_you_mean = line[:start['col']-1] + findClosest(varname, scope) + line[start['col']+len(varname)-1:]
-        return self.errorhandler.throw('Value', f'Undefined variable "{varname}"', {
+        #print('Availiable vars in current scope (not including parent scopes):', ', '.join(scope.vars.keys()))
+        did_you_mean = line[:start['col'] - 1] + findClosest(varname, scope) + line[start['col'] + len(varname) - 1:]
+        return self.errorhandler.throw('Value', message.format(name=varname), {
           'lineno':start['line'],
           'marker': {
-            'start': start['col']-1,
-            'length': len(varname)-1
+            'start': start['col'],
+            'length': len(varname)
           },
           'underline': {
-            'start': start['col']-2,
+            'start': start['col'] - 2,
             'end': start['col'] + len(varname)
           },
-          'did_you_mean': Error.Highlight(did_you_mean, {'linenums':False})
+          'did_you_mean': Error.Highlight(did_you_mean, {'linenums': False})
         })
+      
   def ExecExpr(self, expr: dict, scope: Scope, undefinedError=True):
     match expr:
-      case {'type': 'VariableDefinition'}:
-        if expr['value_type']:
-            notImplemented(self.errorhandler, 'Type Checking', expr)
-        scope[expr['name']] = self.ExecExpr(expr['value'], scope) #Simple implementation.
       case {'type': 'NumberLiteral'}:
-        return expr['value'] #Numbers not objects yet, didn't have time to add
+        return Number(expr['value'])
       case {'type': 'StringLiteral'}:
-        return expr['value']
+        return String(expr['value'])
+      case {'type': 'BooleanLiteral'}:
+        return Boolean(expr['value'])
       case {'type': 'VariableAccess'}:
         return self.getVar(scope, expr['value'], expr['positions']['start'], undefinedError)
       case {'type': 'PropertyAccess'}:
         obj = self.ExecExpr(expr['value'], scope, undefinedError)
         if not isinstance(obj, Object) and undefinedError:
-          return self.errorhandler.throw('Value', f'{expr["value"]} has no property {property}.')
+          #for rn, only objects have properties
+          return self.errorhandler.throw('Value', f'{obj} has no property {expr["property"]}.', {
+            'lineno': expr['positions']['start']['line'],
+           'marker': {
+             'start': expr['positions']['start']['col'] - 1,
+             'length': len(expr['value'])
+             },
+           'underline': {
+             'start': expr['positions']['start']['col'] - 2,
+             'end': expr['positions']['start']['col'] + len(expr['value'])
+           }
+          })
         elif not isinstance(obj, Object): #If errors are surpressed, return None
           return None
-        return self.getVar(obj, expr['property'], expr['positions']['start'], undefinedError)
+        return self.getVar(obj, expr['property'], expr['tokens']['property'].start, undefinedError, message=f"Undefined property \"{{name}}\" of \"{obj.name}\"")
       case {'type': 'Object'}:
         obj = Object()
         for k, v in expr['pairs'].items():
@@ -168,48 +138,96 @@ class Executor:
           self.getVar(scope, expr['target']['value'], expr['target']['positions']['start'])
           del scope[expr['name']]
       case { 'type': 'FunctionCall' }:
-          funct = self.getVar(scope, expr['name'], expr['tokens']['name'].start)
-          return funct(*[self.ExecExpr(arg, scope) for arg in expr['arguments']])
+          funct = self.getVar(scope, expr['name'], expr['positions']['start'])
+          return pyToAdk(funct(*[self.ExecExpr(arg, scope) for arg in expr['arguments']]))
       case { 'type': 'MethodCall' }:
           obj = self.ExecExpr(expr['value'], scope)
-          funct = self.getVar(obj, expr['property'], expr['positions']['start'])
-          return funct(*[self.ExecExpr(arg, scope) for arg in expr['arguments']])
-      case { 'type': 'Operator' }:
-        if expr['operator'] == '?':
+          if not isinstance(obj, Object):
+            #for rn, only objects have properties
+            return self.errorhandler.throw('Value', f'{obj} has no property {expr["property"]}.', {
+              'lineno': expr['positions']['start']['line'],
+             'marker': {
+               'start': expr['positions']['start']['col']-1,
+               'length': len(expr['value'])
+               },
+             'underline': {
+               'start': expr['positions']['start']['col']-2,
+               'end': expr['positions']['start']['col'] + len(expr['value'])
+             }
+            })
+          elif not isinstance(obj, Object): #If errors are surpressed, return None
+            return None
+          funct = self.getVar(obj, expr['property'], expr['tokens']['property'].start, message=f"Undefined property \"{{name}}\" of \"{obj.name}\"")
+          return pyToAdk(funct(*[self.ExecExpr(arg, scope) for arg in expr['arguments']]))
+      case {'type' : 'Operator', 'operator': '='}:
+        right = self.ExecExpr(expr['right'], scope)
+        self.defineVar(expr['left']['value'], right, scope)
+        return right
+      case {'type' : 'Operator', 'operator': '?'}:
           left = self.ExecExpr(expr['left'], scope, False)
           op = Operators[expr['operator']]
           right = self.ExecExpr(expr['right'], scope)
           return op(left, right, self.errorhandler, self.codelines[expr['positions']['start']['line']-1], expr)
-        elif expr['operator'] in Operators:
+      case { 'type': 'Operator', 'operator': operator}:
+        if operator in Operators:
           left = self.ExecExpr(expr['left'], scope)
-          op = Operators[expr['operator']]
+          op = Operators[operator]
           right = self.ExecExpr(expr['right'], scope)
-          return op(left, right, self.errorhandler, self.codelines[expr['positions']['start']['line']-1], expr)
+          return pyToAdk(op(left, right, self.errorhandler, self.codelines[expr['positions']['start']['line'] - 1], expr))
         else:
           return notImplemented(self.errorhandler, f'Operator "{expr["operator"]}" not yet implemented.', expr)
       case { 'type': 'IfStatement' }:
+        ifscope = Scope({}, parent = scope)
         if bool(self.ExecExpr(expr['condition'], scope)):
-          ifscope = Scope(parent = scope)
-          self.Exec(expr['body'], ifscope)
+          return self.Exec(expr['body'], ifscope)
         elif expr['else_body']:
-          ifscope = Scope(parent = scope)
-          self.Exec(expr['else_body'], ifscope)
+          return self.Exec(expr['else_body'], ifscope)
+      case { 'type': 'WhileLoop' }:
+        while bool(self.ExecExpr(expr['condition'], scope)):
+          whilescope = Scope({}, parent = scope)
+          ret = self.Exec(expr['body'], whilescope)
+        return ret
+      case { 'type': 'ForLoop' }:
+        for item in self.ExecExpr(expr['iterable']):
+          forscope = Scope({}, parent = scope)
+          # i=0
+          # for d in expr['delecarations']:
+          #   if d['type'] = 'variable':
+          #     item[]
+          #   i+=1
+          #TODO: Define the varaibles.
+          ret = self.Exec(expr['body'], forscope)
+        return ret
       case { 'type': 'FunctionDefinition' }:
-        funct = self.makeFunct(expr['name'], expr['parameters'], expr['body'], scope)
+        funct = self.makeFunct(expr, scope)
         return funct
+      case {'type': 'DeferStatement'}:
+        scope.addReturnAction(lambda: self.ExecExpr(expr['value'], scope))
       case { 'type': 'ReturnStatement' }:
-        scope._returned_value = self.ExecExpr(expr['value'], scope)
-        scope._has_returned = True
+        val = self.ExecExpr(expr['value'], scope)
+        success = scope.set_return_value(val)
+        if scope == self.Global or not success:
+            self.Global._triggerReturnAction()
+            sys.exit(int(val))
+        return scope._returned_value
+      case {'type': 'Multiply'}:
+        #for (num)x mult
+        return self.ExecExpr(expr['number'], scope) * self.getVar(scope, expr['variable'], expr['tokens']['variable'].start)
+      case {'type': 'Index'}:
+        return self.ExecExpr(expr['value'], scope)[self.ExecExpr(expr['property'], scope)]
       case None:
-        return None
+        return Null
       case _:
+          if expr == Null: return Null
           notImplemented(self.errorhandler, expr['type'], expr)
-      
+        
   def Exec(self, ast, scope: Scope):
-    ret_val = None
+    ret_val = Null
+    if type(ast).__name__ != 'list':
+      ast = [ast]
     for item in ast:
       ret_val = self.ExecExpr(item, scope)
-      if scope._has_returned: break
+      if scope._has_returned or scope._returned_value: break
     return ret_val
     
   def run(self):
@@ -234,7 +252,7 @@ def notImplemented(errorhandler, item, expr):
 def findClosest(var, scope):
   lowest = 99999999999999
   ret = '<identifier>'
-  for item in list(scope.vars.keys()):
+  for item in list(scope.getAll().keys()):
     dist = edit_distance(var, item)
     if dist < lowest: 
       ret = item

@@ -74,7 +74,7 @@ ignoredPackages = ["unit_tests"]
   # Enable searching packages from the sidebar.
   packageSearch = true
   # Enable guessing what packages are needed from the code.
-  guessImports = true
+  guessImports = false # true
 
 # These are the files that need to be preserved when this 
 # language template is used as the base language template

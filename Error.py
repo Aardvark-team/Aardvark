@@ -28,7 +28,7 @@ def genLine(linenum, digits):
 
 
 def Highlight(code: str, opts={}):
-    lexer = Lexer.Lexer("#", "</", "/>", True, True)
+    lexer = Lexer.Lexer("#", "</", "/>", None, True, True)
     lexer.tokenize(code)
     line = opts.get('startline', 1)
     output = (styles['background'] if opts.get('background', False) else ''
@@ -101,7 +101,7 @@ def print_error(type: str, pos, msg, didyoumean, err_trace, code):
     underline = (underline_start - 1) * ' ' + "―" * (underline_end - underline_start + 1)
     marker = (marker_pos - 1) * ' ' + '^' * (marker_length)
     underline_str = ""
-
+    #Maybe change the arrow? ▲, ^, ^
     # whats this big for loop
     # This code helped me fix a few bugs
     #It basicly is just a different implementation of what the code was already suppossed to do, and it fixed a couple bugs
@@ -170,6 +170,7 @@ def print_error(type: str, pos, msg, didyoumean, err_trace, code):
 class ErrorHandler:
     def __init__(self, code, filename, py_error=False):
         self.code = code
+        self.codelines = code.split('\n')
         self.filename = filename
         self.py_error = py_error
 

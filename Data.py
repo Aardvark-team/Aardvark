@@ -24,18 +24,6 @@ TokenTypes = {
 }
 
 
-class Group:
-
-    def __init__(self, t):
-        self.type = t
-        self.tokens = [[]]
-
-    def append(self, token, line=-1):
-        self.tokens[line].append(token)
-
-    def newline(self):
-        self.tokens.append([])
-
 
 Booleans = {"true", "false"}
 
@@ -123,7 +111,6 @@ Delimiters = {
     "[",  #lbracket
     "]",  #rbracket
     ".",  #period,
-    ';',  #newline
 }
 
 Keywords = {
@@ -134,6 +121,8 @@ Keywords = {
     'function',
     'for',
     'while',
+    'switch',
+    'case',
     'if',
     'else',  #Blocks
     'return',
@@ -141,8 +130,9 @@ Keywords = {
     'static',
     'include',
     'async',
-    'yield',  
-    'let', #Statements
+    'yield', 
+    'defer',
+    #'let', #Statements
     'as',
     'from',#other
 }

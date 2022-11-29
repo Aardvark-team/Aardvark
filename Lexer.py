@@ -1,5 +1,5 @@
-from Data import TokenTypes, Operators, Keywords, Quotes, Whitespaces, PureOperators, Booleans
-
+from Data import TokenTypes, Operators, Keywords, Quotes, Whitespaces, PureOperators, Booleans, Delimiters
+import Error
 
 class Token:
 
@@ -28,12 +28,13 @@ class Token:
 
     def __repr__(self):
         return f"Token({self.type.name}, '{self.value}', from {self.start['line']}:{self.start['col']} to {self.end['line']}:{self.end['col']})"
-        #return f"{self.type.name} at ({self.start}, {self.end}) on line #{self.line+1}: \"{self.value}\"\n"
 
 
 class Lexer:
 
-    def __init__(self, singleline:str, multilines:str, multilinee:str, useIndents=False, tokenizeComments=False):
+    def __init__(self, singleline:str, multilines:str, multilinee:str, 
+                 errorhandler:Error.ErrorHandler, useIndents=False, tokenizeComments=False):
+        self.errorhandler = errorhandler
         self.useIndents = useIndents
         self.comment = singleline
         self.commentstart = multilines
@@ -62,9 +63,7 @@ class Lexer:
 
     def isDelimiter(self, char=None):
         char = char or self.curChar
-        return (char == ":" or char == "(" or char == ")" or char == ","
-                or char == "{" or char == "}" or char == "[" or char == "]"
-                or char == ".")
+        return char in Delimiters
 
     def detect(self, text):
         if self.curChar == text[0]:
@@ -153,27 +152,28 @@ class Lexer:
                 value = ''
                 seen_dot = False
                 while (self.isNumber() or self.curChar == ".") and not self.AtEnd:
-                    if seen_dot and self.curChar == ".":
+                    if seen_dot and self.curChar == "." and self.errorhandler: # TODO: replace with native errors
                         raise Exception("invalid syntax, floats can only have one '.'")
                     if self.curChar == ".": seen_dot = True
                     value += self.curChar
                     self.advance()
-				
                 self.advance(-1)
+                if value[-1] == '.' and self.errorhandler:
+                    didyoumean = self.data.split('\n')[self.line - 1][:self.column - len(value)] + value[:-1] + self.data.split('\n')[self.line - 1][self.column:]
+                    self.errorhandler.throw('Syntax', 'Numbers cannot end with a .', {
+                      'lineno': self.line,
+                      'marker': {
+                        'start': self.column,
+                        'length': 1
+                      },
+                      'underline': {
+                        'start': self.column - len(value),
+                        'end': self.column+1
+                      },
+                      'did_you_mean': didyoumean
+                    })
                 self.addToken("Number", start, self.index, self.line,
                               startcolumn, self.column, value)
-
-            #Single line comments
-            elif self.detect(self.comment):
-                value = ""
-                start = self.index
-                startcolumn = self.column
-                while not self.isNewline() and not self.AtEnd:
-                    value+=self.curChar
-                    self.advance()
-                if self.tokenizeComments:
-                  self.addToken("Comment", start, self.index, self.line, startcolumn, self.column, value)
-                self.advance(-1)  #To register the new line
 
             #Multi-line comments
             elif self.detect(self.commentstart):
@@ -187,6 +187,19 @@ class Lexer:
                   self.addToken("Comment", start, self.index, self.line, startcolumn, self.column, value)
                 self.advance(len(self.commentend))  # To skip past the />
 
+              
+            #Single line comments
+            elif self.detect(self.comment):
+                value = ""
+                start = self.index
+                startcolumn = self.column
+                while not self.isNewline() and not self.AtEnd:
+                    value+=self.curChar
+                    self.advance()
+                if self.tokenizeComments:
+                  self.addToken("Comment", start, self.index, self.line, startcolumn, self.column, value)
+                self.advance(-1)  #To register the new line
+
             #Strings
             elif self.isString():
                 variation = self.curChar
@@ -195,8 +208,9 @@ class Lexer:
                 startcolumn = self.column
                 while not self.AtEnd:
                     self.advance()
-                    if (self.curChar == variation
-                            and value[-1] != '\\') or self.AtEnd:
+                    if (self.curChar == variation and (len(value) > 0 and value[-1] == '\\') and not self.AtEnd):
+                        value = value[:-1]+self.curChar
+                    elif self.curChar == variation or self.AtEnd:
                         break
                     value += self.curChar
                 
@@ -221,7 +235,7 @@ class Lexer:
                 value = ''
                 start = self.index
                 startcolumn = self.column
-                while self.otherwise() and not self.AtEnd:
+                while (self.otherwise() or self.isNumber()) and not self.AtEnd:
                     value += self.curChar
                     self.advance()
                 self.advance(-1)
@@ -252,9 +266,6 @@ class Lexer:
         self.column += amt
         if self.index < len(self.data): self.curChar = self.data[self.index]
         else: self.AtEnd = True
-
-    def advanceTok(self):
-        self.advance(self.output[-1][-1].length)
 
     def peek(self, amt=1):
         if self.index + amt < len(self.data):

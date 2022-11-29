@@ -1,10 +1,10 @@
 function x(val) as this { #Test
-    stdout.write(val)
+    stdout.write(val, '\n')
     return null #Note the static return value
 }
 
-let y = x(8*"Hello")
+y = x(8*"Hello")
 
-if y = null { #x always returns null, y is always the return value of x, y always = null
-    stdout.write(y)
+if y == null { #x always returns null, y is always the return value of x, y always = null
+    stdout.write(y, '\n')
 }

@@ -1,0 +1,12 @@
+
+let a = 5
+
+if a > 2 {
+  stdout.write(a, "\n")
+
+  let a = 10
+
+  stdout.write(a, "\n")
+}
+
+stdout.write(a, "\n")

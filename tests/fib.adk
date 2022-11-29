@@ -1,14 +1,14 @@
-stdout.write("Hello World!\n")
+#stdout.write("Hello World!\n")
 
 function fib(n) -> int {
-  stdout.write(n, '\n')
-  if n == 0 {
+  if n <= 0 {
     return 0
-  } else if n == 1 {
+  } 
+  if n == 1 {
     return 1
   }
   return fib(n - 1) + fib(n - 2)
-} 
+}
 
-let num = 3
-fib(num)
+num = 7
+stdout.write('Fib of', num, 'is', fib(num), "\n")

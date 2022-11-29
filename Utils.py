@@ -56,7 +56,7 @@ if __name__ == "__main__":
 
     text = """function exampleAst() -> int {}"""
 
-    lexer = Lexer.Lexer("#", "</", "/>", False)
+    lexer = Lexer.Lexer("#", "</", "/>", None, False)
     lexer.tokenize(text)
     
     # print("".join([ str(x) for x in lexer.output ]))

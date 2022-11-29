@@ -1,0 +1,37 @@
+stdout.write('Compact if works.') if true else stdout.write('Booleans don't work.\n')
+
+let x = ''
+
+x = x + 'x'
+
+switch x {
+  case ('x') stdout.write('switch case works.\n')
+  case (in 'xyz') stdout.write('switch case strict compare works.\n')
+}
+
+if ('x' not in 'xyz') stdout.write("not in doesn't work")
+
+function Test(a = 5, b = 2) {
+  stdout.write(a, b, '\n')
+  if (a == 5) return b
+}
+
+stdout.write('The following value should be 2:', Test(5), '\n')
+
+stdout.write("A help message shoule be printed out below:\n")
+help(stdout)
+
+y = @x
+
+y = 't'
+
+stdout.write('The following value should be "t":', x, '\n')
+
+stdout.write('The following value should be 5', ~5.33, '\n')
+
+#*
+stdout.write("You should not see this message.\n")
+*#
+# stdout.write("You should not see this message.\n")
+
+#Add more tests later.

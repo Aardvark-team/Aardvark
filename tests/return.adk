@@ -1,0 +1,18 @@
+depth = ''
+function test(x) {
+  stdout.write(depth, 'x is', x, '\n')
+  if x <= 0 {
+    stdout.write(depth, 'ret 0\n')
+    depth = slice(depth, 0, -1)
+    return 0
+  }
+  if x == 1 {
+    stdout.write(depth, 'ret 1\n')
+    depth = slice(depth, 0, -1)
+    return 1
+  }
+  depth = depth + '  '
+  return test(x-1) + test(x-2)
+}
+
+stdout.write('\nis', test(3), '\n')

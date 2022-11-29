@@ -1,6 +1,7 @@
 from Data import TokenTypes, OrderOfOps
-from Error import Highlight, styles
+import Error
 from sty import fg
+from Types import Null
 
 import random
 
@@ -9,16 +10,16 @@ type_helper = {}
 type_helper["Operator"] = "<operator>"
 type_helper["Boolean"] = "<true | false>"
 type_helper["Identifier"] = "<identifier>"
-type_helper["LineBreak"] = ""
-type_helper["Number"] = "<number>"
-type_helper["String"] = '<string>'
+type_helper["LineBreak"] = "\n"
+type_helper["Number"] = "<Number>"
+type_helper["String"] = '<String>'
 type_helper["ValueType"] = "<String | Int>"
 
 class Parser:
 
-    def __init__(self, code, err_handler, lexer):
-        self.code = code
-        self.codelines = code.split('\n')
+    def __init__(self, err_handler, lexer):
+        self.code = lexer.data
+        self.codelines = self.code.split('\n')
         self.tokens = lexer.output
         self.pos = 0
         self.err_handler = err_handler
@@ -74,10 +75,10 @@ class Parser:
                     'end': line_len + 1
                 },
 
-                'did_you_mean': Highlight(curr_line, {
+                'did_you_mean': Error.Highlight(curr_line, {
                     "background": None,
                     "linenums": None
-                }) + styles["suggestion"] + line_end + fg.rs
+                }) + Error.styles["suggestion"] + line_end + fg.rs
             }
         )
 
@@ -108,9 +109,9 @@ class Parser:
         replacement = " " + value_type
         end_pos = max(next_tok.start["col"] + len(replacement), next_tok.end["col"] + 1)
 
-        curr_line = curr_line[:next_tok.start["col"]].rstrip() + \
+        curr_line = curr_line[:next_tok.start["col"]-1].rstrip() + \
                     replacement + \
-                    curr_line[end_pos:]
+                    curr_line[end_pos-1:]
 
         self.err_handler.throw(
             "Syntax",
@@ -140,10 +141,12 @@ class Parser:
     def parseListLike(self, delim, closer):
         items = []
         while self.peek() and not self.compare(*closer):
+            while self.compare(TokenTypes["LineBreak"]): self.advance()
             if len(items) > 0:
                 self.eat(TokenTypes["Delimiter"], delim)
+            while self.compare(TokenTypes["LineBreak"]): self.advance()
 
-            items.append(self.pExpression())
+            items.append(self.pStatement())
         return items
 
     # Eats a list of statements contained in { and }
@@ -153,8 +156,7 @@ class Parser:
 
         while self.peek() and not self.compare(TokenTypes["Delimiter"], "}"):
             if len(body) > 0: self.eat(TokenTypes["LineBreak"])
-            while self.compare(TokenTypes["LineBreak"]):
-                self.advance()
+            while self.compare(TokenTypes["LineBreak"]): self.advance()
             if self.compare(TokenTypes["Delimiter"], "}"): break
 
             body.append(self.pStatement())
@@ -211,6 +213,9 @@ class Parser:
                 "positions": {
                     "start": tok.start,
                     "end": tok.end
+                },
+                'tokens': {
+                  'value': value
                 }
             }
 
@@ -254,7 +259,7 @@ class Parser:
 
         elif tok.type == TokenTypes["Delimiter"] and tok.value == "(":
             self.eat(tok.type)
-            ast_node = self.pExpression()
+            ast_node = self.pStatement()
             self.eat(TokenTypes["Delimiter"], ")")
 
         elif tok.type == TokenTypes['Keyword'] and tok.value == 'function':
@@ -264,24 +269,6 @@ class Parser:
             ast_node = self.pClassDefinition()
 
         if ast_node:
-            if self.peek() and self.peek(
-            ).type == TokenTypes["Operator"] and self.peek().value in [
-                    "=", "<", ">", "<=", "=>", "!="
-            ]:
-                op = self.eat(TokenTypes["Operator"])
-                right = self.pExpression()
-
-                ast_node = {
-                    "type": "LogicalExpression",
-                    "operator": op.value,
-                    "left": ast_node,
-                    "right": right,
-                    "positions": {
-                        "start": ast_node["positions"]["start"],
-                        "end": right["positions"]["end"]
-                    }
-                }
-
             while self.compare(TokenTypes["Delimiter"], "."):
                 self.eat(TokenTypes["Delimiter"])
                 property_name = self.eat(TokenTypes["Identifier"])
@@ -293,6 +280,9 @@ class Parser:
                     "positions": {
                         "start": ast_node["positions"]["start"],
                         "end": property_name.end
+                    },
+                    'tokens' : {
+                      'property': property_name,
                     }
                 }
 
@@ -304,7 +294,50 @@ class Parser:
                     ast_node["arguments"] = arguments
                     ast_node["type"] = "MethodCall"
                     ast_node["positions"]["end"] = last.end
-
+            # 5x, number-var mult
+            if self.compare('Identifier') and self.peek().start['col'] == ast_node['positions']['end']['col']+1:
+              var = self.eat(TokenTypes["Identifier"])
+              ast_node = {
+                "type": "Multiply",
+                'number': ast_node,
+                'variable': var.value,
+                "positions": {
+                    "start": ast_node["positions"]["start"],
+                    "end": var.end
+                },
+                'tokens': {
+                  'variable': var,
+                }
+              }
+            elif self.compare('Identifier'):
+              print(ast_node['positions']['end'], self.peek().start)
+            #Inline ifs
+            if self.compare(TokenTypes['Keyword'], 'if'):
+              if_ast = self.pIfStatement(True)
+              if_ast['body'] = ast_node
+              ast_node = if_ast
+            #Indexes
+            if self.compare('Delimiter', '['):
+              self.eat('Delimiter')
+              property = self.pExpression()
+              self.eat('Delimiter')
+              ast_node = {
+                'type': 'Index',
+                'property': property,
+                'value': ast_node,
+                'positions': {
+                  'start': ast_node['positions']['start'],
+                  'end': property['positions']['end'] if property else ast_node['positions']['end']
+                }
+              }
+            #Types
+            if self.compare('Delimiter', ':'):
+              self.eat('Delimiter')
+              type = self.pExpression()
+              ast_node['valuetype'] = type
+              ast_node['positions']['end'] = type['positions']['end']
+            #TODO: add a, b, c
+            
             return ast_node
         if require:
           # Throw an error
@@ -318,7 +351,7 @@ class Parser:
               'start': tok.end['col'],
               'end': len(self.codelines[tok.end['line']-1])
             },
-            'did_you_mean': Highlight(self.codelines[tok.end['line']-1], {'background':None, 'linenums':False}) + styles['suggestion'] + ' <statement>' + fg.rs
+            'did_you_mean': Error.Highlight(self.codelines[tok.end['line']-1], {'background':None, 'linenums':False}) + Error.styles['suggestion'] + ' <statement>' + fg.rs
           })
           raise Exception(
               f"Unexpected token {tok.type.name.upper()}, expected STRING, NUMBER, ARRAY, SET, FUNCTION CALL or IDENTIFIER."
@@ -363,11 +396,9 @@ class Parser:
             name = None
             if self.compare(TokenTypes["Identifier"]):
                 name = self.eat(TokenTypes["Identifier"]).value
-            else:
-                name = self.eat(TokenTypes["String"]).value
 
             self.eat(TokenTypes["Delimiter"], ":")
-            value = self.pExpression()
+            value = self.pStatement()
 
             obj[name] = value
 
@@ -515,11 +546,16 @@ class Parser:
         starter = self.eat("Keyword", "extending")
         obj_name = self.eat("Identifier")
 
-        if not self.compare("Delimiter", "{"):
-            raise Exception("Syntax error: Unexpected token " +
+        if self.compare("Delimiter", "{"):
+          obj = self.pObject(self.peek())
+        elif self.compare('Delimiter', '['):
+          obj = self.pArray(self.peek())
+        elif self.compare('Identifier', 'set'):
+          self.eat('Identifier')
+          obj = self.pSet(self.peek())
+        else:
+          raise Exception("Syntax error: Unexpected token " +
                             str(self.peek().type).upper())
-
-        obj = self.pObject(self.peek())
         return {
             "type": "ExtendingStatement",
             "name": obj_name.value,
@@ -534,45 +570,13 @@ class Parser:
     # 	return Expression
     def pReturnStatement(self):
         starter = self.eat(TokenTypes["Keyword"], "return")
-        return_value = self.pExpression()
+        return_value = self.pStatement()
         return {
             "type": "ReturnStatement",
             "value": return_value,
             "positions": {
                 "start": starter.start,
-                "end": return_value["positions"]["end"]
-            }
-        }
-
-    # VariableDefinition:
-    #   let [identifier] = [expression]
-    # 	let [identifier] [identifier] = [expression]
-    def pVariableDefinition(self):
-        keyword = self.eat(TokenTypes["Keyword"], "let")
-        var_type = self.eat(TokenTypes["Identifier"], is_type = True) if self.compare(
-            TokenTypes["Identifier"]) else None
-        var_name = None
-
-        if self.compare(TokenTypes["Operator"], "="):
-            var_name = var_type
-            var_type = None
-        else:
-            var_name = self.eat(TokenTypes["Identifier"])
-
-        if not var_name:
-            var_name = self.eat(TokenTypes["Identifier"])
-
-        self.eat(TokenTypes["Operator"], "=")
-        var_value = self.pExpression()
-
-        return {
-            "type": "VariableDefinition",
-            "name": var_name.value,
-            "value_type": var_type.value if var_type else None,
-            "value": var_value,
-            "positions": {
-                "start": keyword.start,
-                "end": var_value["positions"]["end"]
+                "end": return_value["positions"]["end"] if return_value else starter.end
             }
         }
 
@@ -603,13 +607,15 @@ class Parser:
     # IfStatement:
     #	if condition BlockScope [ else BlockScope ]
     #   if condition BlockScope [ else Statement ]
-    def pIfStatement(self):
+    def pIfStatement(self, inline=False):
         starter = self.eat(TokenTypes["Keyword"], "if")
         condition = self.pExpression()
-
-        if self.compare(TokenTypes["Delimiter"], "{"):
+        body = None
+        lasti = condition["positions"]["end"]
+      
+        if self.compare(TokenTypes["Delimiter"], "{") and not inline:
             body, lasti = self.eatBlockScope()
-        else:
+        elif not inline:
             statm = self.pStatement(True)
             body = [statm]
             lasti = statm["positions"]["end"]
@@ -676,8 +682,8 @@ class Parser:
         if self.compare('Delimiter', '{'):
           body, lasti = self.eatBlockScope()
         else:
-          body = self.pStatement(require = True)
-          lasti = body["positions"]["end"]
+          body = [self.pStatement(require=True)]
+          lasti = body[0]["positions"]["end"]
         return {
             'type': 'ForLoop',
             'declarations': declarations,
@@ -821,11 +827,68 @@ class Parser:
             }
         }
 
+      
+    # Statement:
+    #   Case
+    def pCaseStatement(self):
+      starter = self.eat('Keyword', 'case')
+      compare = self.pExpression()
+      #ADD the case in y, case == 5 later
+      
+      if self.compare('Delimiter', '{'):
+        body, lati = self.eatBlockScope()
+      else:
+        body = [self.pStatement(require=True)]
+        lasti = body[0]['positions']['end']
+      return {
+        'type': 'CaseStatement',
+        'compare': compare,
+        'body': body,
+        'positions': {
+          'start': starter.start,
+          'end': lasti
+        }
+      }
+      
+    #Statement Switch
+    def pSwitchCase(self):
+      starter = self.eat('Keyword', 'switch')
+      value = self.pExpression()
+      self.eat('Delimiter', '{')
+      body = []
+      
+      while not self.compare('Delimiter', '}'):
+          while self.compare('LineBreak'):
+            self.eat('LineBreak')
+          body.append(self.pCaseStatement())
+          while self.compare('LineBreak'):
+            self.eat('LineBreak')
+        
+      close = self.eat('Delimiter', '}')
+      
+      return {
+        'type': 'SwitchStatement',
+        'body': body,
+        'value': value,
+        'positions': {
+         'start': starter.start,
+          'end': close.end
+        }
+      }
+    def pDeferStatement(self):
+      starter = self.eat('Keyword')
+      value = self.pExpression()
+      return {
+        'type': 'DeferStatement',
+        'value': value,
+        'positions': {
+          'start': starter.start,
+          'end': value['positions']['end'] if value else starter.end
+        }
+      }
     # Statement:
     # 	VariableDefinition
     def pStatement(self, require=False):
-        if self.compare(TokenTypes["Keyword"], "let"):
-            return self.pVariableDefinition()
 
         if self.compare(TokenTypes["Keyword"], "function"):
             return self.pFunctionDefinition()
@@ -833,6 +896,9 @@ class Parser:
         if self.compare(TokenTypes["Keyword"], "return"):
             return self.pReturnStatement()
 
+        if self.compare(TokenTypes["Keyword"], "defer"):
+            return self.pDeferStatement()
+          
         if self.compare(TokenTypes["Keyword"], "if"):
             return self.pIfStatement()
 
@@ -853,7 +919,10 @@ class Parser:
 
         if self.compare(TokenTypes["Keyword"], "class"):
             return self.pClassDefinition()
-
+          
+        if self.compare(TokenTypes["Keyword"], "switch"):
+          return self.pSwitchCase()
+          
         return self.pExpression(require=require)
 
     # Program:
@@ -885,3 +954,17 @@ class Parser:
     def parse(self):
         # Return a single statement for now.
         return self.pProgram()
+
+
+
+
+
+
+"""
+When design is done, these should be true
+|
+|                      Operation                       | Lines
+---------------------------------------------------------------
+| Add 1 to every item in a list                        | 1
+| Get all values from x, y to x2, y2 in a 2d array     | 1
+"""
