@@ -25,7 +25,8 @@
  - [x] Remove let
  - [ ] Add `x, y, z = a` and deconstruction
  - [x] Inline ifs
- - [x] Switch Case
+ - [x] Switch Case (basic)
+ - [ ] Switch Case (full)
  - [x] Include statement
  - [x] Function definition
  - [x] anynomous functions 
@@ -51,10 +52,12 @@
 
 # Execution
 - [x] Remove let 
-- [ ] For loops
+- [x] For loops
 - [x] Return
+- [x] defer
 - [ ] Implement everything
-- [ ] switch case
+- [x] switch case (basic)
+- [ ] switch case (full)
 - [x] this/self/whatever
 - [ ] Finish Types
 - [ ] Add traceback

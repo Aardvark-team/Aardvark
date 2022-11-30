@@ -228,11 +228,48 @@ class Function(Type):
     def __call__(self, *args):
         return self.funct(*args)
 
+      
+class Array(Type, list):
+    def __init__(self, value):
+
+        self.vars = {
+            # methods and attributes here
+        }
+        list.__init__([])
+        for i in value:
+          self.append(i)
+
+      
+class Set(Type, list):
+    def __init__(self, value):
+
+        self.vars = {
+            # methods and attributes here
+        }
+        list.__init__([])
+        for i in value:
+          if i not in self:
+            self.append(i)
+          #x = set{1, 2, 3}
+    def __repr__(self):
+      s = ''
+      for i in self:
+        s += str(i) + ', '
+      s = s[:-2]
+      return f'set{{{s}}}'
+      
+    def __str__(self):
+      s = ''
+      for i in self:
+        s += str(i) + ', '
+      s = s[:-2]
+      return f'set{{{s}}}'
+
 
 # TODO: Add: Array, Set, more...
 Null = __Null()
 
-Types = [Object, Scope, Type, __Null, Number, String, Function, Boolean]
+Types = [Object, Scope, Type, __Null, Number, String, Function, Boolean, Set, Array]
 
 
 def pyToAdk(py):
@@ -246,6 +283,10 @@ def pyToAdk(py):
         return Number(py)
     elif isinstance(py, str):
         return String(py)
+    elif isinstance(py, list):
+        return Array(py)
+    elif isinstance(py, set):
+        return Set(py)
     elif isinstance(py, types.FunctionType):
         return Function(py)
     else:

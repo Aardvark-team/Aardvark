@@ -9,7 +9,7 @@ from Operators import Operators
 import random
 import math
 from nltk import edit_distance
-from Types import Null, Object, Scope, Number, String, Boolean, pyToAdk, Function
+from Types import Null, Object, Scope, Number, String, Boolean, pyToAdk, Function, Set, Array
 
 def get_call_scope(scope):
     call_scope = [ "scope " + str(id(scope)) ]
@@ -131,9 +131,9 @@ class Executor:
           obj[k] = self.ExecExpr(v, scope)
         return obj
       case { 'type': 'Set' }:
-        return {self.ExecExpr(item, scope) for item in expr['items']}
+        return Set({self.ExecExpr(item, scope) for item in expr['items']})
       case { 'type': 'Array' }:
-        return [self.ExecExpr(item, scope) for item in expr['items']]
+        return Array([self.ExecExpr(item, scope) for item in expr['items']])
       case { 'type': 'DeleteStatement' }:
           self.getVar(scope, expr['target']['value'], expr['target']['positions']['start'])
           del scope[expr['name']]
@@ -199,10 +199,7 @@ class Executor:
               i = next(item)
               self.defineVar(d['names'][0], i, scope)
               self.defineVar(d['names'][1], iterable[i], scope)
-          #TODO: Define the varaibles.
-          #for x in [0, 2] stdout.write(x)
-          #for x, y in [[0, 1], [2, 3]] stdout.write(x, y, '\n')
-          #for k:v in {x: 5, y: 6} stdout.write(k, v, '\n')
+
           ret = self.Exec(expr['body'], forscope)
         return ret
       case {'type': 'CaseStatement'}:
