@@ -42,6 +42,7 @@ class Executor:
       'dir': lambda x=None: x.vars if x else self.Global.vars,
       'null': Null,
       'help': help,
+      'sequence': lambda start, step, times: [(start+x*step) for x in range(times)],
       'Math': Object({
         'pi': math.pi,
         'π': math.pi,

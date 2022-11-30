@@ -238,7 +238,7 @@ class Array(Type, list):
         }
         list.__init__([])
         for i in value:
-          self.append(i)
+          self.append(pyToAdk(i))
 
       
 class Set(Type, list):
@@ -253,7 +253,7 @@ class Set(Type, list):
         list.__init__([])
         for i in value:
           if i not in self:
-            self.append(i)
+            self.append(pyToAdk(i))
           #x = set{1, 2, 3}
     def __repr__(self):
       s = ''
