@@ -7,6 +7,7 @@ from Lexer import Token
 import sys
 from Operators import Operators
 import random
+import math
 from nltk import edit_distance
 from Types import Null, Object, Scope, Number, String, Boolean, pyToAdk, Function
 
@@ -22,6 +23,7 @@ class Executor:
     self.codelines = code.split('\n')
     self.ast = ast
     self.traceback = []
+    self.switch = None
     self.Global = Scope({
       'stdout': Object({
         'write': lambda *args: print(*args, end=""), #Just simple for now
@@ -39,7 +41,15 @@ class Executor:
       'dir': lambda x=None: x.vars if x else self.Global.vars,
       'null': Null,
       'Math': Object({
-        
+        'pi': math.pi,
+        'π': math.pi,
+        'e': math.e,
+        'tau': math.tau,
+        'round': round,
+        'abs': abs,
+        'factorial': math.factorial,
+        'foor': math.floor,
+        'ceil': math.ceil,
       })
     }) #Define builtins here
     #TODO: implement more builtins.
@@ -188,6 +198,14 @@ class Executor:
           #TODO: Define the varaibles.
           ret = self.Exec(expr['body'], forscope)
         return ret
+      case {'type': 'CaseStatement'}:
+        if self.switch == self.ExecExpr(expr['compare'], scope):
+          casescope = Scope({}, parent = scope)
+          self.Exec(expr['body'], casescope)
+      case {'type': 'SwitchStatement'}:
+        switchscope = Scope({}, parent = scope)
+        self.switch = pyToAdk(self.ExecExpr(expr['value'], scope))
+        self.Exec(expr['body'], scope)
       case { 'type': 'FunctionDefinition' }:
         funct = self.makeFunct(expr, scope)
         return funct

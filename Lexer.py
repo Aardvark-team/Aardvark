@@ -1,25 +1,36 @@
-from Data import TokenTypes, Operators, Keywords, Quotes, Whitespaces, PureOperators, Booleans, Delimiters
+from Data import (
+    TokenTypes,
+    Operators,
+    Keywords,
+    Quotes,
+    Whitespaces,
+    PureOperators,
+    Booleans,
+    Delimiters,
+)
 import Error
 
-class Token:
 
-    def __init__(self,
-                 toktype,
-                 start: int,
-                 end: int,
-                 line: int,
-                 columnstart: int,
-                 columnend: int,
-                 value=None,
-                 variation=None):
+class Token:
+    def __init__(
+        self,
+        toktype,
+        start: int,
+        end: int,
+        line: int,
+        columnstart: int,
+        columnend: int,
+        value=None,
+        variation=None,
+    ):
         if type(toktype) == str:
             toktype = TokenTypes[toktype]
         self.columnstart = columnstart
         self.columnend = columnend
         self.type = toktype
         self.length = end - start
-        self.start = { "line": line, "col": columnstart }
-        self.end = { "line": line, "col": columnend }
+        self.start = {"line": line, "col": columnstart}
+        self.end = {"line": line, "col": columnend}
         self.start_index = start
         self.end_index = end
         self.value = value
@@ -31,9 +42,15 @@ class Token:
 
 
 class Lexer:
-
-    def __init__(self, singleline:str, multilines:str, multilinee:str, 
-                 errorhandler:Error.ErrorHandler, useIndents=False, tokenizeComments=False):
+    def __init__(
+        self,
+        singleline: str,
+        multilines: str,
+        multilinee: str,
+        errorhandler: Error.ErrorHandler,
+        useIndents=False,
+        tokenizeComments=False,
+    ):
         self.errorhandler = errorhandler
         self.useIndents = useIndents
         self.comment = singleline
@@ -76,7 +93,7 @@ class Lexer:
 
     def isNumber(self, char=None):
         char = char or self.curChar
-        return (char in "0123456789")
+        return char in "0123456789"
 
     def addToken(self, *args, **kwargs):
         self.output.append(Token(*args, **kwargs))
@@ -84,12 +101,16 @@ class Lexer:
 
     def otherwise(self, char=None):
         char = char or self.curChar
-        return not (self.isWhitespace(char) or self.isDelimiter(char)
-                    or self.isNewline(char) or char == self.comment
-                    or char in PureOperators)
+        return not (
+            self.isWhitespace(char)
+            or self.isDelimiter(char)
+            or self.isNewline(char)
+            or char == self.comment
+            or char in PureOperators
+        )
 
     def newline(self):
-        #Self.empty means that we are on an empty line
+        # Self.empty means that we are on an empty line
         self.empty = True
         self.line += 1
         self.column = 1
@@ -98,31 +119,33 @@ class Lexer:
         """
         Takes code and converts it to tokens.
         """
-        if not data: 
-          self.output = []
-          return []
+        if not data:
+            self.output = []
+            return []
         self.data += data
         self.curChar = self.data[self.index]
         while self.index < len(self.data):
 
-            #Newlines (\n or ;)
+            # Newlines (\n or ;)
             if self.isNewline():
-                self.addToken('LineBreak',
-                              start=self.index,
-                              end=self.index,
-                              line=self.line,
-                              value=self.curChar,
-                              variation=self.curChar,
-                              columnstart=self.column,
-                              columnend=self.column)
-                if self.curChar == '\n':
-                    self.newline()  #Only incremnet the line if its a \n
+                self.addToken(
+                    "LineBreak",
+                    start=self.index,
+                    end=self.index,
+                    line=self.line,
+                    value=self.curChar,
+                    variation=self.curChar,
+                    columnstart=self.column,
+                    columnend=self.column,
+                )
+                if self.curChar == "\n":
+                    self.newline()  # Only incremnet the line if its a \n
                 else:
                     self.empty = True
 
-            #Indents
+            # Indents
             elif self.isWhitespace() and self.empty and self.useIndents:
-                value = ''
+                value = ""
                 start = self.index
                 startcolumn = self.column
                 while self.isWhitespace() and not self.AtEnd:
@@ -130,52 +153,76 @@ class Lexer:
                     self.advance()
                 if not self.isNewline():
                     self.advance(-1)
-                    self.addToken("Indent",
-                                  start,
-                                  self.index,
-                                  self.line,
-                                  value = value,
-                                  columnstart=startcolumn,
-                                  columnend=self.column)
+                    self.addToken(
+                        "Indent",
+                        start,
+                        self.index,
+                        self.line,
+                        value=value,
+                        columnstart=startcolumn,
+                        columnend=self.column,
+                    )
                 else:
                     self.advance(-1)
 
-            #Delimiters
+            # Delimiters
             elif self.isDelimiter():
-                self.addToken("Delimiter", self.index, self.index, self.line,
-                              self.column, self.column, self.curChar)
+                self.addToken(
+                    "Delimiter",
+                    self.index,
+                    self.index,
+                    self.line,
+                    self.column,
+                    self.column,
+                    self.curChar,
+                )
 
-            #Numbers
+            # Numbers
             elif self.isNumber():
                 start = self.index
                 startcolumn = self.column
-                value = ''
+                value = ""
                 seen_dot = False
                 while (self.isNumber() or self.curChar == ".") and not self.AtEnd:
-                    if seen_dot and self.curChar == "." and self.errorhandler: # TODO: replace with native errors
+                    if (
+                        seen_dot and self.curChar == "." and self.errorhandler
+                    ):  # TODO: replace with native errors
                         raise Exception("invalid syntax, floats can only have one '.'")
-                    if self.curChar == ".": seen_dot = True
+                    if self.curChar == ".":
+                        seen_dot = True
                     value += self.curChar
                     self.advance()
                 self.advance(-1)
-                if value[-1] == '.' and self.errorhandler:
-                    didyoumean = self.data.split('\n')[self.line - 1][:self.column - len(value)] + value[:-1] + self.data.split('\n')[self.line - 1][self.column:]
-                    self.errorhandler.throw('Syntax', 'Numbers cannot end with a .', {
-                      'lineno': self.line,
-                      'marker': {
-                        'start': self.column,
-                        'length': 1
-                      },
-                      'underline': {
-                        'start': self.column - len(value),
-                        'end': self.column+1
-                      },
-                      'did_you_mean': didyoumean
-                    })
-                self.addToken("Number", start, self.index, self.line,
-                              startcolumn, self.column, value)
+                if value[-1] == "." and self.errorhandler:
+                    didyoumean = (
+                        self.data.split("\n")[self.line - 1][: self.column - len(value)]
+                        + value[:-1]
+                        + self.data.split("\n")[self.line - 1][self.column :]
+                    )
+                    self.errorhandler.throw(
+                        "Syntax",
+                        "Numbers cannot end with a .",
+                        {
+                            "lineno": self.line,
+                            "marker": {"start": self.column, "length": 1},
+                            "underline": {
+                                "start": self.column - len(value),
+                                "end": self.column + 1,
+                            },
+                            "did_you_mean": didyoumean,
+                        },
+                    )
+                self.addToken(
+                    "Number",
+                    start,
+                    self.index,
+                    self.line,
+                    startcolumn,
+                    self.column,
+                    value,
+                )
 
-            #Multi-line comments
+            # Multi-line comments
             elif self.detect(self.commentstart):
                 value = ""
                 start = self.index
@@ -184,23 +231,38 @@ class Lexer:
                     value += self.curChar
                     self.advance()
                 if self.tokenizeComments:
-                  self.addToken("Comment", start, self.index, self.line, startcolumn, self.column, value)
+                    self.addToken(
+                        "Comment",
+                        start,
+                        self.index,
+                        self.line,
+                        startcolumn,
+                        self.column,
+                        value,
+                    )
                 self.advance(len(self.commentend))  # To skip past the />
 
-              
-            #Single line comments
+            # Single line comments
             elif self.detect(self.comment):
                 value = ""
                 start = self.index
                 startcolumn = self.column
                 while not self.isNewline() and not self.AtEnd:
-                    value+=self.curChar
+                    value += self.curChar
                     self.advance()
                 if self.tokenizeComments:
-                  self.addToken("Comment", start, self.index, self.line, startcolumn, self.column, value)
-                self.advance(-1)  #To register the new line
+                    self.addToken(
+                        "Comment",
+                        start,
+                        self.index,
+                        self.line,
+                        startcolumn,
+                        self.column,
+                        value,
+                    )
+                self.advance(-1)  # To register the new line
 
-            #Strings
+            # Strings
             elif self.isString():
                 variation = self.curChar
                 value = ""
@@ -208,31 +270,50 @@ class Lexer:
                 startcolumn = self.column
                 while not self.AtEnd:
                     self.advance()
-                    if (self.curChar == variation and (len(value) > 0 and value[-1] == '\\') and not self.AtEnd):
-                        value = value[:-1]+self.curChar
+                    if (
+                        self.curChar == variation
+                        and (len(value) > 0 and value[-1] == "\\")
+                        and not self.AtEnd
+                    ):
+                        value = value[:-1] + self.curChar
                     elif self.curChar == variation or self.AtEnd:
                         break
                     value += self.curChar
-                
-                self.addToken("String", begin, self.index, self.line,
-                              startcolumn, self.column, value, variation)
 
-            #Operators
+                self.addToken(
+                    "String",
+                    begin,
+                    self.index,
+                    self.line,
+                    startcolumn,
+                    self.column,
+                    value,
+                    variation,
+                )
+
+            # Operators
             elif self.curChar in PureOperators:
-                #If the current character is one of the non-word operators
-                value = ''
+                # If the current character is one of the non-word operators
+                value = ""
                 start = self.index
                 startcolumn = self.column
                 while not self.AtEnd and (value + self.curChar) in Operators:
                     value += self.curChar
                     self.advance()
-                self.advance(-1)  #Go back to a valid character
-                self.addToken("Operator", start, self.index, self.line,
-                              startcolumn, self.column, value)
+                self.advance(-1)  # Go back to a valid character
+                self.addToken(
+                    "Operator",
+                    start,
+                    self.index,
+                    self.line,
+                    startcolumn,
+                    self.column,
+                    value,
+                )
 
-            #Identifiers, Keywords, and Operators.
+            # Identifiers, Keywords, and Operators.
             elif self.otherwise():
-                value = ''
+                value = ""
                 start = self.index
                 startcolumn = self.column
                 while (self.otherwise() or self.isNumber()) and not self.AtEnd:
@@ -240,32 +321,58 @@ class Lexer:
                     self.advance()
                 self.advance(-1)
                 if value in Operators:
-                    self.addToken("Operator", start, self.index, self.line,
-                                  startcolumn, self.column, value)
+                    self.addToken(
+                        "Operator",
+                        start,
+                        self.index,
+                        self.line,
+                        startcolumn,
+                        self.column,
+                        value,
+                    )
                 elif value in Keywords:
-                    self.addToken("Keyword", start, self.index, self.line,
-                                  startcolumn, self.column, value)
+                    self.addToken(
+                        "Keyword",
+                        start,
+                        self.index,
+                        self.line,
+                        startcolumn,
+                        self.column,
+                        value,
+                    )
                 elif value in Booleans:
-                    self.addToken("Boolean", start, self.index, self.line,
-                        startcolumn, self.column, value)
+                    self.addToken(
+                        "Boolean",
+                        start,
+                        self.index,
+                        self.line,
+                        startcolumn,
+                        self.column,
+                        value,
+                    )
                 else:
-                    self.addToken("Identifier",
-                                  start,
-                                  self.index,
-                                  self.line,
-                                  columnstart=startcolumn,
-                                  columnend=self.column,
-                                  value=value)
+                    self.addToken(
+                        "Identifier",
+                        start,
+                        self.index,
+                        self.line,
+                        columnstart=startcolumn,
+                        columnend=self.column,
+                        value=value,
+                    )
 
-            if self.AtEnd: break
-            self.advance()  #Next character and continue the loop
+            if self.AtEnd:
+                break
+            self.advance()  # Next character and continue the loop
         return self.output
 
     def advance(self, amt=1):
         self.index += amt
         self.column += amt
-        if self.index < len(self.data): self.curChar = self.data[self.index]
-        else: self.AtEnd = True
+        if self.index < len(self.data):
+            self.curChar = self.data[self.index]
+        else:
+            self.AtEnd = True
 
     def peek(self, amt=1):
         if self.index + amt < len(self.data):

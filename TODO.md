@@ -37,8 +37,8 @@
  - [x] Classes
 
 ## Expressions / Syntax
- - [ ] Types
- - [ ] Indexes and slicing (x[])
+ - [x] Types
+ - [x] Indexes (x[])
  - [ ] side by side mult: (5)(5), 5x, (7)y, etc...
  - [x] Binary Expressions
  - [x] Function calls
@@ -58,6 +58,7 @@
 - [x] this/self/whatever
 - [ ] Finish Types
 - [ ] Add traceback
+- [ ] Includes
 - [x] Indexes
 
 

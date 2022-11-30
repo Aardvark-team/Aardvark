@@ -1,6 +1,6 @@
 x = 5
 
 switch x {
-  case 4 stdout.write("Didn't work.")
-  case 5 stdout.write("Worked!")
+  case 4 stdout.write("Didn't work.\n")
+  case 5 stdout.write("Worked!\n")
 }

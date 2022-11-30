@@ -22,7 +22,7 @@ class Formatter:
             return expr['value']
           case {'type': 'Set', 'items': items}:
             inside = ', '.join(self.formatToList(items))
-            return f"{{{inside}}}"
+            return f"set{{{inside}}}"
           
           case _:
             start = expr['positions']['start']
@@ -59,7 +59,9 @@ class Formatter:
 
 
 if __name__ == '__main__':
-  text = '''function x(){}'''
+  #Needs to handle comments and everything too.
+  text = '''
+  function x(y:String,z){return set {y,z}}'''
   errorhandler = Error.ErrorHandler(
     text, 
     '<main>',

@@ -1,5 +1,4 @@
 class TokenType:
-
     def __init__(self, name):
         self.name = name
 
@@ -20,122 +19,121 @@ TokenTypes = {
     "Indent": TokenType("Indent"),
     "Comment": TokenType("Comment"),
     "LineBreak": TokenType("LineBreak"),
-    "Boolean": TokenType("Boolean")
+    "Boolean": TokenType("Boolean"),
 }
-
 
 
 Booleans = {"true", "false"}
 
 PureOperators = {
-    "=",  #equals
-    "!",  #not, and factorial
-    '~', #about
-    "<",  #less than
-    ">",  #more than
+    "=",  # equals
+    "!",  # not, and factorial
+    "~",  # about
+    "<",  # less than
+    ">",  # more than
     "==",
-    "<=",  #less than or equal to
-    ">=",  #more than or equal to
-    "!=",  #not equal to
-    "~=", #about equal to
-    "&",  #and
-    "|",  #or
-    "x|",  #xor (exculsive or)
-    "+",  #add
-    "-",  #subtract
-    "/",  #divide
-    "*",  #multiplication
-    "^",  #exponet 
-    "%",  #mod
-    "@",  #at. reference
+    "<=",  # less than or equal to
+    ">=",  # more than or equal to
+    "!=",  # not equal to
+    "~=",  # about equal to
+    "&",  # and
+    "|",  # or
+    "x|",  # xor (exculsive or)
+    "+",  # add
+    "-",  # subtract
+    "/",  # divide
+    "*",  # multiplication
+    "^",  # exponet
+    "%",  # mod
+    "@",  # at. reference
     "?",  # x.y? will be null if x.y doesn't exist or if it is null
     "->",  # For defining a function return type
-    #"$",  #idk
-    #"<-",  #idk, we can use it for something maybe.
+    # "$",  #idk
+    # "<-",  #idk, we can use it for something maybe.
 }
 #!& should be valid, not and.
 #!| should be valid, not or.
 #!x| should be valid, not xor.
 #!= should be valid, not equal.
 Operators = PureOperators | {
-    'not',  #not operator
-    'and',  #and operator
-    'or',  #or operATOR
-    'xor',  #XOR
-    'in'
+    "not",  # not operator
+    "and",  # and operator
+    "or",  # or operATOR
+    "xor",  # XOR
+    "in",
 }
 OrderOfOps = {
-  0: ['?'],
-  1: ['~', '!', '@'],
-  2: ['^'],
-  3: ['*', '/'],
-  4: ['-', '+'],
-  5: ['%'],
-  6: ['=', '~=', '<', '>', '<=', '>=', '!=', 'in', '=='],
-  7: ['&', '|', 'x|', 'and', 'or', 'xor'],
-  8: ['->'],
-  9: [],
-  10: [],
-  11: [],
-  12: [],
-  13: [],
-} #USE: https://stackoverflow.com/questions/28256/equation-expression-parser-with-precedence
+    0: ["?"],
+    1: ["~", "!", "@"],
+    2: ["^"],
+    3: ["*", "/"],
+    4: ["-", "+"],
+    5: ["%"],
+    6: ["=", "~=", "<", ">", "<=", ">=", "!=", "in", "=="],
+    7: ["&", "|", "x|", "and", "or", "xor"],
+    8: ["->"],
+    9: [],
+    10: [],
+    11: [],
+    12: [],
+    13: [],
+}  # USE: https://stackoverflow.com/questions/28256/equation-expression-parser-with-precedence
 
-Quotes = {'"', "'", '`'}
+Quotes = {'"', "'", "`"}
 
-Groups = (('(', ')'), ('[', ']'), ('{', '}'))
+Groups = (("(", ")"), ("[", "]"), ("{", "}"))
 
 Whitespaces = {
-    ' ',  #Space
-    '\t',  #Tab
-    '​',  #zero width space
-    ' ',  #hair space
-    ' ',  #six per em space
-    ' ',  #thin space
-    ' ',  #punctuation space
-    ' ',  #four per em space
-    ' ',  #three per em space
-    ' ',  #figure space
-    ' ',  #en space
-    ' ',  #em space
-    '⠀',  #braile blank
+    " ",  # Space
+    "\t",  # Tab
+    "​",  # zero width space
+    " ",  # hair space
+    " ",  # six per em space
+    " ",  # thin space
+    " ",  # punctuation space
+    " ",  # four per em space
+    " ",  # three per em space
+    " ",  # figure space
+    " ",  # en space
+    " ",  # em space
+    "⠀",  # braile blank
 }
 
 Delimiters = {
-    ":",  #Colon, used for defining blocks and for types
-    "(",  #lparen
-    ")",  #rparen
-    ",",  #comma
-    "{",  #lbrace
-    "}",  #rbrace
-    "[",  #lbracket
-    "]",  #rbracket
-    ".",  #period,
+    ":",  # Colon, used for defining blocks and for types
+    "(",  # lparen
+    ")",  # rparen
+    ",",  # comma
+    "{",  # lbrace
+    "}",  # rbrace
+    "[",  # lbracket
+    "]",  # rbracket
+    ".",  # period,
 }
 
 Keywords = {
-    'class',
-    'extends',
-    'type',
-    'extending',
-    'function',
-    'for',
-    'while',
-    'switch',
-    'case',
-    'if',
-    'else',  #Blocks
-    'return',
-    'delete',
-    'static',
-    'include',
-    'async',
-    'yield', 
-    'defer',
+    "class",
+    "extends",
+    "type",
+    "extending",
+    "function",
+    "for",
+    "while",
+    "switch",
+    "case",
+    "if",
+    "else",  # Blocks
+    "return",
+    "delete",
+    "static",
+    "include",
+    "async",
+    "yield",
+    "defer",
     #'let', #Statements
-    'as',
-    'from',#other
+    "as",
+    "from",  # other
 }
 
 
-#https://replit.com/@Programit/Redesign
+# https://replit.com/@Programit/Redesign
