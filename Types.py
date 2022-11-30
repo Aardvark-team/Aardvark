@@ -37,7 +37,7 @@ class Object(Type):
         return self.delete()
 
     def __iter__(self):
-        return self.vars
+        return iter(self.vars)
 
     def __next__(self):
         if self._index >= len(self.vars) - 1:

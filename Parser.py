@@ -150,6 +150,20 @@ class Parser:
             while self.compare(TokenTypes["LineBreak"]):
                 self.advance()
             if len(items) > 0:
+                if not self.compare('Delimiter', delim):
+                  tok = self.peek()
+                  self.err_handler.throw('Syntax', f'Invalid syntax, perhaps you forgot a {delim}?', {
+                    'lineno': tok.start['line'],
+                    'marker': {
+                      'start': tok.start['col'],
+                      'length': len(delim)
+                    },
+                    'underline': {
+                      'start': tok.start['col']-2,
+                      'end': tok.start['col']+2
+                    },
+                    'did_you_mean': self.codelines[tok.start['line']-1][:tok.start['col']-1] + delim + self.codelines[tok.start['line']-1][tok.end['col']-1:]
+                  })
                 self.eat(TokenTypes["Delimiter"], delim)
             while self.compare(TokenTypes["LineBreak"]):
                 self.advance()

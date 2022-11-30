@@ -188,14 +188,21 @@ class Executor:
           ret = self.Exec(expr['body'], whilescope)
         return ret
       case { 'type': 'ForLoop' }:
-        for item in self.ExecExpr(expr['iterable']):
+        iterable = self.ExecExpr(expr['iterable'], scope)
+        for item in iterable:
           forscope = Scope({}, parent = scope)
-          # i=0
-          # for d in expr['delecarations']:
-          #   if d['type'] = 'variable':
-          #     item[]
-          #   i+=1
+          item = iter(item)
+          for d in expr['declarations']:
+            if d['type'] == 'variable':
+              self.defineVar(d['names'][0], next(item), scope)
+            elif d['type'] == 'destructure':
+              i = next(item)
+              self.defineVar(d['names'][0], i, scope)
+              self.defineVar(d['names'][1], iterable[i], scope)
           #TODO: Define the varaibles.
+          #for x in [0, 2] stdout.write(x)
+          #for x, y in [[0, 1], [2, 3]] stdout.write(x, y, '\n')
+          #for k:v in {x: 5, y: 6} stdout.write(k, v, '\n')
           ret = self.Exec(expr['body'], forscope)
         return ret
       case {'type': 'CaseStatement'}:
