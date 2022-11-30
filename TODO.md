@@ -60,7 +60,7 @@
 - [ ] switch case (full)
 - [x] this/self/whatever
 - [ ] Finish Types
-- [ ] Add traceback
+- [x] Add traceback
 - [ ] Includes
 - [x] Indexes
 

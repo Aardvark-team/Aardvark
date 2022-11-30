@@ -148,10 +148,8 @@ class String(str, Type):
     def __init__(self, value):
         self.vars = {
             "length": len(value),
-            "split": lambda sep=" ": self.value.split(
-                sep.value if isinstance(sep, String) else sep
-            ),
-            "slice": lambda start, end: self.value[start.value : end.value],
+            "split": lambda sep=" ": self.split(sep),
+            "slice": lambda start, end: self[start : end],
             "startsWith": lambda prefix: self.startswith(x),
             "endsWith": lambda suffix: self.endswith(x),
             "replace": lambda x, y="": self.replace(x, y),
@@ -172,7 +170,7 @@ class Number(Type, float):
             if len(str(value)) > 1
             else [value],
             "prime": Boolean(
-                value >= 1 and all(value % i for i in range(2, int(value**0.5) + 1))
+                self >= 1 and all(self % i for i in range(2, int(self**0.5) + 1))
             )
             # methods and attributes here
         }
@@ -222,6 +220,7 @@ class Boolean(int, Type):
 
 class Function(Type):
     def __init__(self, funct):
+        self.vars = {} #Funtions have no default attributes.
         self.funct = funct
         Type.__init__(self)
 
@@ -231,8 +230,10 @@ class Function(Type):
       
 class Array(Type, list):
     def __init__(self, value):
-
         self.vars = {
+            'contains': lambda x: x in self,
+            'add': self.append,
+            'remove': self.remove
             # methods and attributes here
         }
         list.__init__([])
@@ -244,6 +245,9 @@ class Set(Type, list):
     def __init__(self, value):
 
         self.vars = {
+            'contains': lambda x: x in self,
+            'add': self.append,
+            'remove': self.remove
             # methods and attributes here
         }
         list.__init__([])
