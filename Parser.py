@@ -102,7 +102,7 @@ class Parser:
             return self.eofError(Type, value, is_type)
 
         next_tok = self.peek()
-        curr_line = self.err_handler.code.split("\n")[next_tok.line - 1].rstrip()
+        curr_line = self.codelines[next_tok.line - 1].rstrip()
         line_len = len(curr_line)
 
         value_type = (
@@ -119,9 +119,9 @@ class Parser:
         end_pos = max(next_tok.start["col"] + len(replacement), next_tok.end["col"] + 1)
 
         curr_line = (
-            curr_line[: next_tok.start["col"] - 1].rstrip()
+            curr_line[:next_tok.start["col"] - 2]
             + replacement
-            + curr_line[end_pos - 1 :]
+            + curr_line[next_tok.start["col"]-1:]
         )
 
         self.err_handler.throw(
@@ -150,20 +150,20 @@ class Parser:
             while self.compare(TokenTypes["LineBreak"]):
                 self.advance()
             if len(items) > 0:
-                if not self.compare('Delimiter', delim):
-                  tok = self.peek()
-                  self.err_handler.throw('Syntax', f'Invalid syntax, perhaps you forgot a {delim}?', {
-                    'lineno': tok.start['line'],
-                    'marker': {
-                      'start': tok.start['col'],
-                      'length': len(delim)
-                    },
-                    'underline': {
-                      'start': tok.start['col']-2,
-                      'end': tok.start['col']+2
-                    },
-                    'did_you_mean': self.codelines[tok.start['line']-1][:tok.start['col']-1] + delim + self.codelines[tok.start['line']-1][tok.end['col']-1:]
-                  })
+                # if not self.compare('Delimiter', delim):
+                #   tok = self.peek()
+                #   self.err_handler.throw('Syntax', f'Invalid syntax, perhaps you forgot a {delim}?', {
+                #     'lineno': tok.start['line'],
+                #     'marker': {
+                #       'start': tok.start['col'],
+                #       'length': len(delim)
+                #     },
+                #     'underline': {
+                #       'start': tok.start['col']-2,
+                #       'end': tok.start['col']+2
+                #     },
+                #     'did_you_mean': self.codelines[tok.start['line']-1][:tok.start['col']-1] + delim + self.codelines[tok.start['line']-1][tok.end['col']-1:]
+                #   })
                 self.eat(TokenTypes["Delimiter"], delim)
             while self.compare(TokenTypes["LineBreak"]):
                 self.advance()
@@ -332,6 +332,11 @@ class Parser:
                 if_ast = self.pIfStatement(True)
                 if_ast["body"] = ast_node
                 ast_node = if_ast
+            #inline fors
+            if self.compare('Keyword', 'for'):
+              for_ast = self.pForLoop(True)
+              for_ast['body'] = ast_node
+              ast_node = for_ast
             # Indexes
             if self.compare("Delimiter", "["):
                 self.eat("Delimiter")
@@ -384,7 +389,7 @@ class Parser:
 
     # Expression:
     #
-    def pExpression(self, level=len(OrderOfOps) - 1, require=False):
+    def pExpression(self, level=len(OrderOfOps) - 1, require=False, exclude=[]):
         if level < 0:
             left = self.pPrimary(require=require)
         else:
@@ -394,6 +399,7 @@ class Parser:
             and self.compare(TokenTypes["Operator"])
             and level in OrderOfOps
             and self.peek().value in OrderOfOps[level]
+            and self.peek().value not in exclude
         ):
             op = self.eat(TokenTypes["Operator"])
             right = self.pExpression(level, require=False)
@@ -509,13 +515,18 @@ class Parser:
             var_name = self.eat(TokenTypes["Identifier"])
             if self.compare("Delimiter", ":"):
                 self.eat("Delimiter")
-                var_type = self.pExpression()
+                var_type = self.pExpression(exclude='=')
+            if self.compare('Operator', '='):
+              self.eat('Operator')
+              var_default = self.pExpression()
+              #TODO: Add modes to not parse , or somethign
 
             parameters.append(
                 {
                     "type": "Parameter",
                     "name": var_name.value,
                     "value_type": var_type,
+                    'default':var_default,
                     "positions": {
                         "start": var_type["positions"]["start"]
                         if var_type
@@ -597,7 +608,7 @@ class Parser:
     # 	while condition Statement
     def pWhileLoop(self):
         starter = self.eat(TokenTypes["Keyword"], "while")
-        condition = self.pExpression()
+        condition = self.pExpression(require=True)
 
         if self.compare(TokenTypes["Delimiter"], "{"):
             body, lasti = self.eatBlockScope()
@@ -618,7 +629,7 @@ class Parser:
     #   if condition BlockScope [ else Statement ]
     def pIfStatement(self, inline=False):
         starter = self.eat(TokenTypes["Keyword"], "if")
-        condition = self.pExpression()
+        condition = self.pExpression(require=True)
         body = None
         lasti = condition["positions"]["end"]
 
@@ -651,7 +662,7 @@ class Parser:
     # Delete Keyword:
     def pDelete(self):
         starter = self.eat(TokenTypes["Keyword"], "delete")
-        target = self.pExpression()
+        target = self.pExpression(require=True)
         return {
             "type": "DeleteStatement",
             "target": target,
@@ -659,7 +670,7 @@ class Parser:
         }
 
     # For loop:
-    def pForLoop(self):
+    def pForLoop(self, inline=False):
         starter = self.eat("Keyword", "for")
         declarations = []
         # { ..., declarations: [ { type: "destructure", names: [ "k", "v" ] } ] }
@@ -683,11 +694,14 @@ class Parser:
                 break
         self.eat("Operator", "in")
         iterable = self.pExpression()  # Get the iterable.
-        if self.compare("Delimiter", "{"):
-            body, lasti = self.eatBlockScope()
-        else:
-            body = [self.pStatement(require=True)]
-            lasti = body[0]["positions"]["end"]
+        body = None
+        lasti = iterable['positions']['end']
+        if not inline:
+          if self.compare("Delimiter", "{"):
+              body, lasti = self.eatBlockScope()
+          else:
+              body = [self.pStatement(require=True)]
+              lasti = body[0]["positions"]["end"]
         return {
             "type": "ForLoop",
             "declarations": declarations,

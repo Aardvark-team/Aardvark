@@ -14,7 +14,7 @@ class Formatter:
       match expr:
           case { 'type': 'NumberLiteral' }:
             return expr['value']
-          case {'type': 'StringLiteral'}:
+          case {'type': 'StringLiteral'}: 
             return expr['value']
           case {'type': 'BooleanLiteral'}:
             return expr['value']
@@ -43,7 +43,7 @@ class Formatter:
       
     def format(self, ast=None):
       ast = ast or self.ast
-      ast = ast['body']
+      if type(ast) != list: ast = ast['body']
       text = ''
       for expr in ast:
         text += str(self.formatExpr(expr))
@@ -51,25 +51,27 @@ class Formatter:
     
     def formatToList(self, ast=None):
       ast = ast or self.ast
-      ast = ast['body']
+      if type(ast) != list: ast = ast['body']
       out = []
       for expr in ast:
         out.append(str(self.formatExpr(expr)))
       return out
 
-
-if __name__ == '__main__':
-  #Needs to handle comments and everything too.
-  text = '''
-  function x(y:String,z){return set {y,z}}'''
+def format(text):
   errorhandler = Error.ErrorHandler(
     text, 
     '<main>',
-    py_error = True
+    py_error = True,
+    silenced = True
   )
   lexer = Lexer.Lexer("#", "#*", "*#", errorhandler, False)
   lexer.tokenize(text)
   parser = Parser.Parser(errorhandler, lexer)
   ast = parser.parse()
   formatter = Formatter(parser, ast, {})
-  print(formatter.format())
+  return formatter.format()
+if __name__ == '__main__':
+  #Needs to handle comments and everything too.
+  text = '''
+  function x(y:String,z){return set {y,z}}'''
+  print(format(text))

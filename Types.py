@@ -97,7 +97,7 @@ class Scope(Object):
         # print(id(self), "Returned", value)
         self._returned_value = value
         self._has_returned = True
-        self.__triggerReturnAction()
+        self._triggerReturnAction()
         return True
 
     def __getitem__(self, name):
@@ -287,7 +287,16 @@ def pyToAdk(py):
         return Array(py)
     elif isinstance(py, set):
         return Set(py)
+    elif isinstance(py, dict):
+        return Object(py)
     elif isinstance(py, types.FunctionType):
         return Function(py)
     else:
         return py
+
+def adkToPy(adk):
+  if type(adk) not in Types:
+      return adk
+  elif adk == Null:
+    return None
+  #TODO: finish later

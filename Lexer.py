@@ -240,14 +240,14 @@ class Lexer:
                         self.column,
                         value,
                     )
-                self.advance(len(self.commentend))  # To skip past the />
+                self.advance(len(self.commentend)-1)  # To skip past the *#
 
             # Single line comments
             elif self.detect(self.comment):
                 value = ""
                 start = self.index
                 startcolumn = self.column
-                while not self.isNewline() and not self.AtEnd:
+                while self.curChar != '\n' and not self.AtEnd:
                     value += self.curChar
                     self.advance()
                 if self.tokenizeComments:

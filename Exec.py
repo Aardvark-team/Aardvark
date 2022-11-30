@@ -18,11 +18,12 @@ def get_call_scope(scope):
     return call_scope
 
 class Executor:
-  def __init__(self, code, ast, errorhandler):
+  def __init__(self, file, code, ast, errorhandler):
+    self.file = file
     self.code = code
     self.codelines = code.split('\n')
     self.ast = ast
-    self.traceback = []
+    self.traceback = [ ]
     self.switch = None
     self.Global = Scope({
       'stdout': Object({
@@ -40,6 +41,7 @@ class Executor:
       'typeof': lambda obj: type(obj).__name__,
       'dir': lambda x=None: x.vars if x else self.Global.vars,
       'null': Null,
+      'help': help,
       'Math': Object({
         'pi': math.pi,
         'π': math.pi,
@@ -50,6 +52,8 @@ class Executor:
         'factorial': math.factorial,
         'foor': math.floor,
         'ceil': math.ceil,
+        'log': math.log,
+        
       })
     }) #Define builtins here
     #TODO: implement more builtins.
@@ -58,7 +62,7 @@ class Executor:
     if name in scope.getAll() and name not in list(scope.vars.keys()):
       self.defineVar(name, value, scope.parent)
     else:
-      scope[name] = value
+      scope[name] = pyToAdk(value)
   def makeFunct(self, expr, parent):
       name = expr['name']
       params = expr['parameters']
@@ -70,19 +74,11 @@ class Executor:
           functscope[AS] = x
         for i in range(len(params)):
           param = params[i]
-          arg = args[i]
+          arg = args[i] if i < len(args) else self.ExecExpr(param.get('default'), parent)
           if param['value_type'] != None:
             notImplemented(self.errorhandler, 'Type Checking', param)
           self.defineVar(param['name'], arg, functscope)
-        #self.traceback.append({
-        #  'name': f'{name}()',
-        #  'line':
-        #})
         ret = self.Exec(code, functscope)
-        #self.traceback = self.traceback[:-1]
-        #print('ret', ret, functscope._returned_value)
-
-        #print(" -> ".join(get_call_scope(functscope)), functscope._returned_value)
         return functscope._returned_value
       if name:
         parent[name] = Function(x)
@@ -97,7 +93,7 @@ class Executor:
     elif error:
         line = self.codelines[start['line']-1]
         #print('Availiable vars in current scope (not including parent scopes):', ', '.join(scope.vars.keys()))
-        did_you_mean = line[:start['col'] - 1] + findClosest(varname, scope) + line[start['col'] + len(varname) - 1:]
+        did_you_mean = line[:start['col'] - 1] + findClosest(varname, scope) + line[start['col'] + len(varname) - 1:] 
         return self.errorhandler.throw('Value', message.format(name=varname), {
           'lineno':start['line'],
           'marker': {
@@ -108,7 +104,8 @@ class Executor:
             'start': start['col'] - 2,
             'end': start['col'] + len(varname)
           },
-          'did_you_mean': Error.Highlight(did_you_mean, {'linenums': False})
+          'did_you_mean': Error.Highlight(did_you_mean, {'linenums': False}),
+          'traceback': self.traceback
         })
       
   def ExecExpr(self, expr: dict, scope: Scope, undefinedError=True):
@@ -139,26 +136,27 @@ class Executor:
           del scope[expr['name']]
       case { 'type': 'FunctionCall' }:
           funct = self.getVar(scope, expr['name'], expr['positions']['start'])
-          return pyToAdk(funct(*[self.ExecExpr(arg, scope) for arg in expr['arguments']]))
+          self.traceback.append({
+            'name': expr['name'] + '()', 
+            'line': expr['positions']['start']['line'], 
+            'col': expr['positions']['start']['col'], 
+            'filename': self.file
+          })
+          ret = pyToAdk(funct(*[self.ExecExpr(arg, scope) for arg in expr['arguments']]))
+          self.traceback = self.traceback[:-1]
+          return ret
       case { 'type': 'MethodCall' }:
           obj = self.ExecExpr(expr['value'], scope)
-          if not isinstance(obj, Object):
-            #for rn, only objects have properties
-            return self.errorhandler.throw('Value', f'{obj} has no property {expr["property"]}.', {
-              'lineno': expr['positions']['start']['line'],
-             'marker': {
-               'start': expr['positions']['start']['col']-1,
-               'length': len(expr['value'])
-               },
-             'underline': {
-               'start': expr['positions']['start']['col']-2,
-               'end': expr['positions']['start']['col'] + len(expr['value'])
-             }
-            })
-          elif not isinstance(obj, Object): #If errors are surpressed, return None
-            return None
           funct = self.getVar(obj, expr['property'], expr['tokens']['property'].start, message=f"Undefined property \"{{name}}\" of \"{obj.name}\"")
-          return pyToAdk(funct(*[self.ExecExpr(arg, scope) for arg in expr['arguments']]))
+          self.traceback.append({
+            'name': obj.name if isinstance(obj, Object) else Error.getText(obj) + expr['property'] + '()', 
+            'line': expr['positions']['start']['line'], 
+            'col': expr['positions']['start']['col'], 
+            'filename': self.file
+          })
+          ret = pyToAdk(funct(*[self.ExecExpr(arg, scope) for arg in expr['arguments']]))
+          self.traceback = self.traceback[:-1]
+          return ret
       case {'type' : 'Operator', 'operator': '='}:
         right = self.ExecExpr(expr['right'], scope)
         self.defineVar(expr['left']['value'], right, scope)
@@ -183,12 +181,14 @@ class Executor:
         elif expr['else_body']:
           return self.Exec(expr['else_body'], ifscope)
       case { 'type': 'WhileLoop' }:
+        ret = []
         while bool(self.ExecExpr(expr['condition'], scope)):
           whilescope = Scope({}, parent = scope)
-          ret = self.Exec(expr['body'], whilescope)
+          ret.append(self.Exec(expr['body'], whilescope))
         return ret
       case { 'type': 'ForLoop' }:
         iterable = self.ExecExpr(expr['iterable'], scope)
+        ret = []
         for item in iterable:
           forscope = Scope({}, parent = scope)
           item = iter(item)
@@ -200,7 +200,7 @@ class Executor:
               self.defineVar(d['names'][0], i, scope)
               self.defineVar(d['names'][1], iterable[i], scope)
 
-          ret = self.Exec(expr['body'], forscope)
+          ret.append(self.Exec(expr['body'], forscope))
         return ret
       case {'type': 'CaseStatement'}:
         if self.switch == self.ExecExpr(expr['compare'], scope):

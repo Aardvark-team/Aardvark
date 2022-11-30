@@ -1,6 +1,6 @@
 stdout.write('Compact if works.') if true else stdout.write('Booleans don't work.\n')
 
-let x = ''
+x = ''
 
 x = x + 'x'
 

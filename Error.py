@@ -7,7 +7,7 @@ from sty import bg, fg, ef, rs
 from Data import *
 import Lexer
 import sys
-
+import Format
 styles = {
     "String": fg(152, 195, 121) + ef.rs,
     "Function": fg(97, 175, 239) + ef.rs,
@@ -216,18 +216,16 @@ def print_error(type: str, pos, msg, didyoumean, err_trace, code):
     print(output, file=sys.stderr)
 
 
-# Everything is fixed now.
-# print(Highlight(open('main.adk').read())) #Works file
-
-
 class ErrorHandler:
-    def __init__(self, code, filename, py_error=False):
+    def __init__(self, code, filename, py_error=False, silenced=False):
         self.code = code
         self.codelines = code.split("\n")
         self.filename = filename
         self.py_error = py_error
+        self.silenced = silenced
 
     def throw(self, type, message, options={}):
+        if self.silenced: return
         options["filename"] = self.filename
         options["linestart"] = options["lineno"] - (1 if options["lineno"] > 0 else 0)
         options["lineend"] = options["lineno"] + 1

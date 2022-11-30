@@ -48,7 +48,7 @@ while True:
             print(
                 prettify_ast(ast)
             )  # Helps me see the ast so I don't have to go through Parser forever.
-        executor = Exec.Executor(text, ast["body"], errorhandler)
+        executor = Exec.Executor(file, text, ast["body"], errorhandler)
 
         if saved_scope:
             executor.Global = saved_scope
