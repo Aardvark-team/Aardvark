@@ -464,13 +464,12 @@ class Parser:
         self.eat(TokenTypes["Delimiter"], "(")
         arguments = []
         keywordArguments = {}
-        while self.compare('Delimiter', ',') or len(arguments) == 0:
+        while self.compare('Delimiter', ',') or (len(arguments) == 0 and len(keywordArguments) == 0):
           KorV = self.pExpression()
-          if self.compare('Operator', '=') and KorV['type'] == 'VariableAccess':
-            self.eat('Operator')
-            value = self.pExpression()
-            if KorV in keywordArguments:
-              self.err_handler.throw('Argument', 'Duplicate keyword arguments.', {
+          if (len(arguments) == 0 and len(keywordArguments) == 0) and KorV == None: break
+          if KorV['type'] == 'Operator' and KorV['operator'] == '=':
+            if not (KorV['left'] and KorV['left']['type'] == 'VariableAccess'):
+              self.err_handler.throw('Syntax', 'Cannot use an expression as a key.', {
                 'lineno': KorV['positions']['start']['line'],
                 'marker': {
                   'start': KorV['positions']['start']['col'],
@@ -481,7 +480,21 @@ class Parser:
                   'end': value['positions']['end']['col']
                 }
               })
-            keywordArguments[KorV['value']] = value
+            key = KorV['left']['value']
+            value = KorV['right']
+            if key in keywordArguments:
+              self.err_handler.throw('Argument', 'Duplicate keyword arguments.', {
+                'lineno': KorV['positions']['start']['line'],
+                'marker': {
+                  'start': KorV['positions']['start']['col'],
+                  'length': len(key)
+                },
+                'underline': {
+                  'start': KorV['positions']['start']['col'],
+                  'end': value['positions']['end']['col']
+                }
+              })
+            keywordArguments[key] = value
           else:
             arguments.append(KorV)
         closing_par = self.eat(TokenTypes["Delimiter"], ")")
