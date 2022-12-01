@@ -1,8 +1,2 @@
 name = stdin.prompt("What is your name? ")
 stdout.write("Hello, ", name)
-function x() {
-  stdout.write("start")
-  return;
-  stdout.write("None")
-}
-x()

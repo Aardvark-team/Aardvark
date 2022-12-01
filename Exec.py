@@ -209,6 +209,7 @@ class Executor:
         success = scope.set_return_value(val)
         if scope == self.Global or not success:
             self.Global._triggerReturnAction()
+            if val == Null: val = 0
             sys.exit(int(val))
         return scope._returned_value
       case {'type': 'Multiply'}:

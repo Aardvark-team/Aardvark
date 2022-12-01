@@ -464,9 +464,10 @@ class Parser:
         self.eat(TokenTypes["Delimiter"], "(")
         arguments = []
         keywordArguments = {}
-        while self.compare('Delimiter', ',') or (len(arguments) == 0 and len(keywordArguments) == 0):
+        while self.compare('Delimiter', ',') or (len(arguments) == 0 and len(keywordArguments) == 0) and not self.compare('Delimiter', ')'):
+          if self.compare('Delimiter', ','):
+            self.eat('Delimiter', ',')
           KorV = self.pExpression()
-          if (len(arguments) == 0 and len(keywordArguments) == 0) and KorV == None: break
           if KorV['type'] == 'Operator' and KorV['operator'] == '=':
             if not (KorV['left'] and KorV['left']['type'] == 'VariableAccess'):
               self.err_handler.throw('Syntax', 'Cannot use an expression as a key.', {
