@@ -40,9 +40,10 @@ class Executor:
       'slice': lambda str, start, end: str[start:end],
       'typeof': lambda obj: type(obj).__name__,
       'dir': lambda x=None: x.vars if x else self.Global.vars,
+      'sort': lambda iterable, reverse=False, key=(lambda x: x): sorted(iterable, reverse=reverse, key=key) ,
       'null': Null,
       'help': help,
-      'sequence': lambda start, step, times: [(start+x*step) for x in range(times)],
+      'sequence': lambda start, step, times: [(start + x * step) for x in range(times)],
       'Math': Object({
         'pi': math.pi,
         'π': math.pi,
@@ -54,7 +55,6 @@ class Executor:
         'foor': math.floor,
         'ceil': math.ceil,
         'log': math.log,
-        
       })
     }) #Define builtins here
     #TODO: implement more builtins.
@@ -136,28 +136,16 @@ class Executor:
           self.getVar(scope, expr['target']['value'], expr['target']['positions']['start'])
           del scope[expr['name']]
       case { 'type': 'FunctionCall' }:
-          funct = self.getVar(scope, expr['name'], expr['positions']['start'])
+          funct = self.ExecExpr(expr['function'], scope)
           self.traceback.append({
-            'name': expr['name'] + '()', 
+            'name': Error.getAstText(expr['function'], self.codelines) + '()', 
             'line': expr['positions']['start']['line'], 
             'col': expr['positions']['start']['col'], 
             'filename': self.file
           })
-          ret = pyToAdk(funct(*[self.ExecExpr(arg, scope) for arg in expr['arguments']]))
+          ret = funct(*[self.ExecExpr(arg, scope) for arg in expr['arguments']], **{k:ExecExpr(v, scope) for k, v in list(expr['keywordArguments'])})
           self.traceback = self.traceback[:-1]
-          return ret
-      case { 'type': 'MethodCall' }:
-          obj = self.ExecExpr(expr['value'], scope)
-          funct = self.getVar(obj, expr['property'], expr['tokens']['property'].start, message=f"Undefined property \"{{name}}\" of \"{obj.name}\"")
-          self.traceback.append({
-            'name': obj.name if isinstance(obj, Object) else Error.getText(obj) + expr['property'] + '()', 
-            'line': expr['positions']['start']['line'], 
-            'col': expr['positions']['start']['col'], 
-            'filename': self.file
-          })
-          ret = pyToAdk(funct(*[self.ExecExpr(arg, scope) for arg in expr['arguments']]))
-          self.traceback = self.traceback[:-1]
-          return ret
+          return pyToAdk(ret)
       case {'type' : 'Operator', 'operator': '='}:
         right = self.ExecExpr(expr['right'], scope)
         self.defineVar(expr['left']['value'], right, scope)

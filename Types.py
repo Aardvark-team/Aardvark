@@ -269,8 +269,7 @@ class Set(Type, list):
       s = s[:-2]
       return f'set{{{s}}}'
 
-
-# TODO: Add: Array, Set, more...
+# TODO: Add: File, Stream, Bitarray
 Null = __Null()
 
 Types = [Object, Scope, Type, __Null, Number, String, Function, Boolean, Set, Array]

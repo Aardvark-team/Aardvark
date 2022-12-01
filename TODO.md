@@ -41,6 +41,7 @@
  - [x] Types
  - [x] Indexes (x[])
  - [ ] side by side mult: (5)(5), 5x, (7)y, etc...
+ - [ ] Keyword arguments
  - [x] Binary Expressions
  - [x] Function calls
  - [x] Conditions

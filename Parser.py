@@ -150,20 +150,20 @@ class Parser:
             while self.compare(TokenTypes["LineBreak"]):
                 self.advance()
             if len(items) > 0:
-                # if not self.compare('Delimiter', delim):
-                #   tok = self.peek()
-                #   self.err_handler.throw('Syntax', f'Invalid syntax, perhaps you forgot a {delim}?', {
-                #     'lineno': tok.start['line'],
-                #     'marker': {
-                #       'start': tok.start['col'],
-                #       'length': len(delim)
-                #     },
-                #     'underline': {
-                #       'start': tok.start['col']-2,
-                #       'end': tok.start['col']+2
-                #     },
-                #     'did_you_mean': self.codelines[tok.start['line']-1][:tok.start['col']-1] + delim + self.codelines[tok.start['line']-1][tok.end['col']-1:]
-                #   })
+                if not self.compare('Delimiter', delim):
+                  tok = self.peek()
+                  self.err_handler.throw('Syntax', f'Invalid syntax, perhaps you forgot a {delim}?', {
+                    'lineno': tok.start['line'],
+                    'marker': {
+                      'start': tok.start['col'],
+                      'length': len(delim)
+                    },
+                    'underline': {
+                      'start': tok.start['col']-2,
+                      'end': tok.start['col']+2
+                    },
+                    'did_you_mean': self.codelines[tok.start['line']-1][:tok.start['col']-1] + delim + self.codelines[tok.start['line']-1][tok.end['col']-1:]
+                  })
                 self.eat(TokenTypes["Delimiter"], delim)
             while self.compare(TokenTypes["LineBreak"]):
                 self.advance()
@@ -258,10 +258,7 @@ class Parser:
         elif tok.type == TokenTypes["Identifier"]:
             self.eat(tok.type)
 
-            if self.compare(TokenTypes["Delimiter"], "("):
-                ast_node = self.pFunctionCall(tok)
-
-            elif tok.value == "set" and self.compare(TokenTypes["Delimiter"], "{"):
+            if tok.value == "set" and self.compare(TokenTypes["Delimiter"], "{"):
                 ast_node = self.pSet(tok)
 
             else:
@@ -299,14 +296,8 @@ class Parser:
                         "property": property_name,
                     },
                 }
-
-                if self.compare(TokenTypes["Delimiter"], "("):
-                    self.eat(TokenTypes["Delimiter"])
-                    arguments = self.parseListLike(",", (TokenTypes["Delimiter"], ")"))
-                    last = self.eat(TokenTypes["Delimiter"], ")")
-                    ast_node["arguments"] = arguments
-                    ast_node["type"] = "MethodCall"
-                    ast_node["positions"]["end"] = last.end
+            while self.compare(TokenTypes["Delimiter"], "("):
+                ast_node = self.pFunctionCall(ast_node)
             # 5x, number-var mult
             if (
                 self.compare("Identifier")
@@ -325,8 +316,6 @@ class Parser:
                         "variable": var,
                     },
                 }
-            elif self.compare("Identifier"):
-                print(ast_node["positions"]["end"], self.peek().start)
             # Inline ifs
             if self.compare(TokenTypes["Keyword"], "if"):
                 if_ast = self.pIfStatement(True)
@@ -353,12 +342,6 @@ class Parser:
                         else ast_node["positions"]["end"],
                     },
                 }
-            # Types
-            if self.compare("Delimiter", ":"):
-                self.eat("Delimiter")
-                type = self.pExpression()
-                ast_node["valuetype"] = type
-                ast_node["positions"]["end"] = type["positions"]["end"]
             # TODO: add a, b, c
 
             return ast_node
@@ -477,17 +460,39 @@ class Parser:
 
     # FunctionCall:
     # 	[identifier] ( Expression ( , Expression ) )
-    def pFunctionCall(self, name):
+    def pFunctionCall(self, ast_node):
         self.eat(TokenTypes["Delimiter"], "(")
-        arguments = self.parseListLike(",", (TokenTypes["Delimiter"], ")"))
+        arguments = []
+        keywordArguments = {}
+        while self.compare('Delimiter', ',') or len(arguments) == 0:
+          KorV = self.pExpression()
+          if self.compare('Operator', '=') and KorV['type'] == 'VariableAccess':
+            self.eat('Operator')
+            value = self.pExpression()
+            if KorV in keywordArguments:
+              self.err_handler.throw('Argument', 'Duplicate keyword arguments.', {
+                'lineno': KorV['positions']['start']['line'],
+                'marker': {
+                  'start': KorV['positions']['start']['col'],
+                  'length': len(KorV['value'])
+                },
+                'underline': {
+                  'start': KorV['positions']['start']['col'],
+                  'end': value['positions']['end']['col']
+                }
+              })
+            keywordArguments[KorV['value']] = value
+          else:
+            arguments.append(KorV)
         closing_par = self.eat(TokenTypes["Delimiter"], ")")
 
         return {
             "type": "FunctionCall",
-            "name": name.value,
+            "function": ast_node,
             "arguments": arguments,
-            "tokens": {"name": name},
-            "positions": {"start": name.start, "end": closing_par.end},
+            'keywordArguments': keywordArguments,
+            "tokens": {},
+            "positions": {"start": ast_node['positions']['start'], "end": closing_par.end},
         }
 
     # pFunctionDefinition:
@@ -519,7 +524,7 @@ class Parser:
             if self.compare('Operator', '='):
               self.eat('Operator')
               var_default = self.pExpression()
-              #TODO: Add modes to not parse , or somethign
+              #TODO: Add modes to not parse , or something
 
             parameters.append(
                 {
