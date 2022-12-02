@@ -1,0 +1,7 @@
+Copyright © 2022 by Aardvark Team.
+All rights reserved
+This software may not be distributed without attribute to the original owners or explicit permission from the Aardvark Team.
+Members of the Aardvark Team who retain rights to this software are:
+@hg0428
+@JustCoding123
+@CompilingCoder
