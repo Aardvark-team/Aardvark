@@ -1,13 +1,10 @@
-# This is a proof-of-concept for Aardvark error design.
-# It is not a complete implementation.
-# It is only a proof-of-concept.
-# GHOSTWRITER wrote lines 2 and 3.
-
 from sty import bg, fg, ef, rs
 from Data import *
 import Lexer
 import sys
 import Format
+
+
 styles = {
     "String": fg(152, 195, 121) + ef.rs,
     "Function": fg(97, 175, 239) + ef.rs,
@@ -271,5 +268,3 @@ if __name__ == "__main__":
         code_stack,
         examplecode,
     )
-    # Wait, just noticed, the -- aren't working how they are suppossed to anyways.
-    # This is not a real implementation, its just a proof-of-concept.

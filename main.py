@@ -15,31 +15,30 @@ import os
 from Utils import prettify_ast
 
 class Version:
-  def __init__(self, major=0, secondary=0, minor=0, revision=0, type='stable', serial=1):
+  def __init__(self, major=0, minor=0, patch=0, type='stable', serial=1):
     self.major = major
-    self.secondary = secondary
     self.minor = minor
-    self.revision = revision
+    self.patch = patch
     self.serial = max(serial, 1)
     if type.lower() not in ['test', 'alpha', 'beta', 'canidate', 'stable', 'production']:
       raise ValueError('Invalid release type!')
     self.type = type.lower()
   def __str__(self):
-    s = f"{self.major}.{self.secondary}"
-    if self.minor:
-      s += f'.{self.minor}'
-    if self.revision:
-      s += f'.{self.revision}'
+    s = f"{self.major}.{self.minor}"
+    if self.patch:
+      s += f'.{self.patch}'
     if self.type != 'stable':
       s += f' {self.type.capitalize()} {self.serial}'
     return s
   def __repr__(self):
     return str(self)
 
-version = Version(1, 0, 0, 0, 'test')
+version = Version(1, 0, 0, 'test')
 python = sys.version_info
-python = Version(python.major, python.minor, python.micro, 0, python.releaselevel, python.serial)
-def run(text, file, printToks=False, printAST=False, Global=None):
+python = Version(python.major, python.minor, python.micro, python.releaselevel, python.serial)
+
+
+def run(text, file='<main>', printToks=False, printAST=False, Global=None):
     errorhandler = ErrorHandler(text, file, py_error=True)
     ret = Null
     try:
@@ -57,6 +56,7 @@ def run(text, file, printToks=False, printAST=False, Global=None):
         if Global:
           executor.Global = saved_scope
         ret = executor.run()
+        Global = executor.Global
     except Exception as e:
         if "py_error is True" not in str(e):
             traceback.print_exc()
@@ -71,46 +71,53 @@ def runFile(file, *args, **kwargs):
       text = f.read()
       return run(text, file, *args, **kwargs)
 
-
-cmdargs = sys.argv[1:]
-if len(cmdargs) == 0: 
-  mode = 'live'
-else:
+if __name__ == '__main__':
+  cmdargs = sys.argv[1:]
+  options = []
+  for i in cmdargs:
+    if i.startswith('-'):
+      options.append(i)
   mode = cmdargs[0]
-
-if mode == 'live':
-  print(f'Aardvark {version} \n[Python {python}]\n{sys.platform.upper()}')
-  printast = "-ast" in sys.argv
-  printtoks = "-toks" in sys.argv
-  debugmode = '-debug' in sys.argv
-  saved_scope = None
-  while True:
-      file = "<main>"
-      text = input("aardvark: ")
-      if debugmode:
-        if text == "$clear":
-            print("\033[2J\033[H")
-            continue
-        if text.startswith("$test"):
-            test_name = text.split(" ")[-1]
-            file = f"tests/{test_name}.adk"
-            with open(file) as f:
-              text = f.read()
-            print(f"Running test {test_name}...")
-              
-      errorhandler = ErrorHandler(text, file, py_error=True)
+  if len(cmdargs) == 0 or len(cmdargs) == len(options): 
+    mode = 'live'
+    
+  if cmdargs[0] == '--version':
+    print(f'Aardvark {version} \n[Python {python}]\n{sys.platform.upper()}')
+    
+  elif mode == 'live':
+    print(f'Aardvark {version} \n[Python {python}]\n{sys.platform.upper()}')
+    printast = "-ast" in sys.argv
+    printtoks = "-toks" in sys.argv
+    debugmode = '-debug' in sys.argv
+    saved_scope = None
+    while True:
+        file = "<main>"
+        text = input("aardvark: ")
+        if debugmode:
+          if text == "$clear":
+              print("\033[2J\033[H")
+              continue
+          if text.startswith("$test"):
+              test_name = text.split(" ")[-1]
+              file = f"tests/{test_name}.adk"
+              with open(file) as f:
+                text = f.read()
+              print(f"Running test {test_name}...")
+                
+        errorhandler = ErrorHandler(text, file, py_error=True)
+    
+        x = run(text, file, printtoks, printast, Global=saved_scope if saved_scope else None)
+        print(x['return'])
+        saved_scope = x['Global']
   
-      x = run(text, file, printtoks, printast, Global=saved_scope if saved_scope else None)
-      print(x['return'])
-      saved_scope = x['Global']
-
-elif mode == 'run':
-  printast = "-ast" in sys.argv
-  printtoks = "-toks" in sys.argv
-  runFile(cmdargs[1], printtoks, printast)
-
-elif mode == 'help':
-  print('''Usage: ./adk cmd [-opts...]
+  elif mode == 'run':
+    printast = "-ast" in sys.argv
+    printtoks = "-toks" in sys.argv
+    runFile(cmdargs[1], printtoks, printast)
+  
+  elif mode == 'help':
+    print(f'Aardvark {version} \n[Python {python}]\n{sys.platform.upper()}')
+    print('''Usage: ./adk cmd [-opts...]
 
 Commands:
   run <file> [-opts...]
@@ -119,7 +126,21 @@ Commands:
 Options:
   -ast   —  Prints the AST
   -toks  —  Prints the tokens
-  -debug —  Enables $test and $clear in live mode''')
-#elif len()
-else:
-  print('Usage: ./adk cmd [-opts...]')
+  -debug —  Enables $test and $clear in live mode
+
+Versions:
+  Aardvark versions have 2 parts, the number, and the release type.
+  The number can be split into 3 parts: major, minor, and patch.
+  The number is based on semantic versioning.
+  The release type can be split into 2 parts: type and release number.
+  There are 6 release types: test, alpha, beta, canidate, stable, and production.
+  Tests are not usually released, they are used internally to mean that we aren't done with it.
+  Alpha is for releases that don't have the full functionality.
+  Beta is for releases that have most functionality, but are very buggy.
+  Canidate is for releases that are thought to be stable.
+  A candidate is promoted to stable after successful testing
+  A stable can be promoted to production if it is well enough refined.
+    
+    ''')
+  else:
+    print('Usage: ./adk cmd [-opts...]')

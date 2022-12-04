@@ -12,3 +12,5 @@ function fib(n) -> int {
 
 num = 7
 stdout.write('Fib of', num, 'is', fib(num), "\n")
+תֲ = 5
+stdout.write(תֲ, '\n')

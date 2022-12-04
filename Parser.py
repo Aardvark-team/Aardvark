@@ -532,6 +532,7 @@ class Parser:
             if len(parameters) > 0:
                 self.eat(TokenTypes["Delimiter"], ",")
             var_name = self.eat(TokenTypes["Identifier"])
+            var_default = None
             if self.compare("Delimiter", ":"):
                 self.eat("Delimiter")
                 var_type = self.pExpression(exclude='=')

@@ -1,5 +1,6 @@
 import types
-
+import io
+import time
 
 class Type:
     def get(self, name, default=None):
@@ -7,13 +8,22 @@ class Type:
 
     def getAll(self):
         return self.vars
+    def set(self, name, value):
+        self.vars[name] = value
+
+    def __setitem__(self, name, value):
+        return self.set(name, value)
+
+    def __getitem__(self, name):
+        return self.get(name)
 
 
 class Object(Type):
     def __init__(self, inherit={}, init=None, name=""):
         self.name = name
         self.vars = {}
-        self.vars.update(inherit)
+        for i in inherit:
+          self.vars[i] = pyToAdk(inherit[i])
         if init:
             init(self)
         self._index = 0
@@ -220,12 +230,12 @@ class Boolean(int, Type):
 
 class Function(Type):
     def __init__(self, funct):
-        self.vars = {} #Funtions have no default attributes.
+        self.vars = {} # Funtions have no default attributes.
         self.funct = funct
         Type.__init__(self)
 
     def __call__(self, *args):
-        return self.funct(*args)
+        return pyToAdk(self.funct(*args))
 
       
 class Array(Type, list):
@@ -269,11 +279,38 @@ class Set(Type, list):
       s = s[:-2]
       return f'set{{{s}}}'
 
+class File(Type):
+  def __init__(self, name, mode='r'):
+    # print(dir(value))
+    self.name = name
+    self.mode = mode
+    self.obj = open(name, mode)
+    self.vars = {
+      'read': self.read,
+      'write': self.write,
+      'readAll': self.readAll,
+      'readLine': self.readLine,
+      'writeLine': self.writeLine,
+      'erase': self.erase,
+      'move': self.move,
+      'delete': self.delete
+    }
+
+
 # TODO: Add: File, Stream, Bitarray
 Null = __Null()
 
 Types = [Object, Scope, Type, __Null, Number, String, Function, Boolean, Set, Array]
 
+
+def dict_from_other(old):
+    context = {}
+    for setting in dir(old):
+        if not setting.startswith("_"):
+            v = getattr(old, setting)
+            if not isinstance(v, types.ModuleType):
+                context[setting] = getattr(old, setting)
+    return context
 
 def pyToAdk(py):
     if type(py) in Types:
@@ -294,8 +331,12 @@ def pyToAdk(py):
         return Object(py)
     elif isinstance(py, types.FunctionType):
         return Function(py)
+    elif isinstance(py, type):
+        return Function(py)
+    elif isinstance(py, types.ModuleType):
+        return Object(dict_from_other(py))
     else:
-        return py
+        return Object(dict_from_other(py))
 
 def adkToPy(adk):
   if type(adk) not in Types:
@@ -303,3 +344,7 @@ def adkToPy(adk):
   elif adk == Null:
     return None
   #TODO: finish later
+
+# print(type(open('main.py')))
+# print(dir(io.TextIOWrapper))
+# File(io.TextIOWrapper)

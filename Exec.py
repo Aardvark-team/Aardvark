@@ -10,6 +10,7 @@ import random
 import math
 from nltk import edit_distance
 from Types import Null, Object, Scope, Number, String, Boolean, pyToAdk, Function, Set, Array
+import importlib
 
 def get_call_scope(scope):
     call_scope = [ "scope " + str(id(scope)) ]
@@ -37,6 +38,9 @@ class Executor:
       'stderr': Object({
         'write': lambda *args: print(*args, end="", file=sys.stderr)
       }, name="stderr"),
+      'python': Object({ 
+        'import': pyToAdk(lambda mod: importlib.import_module(mod)) #NOT WORKING
+      }),
       'slice': lambda str, start, end: str[start:end],
       'typeof': lambda obj: type(obj).__name__,
       'dir': lambda x=None: x.vars if x else self.Global.vars,
@@ -52,7 +56,7 @@ class Executor:
         'round': round,
         'abs': abs,
         'factorial': math.factorial,
-        'foor': math.floor,
+        'floor': math.floor,
         'ceil': math.ceil,
         'log': math.log,
       })
@@ -63,7 +67,7 @@ class Executor:
     if name in scope.getAll() and name not in list(scope.vars.keys()):
       self.defineVar(name, value, scope.parent)
     else:
-      scope[name] = pyToAdk(value)
+      scope.vars[name] = pyToAdk(value)
   def makeFunct(self, expr, parent):
       name = expr['name']
       params = expr['parameters']
@@ -108,7 +112,14 @@ class Executor:
           'did_you_mean': Error.Highlight(did_you_mean, {'linenums': False}),
           'traceback': self.traceback
         })
-      
+  
+  def enterScope(self, var, scope):
+    match var:
+        case {'type': 'PropertyAccess'}:
+          scope = self.enterScope(var['value'], scope)
+          return self.getVar(scope, var['property'], var['positions']['start'])
+        case _:
+          return self.ExecExpr(var, scope)
   def ExecExpr(self, expr: dict, scope: Scope, undefinedError=True):
     match expr:
       case {'type': 'NumberLiteral'}:
@@ -147,9 +158,28 @@ class Executor:
           self.traceback = self.traceback[:-1]
           return pyToAdk(ret)
       case {'type' : 'Operator', 'operator': '='}:
-        right = self.ExecExpr(expr['right'], scope)
-        self.defineVar(expr['left']['value'], right, scope)
-        return right
+        value = self.ExecExpr(expr['right'], scope)
+        var = expr['left']
+        defscope = scope
+        if var['type'] == 'PropertyAccess':
+          defscope = self.enterScope(var['value'], scope)
+          var = var['property']
+        elif var['type'] == 'VariableAccess':
+          var = var['value']
+        else:
+          self.errorhandler.throw('Assign', 'Cannot set value of a literal.', {
+            'lineno': var['positions']['start']['line'],
+            'underline': {
+              'start': var['positions']['start']['col'],
+              'end': var['positions']['end']['col']
+            },
+            'marker': {
+              'start': var['positions']['start']['col'],
+              'length': var['positions']['end']['col'] - var['positions']['start']['col']
+            }
+          })
+        self.defineVar(var, value, defscope)
+        return value
       case {'type' : 'Operator', 'operator': '?'}:
           left = self.ExecExpr(expr['left'], scope, False)
           op = Operators[expr['operator']]
@@ -260,3 +290,6 @@ def findClosest(var, scope):
       ret = item
       lowest = dist
   return ret
+
+
+
