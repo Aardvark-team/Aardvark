@@ -8,6 +8,7 @@ class Type:
 
     def getAll(self):
         return self.vars
+      
     def set(self, name, value):
         self.vars[name] = value
 
@@ -253,7 +254,7 @@ class Array(Type, list):
       
 class Set(Type, list):
     def __init__(self, value):
-
+        
         self.vars = {
             'contains': lambda x: x in self,
             'add': self.append,
@@ -329,12 +330,12 @@ def pyToAdk(py):
         return Set(py)
     elif isinstance(py, dict):
         return Object(py)
-    elif isinstance(py, types.FunctionType):
-        return Function(py)
     elif isinstance(py, type):
         return Function(py)
     elif isinstance(py, types.ModuleType):
         return Object(dict_from_other(py))
+    elif callable(py):
+        return Function(py)
     else:
         return Object(dict_from_other(py))
 

@@ -142,15 +142,6 @@ def div(x, y, errorhandler, line, ast):
 
 @operator("==")
 def logicalequals(x, y, errorhandler, line, ast):
-    if x == Null:
-        return missingOperand(
-            True, errorhandler, line, ast, f"<{str(type(y or 0).__name__)}>"
-        )
-    if y == Null:
-        return missingOperand(
-            False, errorhandler, line, ast, f"<{str(type(x or 0).__name__)}>"
-        )
-    # TODO: add if y and x equal none
     return x == y
 
 
@@ -213,15 +204,6 @@ def logicallessthanequal(x, y, errorhandler, line, ast):
 
 @operator("!=")
 def logicalnotequal(x, y, errorhandler, line, ast):
-    if x == Null:
-        return missingOperand(
-            True, errorhandler, line, ast, f"<{str(type(y or 0).__name__)}>"
-        )
-    if y == Null:
-        return missingOperand(
-            False, errorhandler, line, ast, f"<{str(type(x or 0).__name__)}>"
-        )
-    # TODO: add if y and x equal none
     return x != y
 
 
@@ -314,10 +296,6 @@ def logicalxor(x, y, errorhandler, line, ast):
 
 @operator("in")
 def inop(x, y, errorhandler, line, ast):
-    if x == Null:
-        return missingOperand(
-            True, errorhandler, line, ast, f"<{str(type(y or 0).__name__)}>"
-        )
     if y == Null:
         return missingOperand(
             False, errorhandler, line, ast, f"<{str(type(x or 0).__name__)}>"

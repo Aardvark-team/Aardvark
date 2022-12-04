@@ -77,5 +77,5 @@
 ### Test 2 - test
 - [x] Lexed
 - [x] Parsed
-- [ ] Executed
+- [x] Executed
  
