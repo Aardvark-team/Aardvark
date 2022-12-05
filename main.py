@@ -38,9 +38,22 @@ python = sys.version_info
 python = Version(python.major, python.minor, python.micro, python.releaselevel, python.serial)
 
 
+def runTest(code, values={}, ret=None):
+  x = run(code)
+  if x['error']:
+    raise ValueError('Error')
+  scope = x['Global']
+  if ret != None and x['return'] != ret:
+    raise ValueError(f'Error, {ret} != {x["return"]}')
+  for i in values:
+    if scope[i] != values[i]:
+      raise ValueError(f'Error, {scope[i]} != {values[i]} for variable {i}')
+  return True
+
 def run(text, file='<main>', printToks=False, printAST=False, Global=None):
     errorhandler = ErrorHandler(text, file, py_error=True)
     ret = Null
+    error = False
     try:
         lexer = Lexer.Lexer("#", "#*", "*#", errorhandler, False)
         toks = lexer.tokenize(text)
@@ -58,11 +71,13 @@ def run(text, file='<main>', printToks=False, printAST=False, Global=None):
         ret = executor.run()
         Global = executor.Global
     except Exception as e:
+        error = e.__cause__
         if "py_error is True" not in str(e):
             traceback.print_exc()
     return {
       'return': ret,
-      'Global': Global
+      'Global': Global,
+      'error': error
     }
 
   

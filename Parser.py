@@ -2,7 +2,6 @@ from Data import TokenTypes, OrderOfOps
 import Error
 from sty import fg
 from Types import Null
-
 import random
 
 type_helper = {}
@@ -66,7 +65,6 @@ class Parser:
         replacement = " " + value_type
         curr_line = curr_line[:line_len].rstrip()
         line_end = replacement
-
         self.err_handler.throw(
             "Syntax",
             "Unexpected EOF.",
@@ -123,7 +121,6 @@ class Parser:
             + replacement
             + curr_line[next_tok.start["col"]-1:]
         )
-
         self.err_handler.throw(
             "Syntax",
             f"Unexpected token {str(next_tok.type)}",
@@ -269,9 +266,9 @@ class Parser:
                 }
 
         elif tok.type == TokenTypes["Delimiter"] and tok.value == "(":
-            self.eat(tok.type)
+            self.eat('Delimiter')
             ast_node = self.pStatement()
-            self.eat(TokenTypes["Delimiter"], ")")
+            self.eat("Delimiter", ")")
 
         elif tok.type == TokenTypes["Keyword"] and tok.value == "function":
             ast_node = self.pFunctionDefinition()
@@ -296,7 +293,8 @@ class Parser:
                         "property": property_name,
                     },
                 }
-            while self.compare(TokenTypes["Delimiter"], "("):
+            # Function calls
+            while self.compare(TokenTypes["Delimiter"], "(") and self.peek().start['col'] == ast_node['positions']['end']['col'] + 1:
                 ast_node = self.pFunctionCall(ast_node)
             # 5x, number-var mult
             if (
@@ -656,6 +654,7 @@ class Parser:
         if self.compare(TokenTypes["Delimiter"], "{") and not inline:
             body, lasti = self.eatBlockScope()
         elif not inline:
+            print(condition)
             statm = self.pStatement(True)
             body = [statm]
             lasti = statm["positions"]["end"]
@@ -795,12 +794,12 @@ class Parser:
     #     from [identifier] include [identifier] as [identifier]
     def pIncludeStatement(self):
         if self.compare("Keyword", "include"):
-            keyw = self.eat(TokenTypes["Keyword"], "include")
-            lib_or_start = self.eat(TokenTypes["Identifier"])
+            keyw = self.eat("Keyword", "include")
+            lib_or_start = self.eat("Identifier")
             included_parts = [[lib_or_start.value, lib_or_start.value]]
 
             # Include without as / from
-            if self.isEOF() or self.compare(TokenTypes["LineBreak"]):
+            if self.isEOF() or self.compare("LineBreak"):
                 return {
                     "type": "IncludeStatement",
                     "lib_name": lib_or_start.value,
@@ -810,11 +809,11 @@ class Parser:
                 }
 
             # Include as
-            if self.compare(TokenTypes["Keyword"], "as"):
-                self.eat(TokenTypes["Keyword"], "as")
-                local_name = self.eat(TokenTypes["Identifier"])
+            if self.compare("Keyword", "as"):
+                self.eat("Keyword", "as")
+                local_name = self.eat("Identifier")
 
-                if self.isEOF() or self.compare(TokenTypes["LineBreak"]):
+                if self.isEOF() or self.compare("LineBreak"):
                     return {
                         "type": "IncludeStatement",
                         "lib_name": lib_or_start.value,
@@ -862,7 +861,7 @@ class Parser:
                     local_name = self.eat("Identifier")
                     end = local_name.end
                 created_obj[item.value] = {"local": local_name.value}
-
+        
         return {
             "type": "IncludeStatement",
             "lib_name": lib_name.value,
@@ -970,28 +969,28 @@ class Parser:
     # Program:
     # 	Statement ( [linebreak] Statement )
     def pProgram(self):
-        statements = []
+        self.statements = []
 
         while not self.isEOF():
-            if len(statements) > 0:
+            if len(self.statements) > 0:
                 self.eat(TokenTypes["LineBreak"])
             while self.compare(TokenTypes["LineBreak"]):
                 self.advance()
             if self.isEOF():
                 break
 
-            statements.append(self.pStatement())
+            self.statements.append(self.pStatement())
 
         return {
             "type": "Program",
-            "body": statements,
+            "body": self.statements,
             "positions": {
                 "start": 0
-                if len(statements) == 0
-                else statements[0]["positions"]["start"],
+                if len(self.statements) == 0
+                else self.statements[0]["positions"]["start"],
                 "end": 0
-                if len(statements) == 0
-                else statements[-1]["positions"]["end"],
+                if len(self.statements) == 0
+                else self.statements[-1]["positions"]["end"],
             },
         }
 

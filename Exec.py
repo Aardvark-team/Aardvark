@@ -154,7 +154,7 @@ class Executor:
             'col': expr['positions']['start']['col'], 
             'filename': self.file
           })
-          ret = funct(*[self.ExecExpr(arg, scope) for arg in expr['arguments']], **{k:ExecExpr(v, scope) for k, v in list(expr['keywordArguments'])})
+          ret = funct(*[self.ExecExpr(arg, scope) for arg in expr['arguments']], **{k:self.ExecExpr(v, scope) for k, v in list(expr['keywordArguments'].items())})
           self.traceback = self.traceback[:-1]
           return pyToAdk(ret)
       case {'type' : 'Operator', 'operator': '='}:
@@ -247,6 +247,9 @@ class Executor:
         return self.ExecExpr(expr['number'], scope) * self.getVar(scope, expr['variable'], expr['tokens']['variable'].start)
       case {'type': 'Index'}:
         return self.ExecExpr(expr['value'], scope)[self.ExecExpr(expr['property'], scope)]
+      case {'type': 'IncludeStatement'}:
+        pass
+        #TODO
       case None:
         return Null
       case _:
@@ -290,6 +293,5 @@ def findClosest(var, scope):
       ret = item
       lowest = dist
   return ret
-
 
 

@@ -36,12 +36,14 @@
  - [x] delete keyword
  - [x] return keyword
  - [x] Classes
+ - [ ] Dynamic Include
+ - [ ] Overloading
 
 ## Expressions / Syntax
  - [x] Types
  - [x] Indexes (x[])
  - [ ] side by side mult: (5)(5), 5x, (7)y, etc...
- - [ ] Keyword arguments
+ - [x] Keyword arguments
  - [x] Binary Expressions
  - [x] Function calls
  - [x] Conditions
@@ -56,7 +58,6 @@
 - [x] For loops
 - [x] Return
 - [x] defer
-- [ ] Implement everything
 - [x] switch case (basic)
 - [ ] switch case (full)
 - [x] this/self/whatever
@@ -64,6 +65,7 @@
 - [x] Add traceback
 - [ ] Includes
 - [ ] Refs
+- [ ] classes
 - [x] Indexes
 
 

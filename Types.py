@@ -175,7 +175,6 @@ class String(str, Type):
 class Number(Type, float):
     def __init__(self, value):
         # print(value, type(value))
-        # TODO fix prime attr
         self.vars = {
             "digits": [Number(int(x)) if x not in ".-" else x for x in list(str(value))]
             if len(str(value)) > 1
@@ -204,6 +203,8 @@ class Number(Type, float):
 
     def __getitem__(self, *args):
         return self.vars["digits"].__getitem__(*args)
+    def __call__(self, x):
+        return self * x
 
 
 class Boolean(int, Type):
@@ -235,8 +236,8 @@ class Function(Type):
         self.funct = funct
         Type.__init__(self)
 
-    def __call__(self, *args):
-        return pyToAdk(self.funct(*args))
+    def __call__(self, *args, **kwargs):
+        return pyToAdk(self.funct(*args, **kwargs))
 
       
 class Array(Type, list):
