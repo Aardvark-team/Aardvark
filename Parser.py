@@ -654,7 +654,6 @@ class Parser:
         if self.compare(TokenTypes["Delimiter"], "{") and not inline:
             body, lasti = self.eatBlockScope()
         elif not inline:
-            print(condition)
             statm = self.pStatement(True)
             body = [statm]
             lasti = statm["positions"]["end"]
