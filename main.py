@@ -67,7 +67,7 @@ def run(text, file='<main>', printToks=False, printAST=False, Global=None):
             print(prettify_ast(ast))
         executor = Exec.Executor(file, text, ast["body"], errorhandler)
         if Global:
-          executor.Global = saved_scope
+          executor.Global = Global
         ret = executor.run()
         Global = executor.Global
     except Exception as e:
@@ -92,11 +92,12 @@ if __name__ == '__main__':
   for i in cmdargs:
     if i.startswith('-'):
       options.append(i)
-  mode = cmdargs[0]
   if len(cmdargs) == 0 or len(cmdargs) == len(options): 
     mode = 'live'
+  else:
+    mode = cmdargs[0]
     
-  if cmdargs[0] == '--version':
+  if len(cmdargs) > 0 and cmdargs[0] == '--version':
     print(f'Aardvark {version} \n[Python {python}]\n{sys.platform.upper()}')
     
   elif mode == 'live':

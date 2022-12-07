@@ -38,11 +38,14 @@
  - [x] Classes
  - [ ] Dynamic Include
  - [ ] Overloading
+ - [ ] `include x from y, a from b, ...`
+ - [x] `from x include y`
+ - [ ] `include 'x.adk'`
 
 ## Expressions / Syntax
  - [x] Types
  - [x] Indexes (x[])
- - [ ] side by side mult: (5)(5), 5x, (7)y, etc...
+ - [x] Abstract Multiplication (i.e. 5x, 7(2 + 3), etc...)
  - [x] Keyword arguments
  - [x] Binary Expressions
  - [x] Function calls
@@ -57,16 +60,17 @@
 - [x] Remove let 
 - [x] For loops
 - [x] Return
-- [x] defer
-- [x] switch case (basic)
+- [x] Defer
+- [x] Switch case (basic)
 - [ ] switch case (full)
 - [x] this/self/whatever
 - [ ] Finish Types
 - [x] Add traceback
 - [ ] Includes
 - [ ] Refs
-- [ ] classes
+- [ ] Classes
 - [x] Indexes
+- [x] Fix Defer!
 
 
 

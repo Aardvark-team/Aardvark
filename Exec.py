@@ -3,7 +3,8 @@
 # Note, we need to add unit test.
 # Recusively execute code.
 import Error
-from Lexer import Token
+import Lexer
+import Parser
 import sys
 from Operators import Operators
 import random
@@ -59,6 +60,9 @@ class Executor:
         'floor': math.floor,
         'ceil': math.ceil,
         'log': math.log,
+        'comb': math.comb,
+        'copysign': math.copysign,
+        'lcm': math.lcm
       })
     }) #Define builtins here
     #TODO: implement more builtins.
@@ -113,13 +117,17 @@ class Executor:
           'traceback': self.traceback
         })
   
-  def enterScope(self, var, scope):
+  def enterScope(self, var, scope, main):
     match var:
         case {'type': 'PropertyAccess'}:
-          scope = self.enterScope(var['value'], scope)
+          scope = self.enterScope(var['value'], scope, main)
           return self.getVar(scope, var['property'], var['positions']['start'])
+        case {'type': 'Index'}:
+          property = self.ExecExpr(var['property'], main)
+          scope = self.enterScope(var['value'], scope, main)
+          return self.getVar(scope, property, var['positions']['start'])
         case _:
-          return self.ExecExpr(var, scope)
+          return self.ExecExpr(var, main)
   def ExecExpr(self, expr: dict, scope: Scope, undefinedError=True):
     match expr:
       case {'type': 'NumberLiteral'}:
@@ -162,8 +170,11 @@ class Executor:
         var = expr['left']
         defscope = scope
         if var['type'] == 'PropertyAccess':
-          defscope = self.enterScope(var['value'], scope)
+          defscope = self.enterScope(var['value'], scope, scope)
           var = var['property']
+        if var['type'] == 'Index':
+          defscope = self.enterScope(var['value'], scope, scope)
+          var = self.ExecExpr(var['property'], scope)
         elif var['type'] == 'VariableAccess':
           var = var['value']
         else:
@@ -176,7 +187,8 @@ class Executor:
             'marker': {
               'start': var['positions']['start']['col'],
               'length': var['positions']['end']['col'] - var['positions']['start']['col']
-            }
+            },
+            'traceback': self.traceback
           })
         self.defineVar(var, value, defscope)
         return value
@@ -248,8 +260,41 @@ class Executor:
       case {'type': 'Index'}:
         return self.ExecExpr(expr['value'], scope)[self.ExecExpr(expr['property'], scope)]
       case {'type': 'IncludeStatement'}:
-        pass
-        #TODO
+        file = expr['lib_name']
+        file = [file, file + '.adk', 'libs/' + file, 'libs/' + file + '.adk']
+        i = 0
+        while True:
+          try:
+            with open(file[i]) as f:
+              text = f.read()
+            break
+          except:
+            if i > len(file) - 1:
+              self.errorhandler.throw('Include', f'Could not find library or file {expr["lib_name"]}.', {
+                'lineno': expr['positions']['start']['line'],
+                'underline': {
+                  'start': expr['positions']['start']['col'],
+                  'end': expr['positions']['end']['line']
+                },
+                'marker': {
+                  'start': expr['tokens']['lib_name'].start['col'],
+                  'length': len(expr['lib_name'])
+                },
+                'traceback': self.traceback
+              })
+            i += 1
+        lexer = Lexer.Lexer("#", "#*", "*#", self.errorhandler, False)
+        toks = lexer.tokenize(text)
+        parser = Parser.Parser(self.errorhandler, lexer)
+        ast = parser.parse()
+        executor = Executor(file, text, ast["body"], self.errorhandler)
+        executor.run()
+        fscope = executor.Global
+        if expr['included'] == 'ALL':
+          self.defineVar(expr['local_name'], fscope, scope)
+        else:
+          for k, v in expr['included'].items():
+            self.defineVar(v['local'], fscope[k], scope)
       case None:
         return Null
       case _:

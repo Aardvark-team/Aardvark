@@ -33,11 +33,10 @@ class Parser:
     def compare(self, Type, value=None):
         if self.isEOF():
             return False
-
+          
         tok = self.peek()
         if type(Type) == str:
-            Type = TokenTypes[Type]
-
+          Type = TokenTypes[Type]
         if tok and tok.type == Type and (value is None or value == tok.value):
             return True
         return False
@@ -51,7 +50,6 @@ class Parser:
         last_tok = self.tokens[self.pos - 1]
         curr_line = self.err_handler.code.split("\n")[last_tok.line - 1]
         line_len = len(curr_line)
-
         value_type = (
             value
             if value
@@ -82,12 +80,12 @@ class Parser:
         )
 
     # Consume the current token if the types match, else throw an error
-    def eat(self, Type, value=None, is_type=False):
+    def eat(self, Type='any', value=None, is_type=False):
         # print("ATE:", Type)
-
+      
         if type(Type) == str:
             Type = TokenTypes[Type]
-
+          
         if self.compare(Type, value):
             curr = self.peek()
             self.advance()
@@ -95,7 +93,6 @@ class Parser:
             return curr
 
         # Raise an error
-        # print(Type)
         if self.isEOF():
             return self.eofError(Type, value, is_type)
 
@@ -786,15 +783,18 @@ class Parser:
         }
 
     # IncludeStatement:
-    #     include [identifier]
-    #     include [identifier] as [identifier]
+    #     include [identifier/string]
+    #     include [identifier/string] as [identifier]
     #     include [identifier] [ as [identifier] ] from [identifier]
     #     from [identifier] include [identifier]
     #     from [identifier] include [identifier] as [identifier]
     def pIncludeStatement(self):
         if self.compare("Keyword", "include"):
             keyw = self.eat("Keyword", "include")
-            lib_or_start = self.eat("Identifier")
+            if self.compare('String'):
+              lib_or_start = self.eat("String")
+            else:
+              lib_or_start = self.eat("Identifier")
             included_parts = [[lib_or_start.value, lib_or_start.value]]
 
             # Include without as / from
@@ -805,6 +805,9 @@ class Parser:
                     "local_name": lib_or_start.value,
                     "included": "ALL",
                     "positions": {"start": keyw.start, "end": lib_or_start.end},
+                    "tokens": {
+                      'lib_name': lib_or_start
+                    }
                 }
 
             # Include as
@@ -819,6 +822,9 @@ class Parser:
                         "local_name": local_name.value,
                         "included": "ALL",
                         "positions": {"start": keyw.start, "end": local_name.end},
+                        "tokens": {
+                          'lib_name': lib_or_start
+                        }
                     }
 
                 # We predicted the wrong type of include so replace the included parts
@@ -837,7 +843,10 @@ class Parser:
                 included_parts.append([name.value, local_name.value])
 
             self.eat("Keyword", "from")
-            lib_name = self.eat("Identifier")
+            if self.compare('String'):
+              lib_name = self.eat("String")
+            else:
+              lib_name = self.eat("Identifier")
             created_obj = {}
 
             for part_name, part_local in included_parts:
@@ -845,7 +854,10 @@ class Parser:
             end = lib_name.end
         else:
             keyw = self.eat("Keyword", "from")
-            lib_name = self.eat("Identifier")
+            if self.compare('String'):
+              lib_name = self.eat("String")
+            else:
+              lib_name = self.eat("Identifier")
             self.eat("Keyword", "include")
             created_obj = {}
 
@@ -867,6 +879,9 @@ class Parser:
             "local_name": lib_name.value,
             "included": created_obj,
             "positions": {"start": keyw.start, "end": end},
+            "tokens": {
+              "lib_name": lib_name
+            }
         }
 
     # Statement:
@@ -913,13 +928,19 @@ class Parser:
 
     def pDeferStatement(self):
         starter = self.eat("Keyword")
-        value = self.pExpression()
+        if self.compare(TokenTypes["Delimiter"], "{"):
+            value, lasti = self.eatBlockScope()
+            closing_pos = lasti
+        else:
+            value = [self.pStatement()]
+            closing_pos = value[0]["positions"]["end"]
+        value = self.pStatement()
         return {
             "type": "DeferStatement",
             "value": value,
             "positions": {
                 "start": starter.start,
-                "end": value["positions"]["end"] if value else starter.end,
+                "end": closing_pos,
             },
         }
 

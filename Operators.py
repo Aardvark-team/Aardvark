@@ -1,6 +1,7 @@
 from Error import Highlight, styles
 from sty import fg
 from Types import Null, Object, Scope
+import math
 
 Operators = {}
 # stdout.write(+ 1)

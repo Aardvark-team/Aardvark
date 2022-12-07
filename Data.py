@@ -119,6 +119,7 @@ Keywords = {
     "function",
     "for",
     "while",
+  
     "switch",
     "case",
     "if",

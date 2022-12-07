@@ -176,7 +176,7 @@ class Number(Type, float):
     def __init__(self, value):
         # print(value, type(value))
         self.vars = {
-            "digits": [Number(int(x)) if x not in ".-" else x for x in list(str(value))]
+            "digits": [Number(int(x)) if x in "0123456789" else x for x in list(str(value))]
             if len(str(value)) > 1
             else [value],
             "prime": Boolean(
