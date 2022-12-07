@@ -273,7 +273,7 @@ class Parser:
         elif tok.type == TokenTypes["Keyword"] and tok.value == "class":
             ast_node = self.pClassDefinition()
 
-        if ast_node:
+        while ast_node:
             while self.compare(TokenTypes["Delimiter"], "."):
                 self.eat(TokenTypes["Delimiter"])
                 property_name = self.eat(TokenTypes["Identifier"])
@@ -290,9 +290,28 @@ class Parser:
                         "property": property_name,
                     },
                 }
+                continue #Check for others
+            # Indexes
+            if self.compare("Delimiter", "["):
+                self.eat("Delimiter")
+                property = self.pExpression()
+                self.eat("Delimiter")
+                ast_node = {
+                    "type": "Index",
+                    "property": property,
+                    "value": ast_node,
+                    "positions": {
+                        "start": ast_node["positions"]["start"],
+                        "end": property["positions"]["end"]
+                        if property
+                        else ast_node["positions"]["end"],
+                    },
+                }
+                continue #Check for others
             # Function calls
-            while self.compare(TokenTypes["Delimiter"], "(") and self.peek().start['col'] == ast_node['positions']['end']['col'] + 1:
+            if self.compare(TokenTypes["Delimiter"], "(") and self.peek().start['col'] == ast_node['positions']['end']['col'] + 1:
                 ast_node = self.pFunctionCall(ast_node)
+                continue #Check for others
             # 5x, number-var mult
             if (
                 self.compare("Identifier")
@@ -321,22 +340,6 @@ class Parser:
               for_ast = self.pForLoop(True)
               for_ast['body'] = ast_node
               ast_node = for_ast
-            # Indexes
-            if self.compare("Delimiter", "["):
-                self.eat("Delimiter")
-                property = self.pExpression()
-                self.eat("Delimiter")
-                ast_node = {
-                    "type": "Index",
-                    "property": property,
-                    "value": ast_node,
-                    "positions": {
-                        "start": ast_node["positions"]["start"],
-                        "end": property["positions"]["end"]
-                        if property
-                        else ast_node["positions"]["end"],
-                    },
-                }
             # TODO: add a, b, c
 
             return ast_node
