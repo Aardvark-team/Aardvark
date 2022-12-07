@@ -20,8 +20,6 @@ class Version:
     self.minor = minor
     self.patch = patch
     self.serial = max(serial, 1)
-    if type.lower() not in ['test', 'alpha', 'beta', 'candidate', 'stable', 'production']:
-      raise ValueError('Invalid release type!')
     self.type = type.lower()
   def __str__(self):
     s = f"{self.major}.{self.minor}"
