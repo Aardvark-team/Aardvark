@@ -1,6 +1,8 @@
 import types
 import io
 import time
+import os
+
 
 class Type:
     def get(self, name, default=None):
@@ -157,6 +159,7 @@ class __Null(Type):
 
 class String(str, Type):
     def __init__(self, value):
+        value = str(value)
         self.vars = {
             "length": len(value),
             "split": lambda sep=" ": self.split(sep),
@@ -174,7 +177,11 @@ class String(str, Type):
 
 class Number(Type, float):
     def __init__(self, value):
-        # print(value, type(value))
+        if type(value) not in [float, int]:
+          try:
+            value = float(value)
+          except:
+            value = float(int(value))
         self.vars = {
             "digits": [Number(int(x)) if x in "0123456789" else x for x in list(str(value))]
             if len(str(value)) > 1
@@ -209,6 +216,8 @@ class Number(Type, float):
 
 class Boolean(int, Type):
     def __init__(self, value):
+        if type(value) not in [int, bool]:
+          value = int(bool(value))
         if value != 0:
             value = 1
         self.vars = {
@@ -242,6 +251,7 @@ class Function(Type):
       
 class Array(Type, list):
     def __init__(self, value):
+        value = list(value)
         self.vars = {
             'contains': lambda x: x in self,
             'add': self.append,
@@ -255,7 +265,7 @@ class Array(Type, list):
       
 class Set(Type, list):
     def __init__(self, value):
-        
+        value = list(value)
         self.vars = {
             'contains': lambda x: x in self,
             'add': self.append,
@@ -282,22 +292,42 @@ class Set(Type, list):
       return f'set{{{s}}}'
 
 class File(Type):
-  def __init__(self, name, mode='r'):
+  def __init__(self, obj):
+    #NOT FINISHED
     # print(dir(value))
-    self.name = name
-    self.mode = mode
-    self.obj = open(name, mode)
+    self.name = obj.name
+    self.mode = obj.mode
+    self.obj = obj
     self.vars = {
       'read': self.read,
       'write': self.write,
       'readAll': self.readAll,
       'readLine': self.readLine,
-      'writeLine': self.writeLine,
+      'writeLines': self.writeLines,
       'erase': self.erase,
       'move': self.move,
-      'delete': self.delete
+      'delete': self.delete,
+      'name': self.name,
+      'mode': self.mode
     }
+  def read(self, chars=1):
+    return self.obj.read(chars)
+  def readLine(self):
+    return self.obj.readline()
+  def readAll(self):
+    return self.obj.read()
+  def write(self, *args):
+    return self.obj.write(' '.join(args))
+  def writeLines(self, *lines):
+    return self.obj.writelines(*lines)
+  def delete(self):
+    os.remove(self.name)
+  def erase(self):
+    open(self.name, 'w').close()
+  def move(self, new):
+    os.rename(self.name, new)
 
+    
 
 # TODO: Add: File, Stream, Bitarray
 Null = __Null()
@@ -337,6 +367,8 @@ def pyToAdk(py):
         return Object(dict_from_other(py))
     elif callable(py):
         return Function(py)
+    elif isinstance(py, io.TextIOBase) or isinstance(py, io.BufferedIOBase) or isinstance(py, io.RawIOBase) or isinstance(py, io.IOBase):
+      return File(py)
     else:
         return Object(dict_from_other(py))
 

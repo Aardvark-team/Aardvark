@@ -10,7 +10,7 @@ from Operators import Operators
 import random
 import math
 from nltk import edit_distance
-from Types import Null, Object, Scope, Number, String, Boolean, pyToAdk, Function, Set, Array
+from Types import Null, Object, Scope, Number, String, Boolean, pyToAdk, Function, Set, Array, File
 import importlib
 
 def get_call_scope(scope):
@@ -40,7 +40,7 @@ class Executor:
         'write': lambda *args: print(*args, end="", file=sys.stderr)
       }, name="stderr"),
       'python': Object({ 
-        'import': pyToAdk(lambda mod: importlib.import_module(mod)) #NOT WORKING
+        'import': lambda mod: importlib.import_module(mod)
       }),
       'slice': lambda str, start, end: str[start:end],
       'typeof': lambda obj: type(obj).__name__,
@@ -63,7 +63,15 @@ class Executor:
         'comb': math.comb,
         'copysign': math.copysign,
         'lcm': math.lcm
-      })
+      }),
+      'String': String,
+      'Number': Number,
+      'Array': Array,
+      'Set': Set,
+      'Function': Function,
+      'Boolean': Boolean,
+      'File': File,
+      'open': open
     }) #Define builtins here
     #TODO: implement more builtins.
     self.errorhandler = errorhandler
