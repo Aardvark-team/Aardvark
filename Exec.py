@@ -180,7 +180,7 @@ class Executor:
         if var['type'] == 'PropertyAccess':
           defscope = self.enterScope(var['value'], scope, scope)
           var = var['property']
-        if var['type'] == 'Index':
+        elif var['type'] == 'Index':
           defscope = self.enterScope(var['value'], scope, scope)
           var = self.ExecExpr(var['property'], scope)
         elif var['type'] == 'VariableAccess':
