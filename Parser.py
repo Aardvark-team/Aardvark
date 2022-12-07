@@ -120,7 +120,7 @@ class Parser:
         )
         self.err_handler.throw(
             "Syntax",
-            f"Unexpected token {str(next_tok.type)}",
+            f"Unexpected {str(next_tok.type)}: {str(next_tok.value)}",
             {
                 "lineno": next_tok.line,
                 "marker": {
@@ -794,6 +794,17 @@ class Parser:
     def pIncludeStatement(self):
         if self.compare("Keyword", "include"):
             keyw = self.eat("Keyword", "include")
+            if self.compare('Delimiter', '(') and self.peek().start['col'] == keyw.end['col']+1:
+              #Dynamic include
+              return self.pFunctionCall({
+                'type': 'VariableAccess',
+                'value': 'include',
+                'positions': {
+                  'start': keyw.start,
+                  'end': keyw.end
+                }
+              })
+              
             if self.compare('String'):
               lib_or_start = self.eat("String")
             else:

@@ -20,7 +20,7 @@ class Version:
     self.minor = minor
     self.patch = patch
     self.serial = max(serial, 1)
-    if type.lower() not in ['test', 'alpha', 'beta', 'canidate', 'stable', 'production']:
+    if type.lower() not in ['test', 'alpha', 'beta', 'candidate', 'stable', 'production']:
       raise ValueError('Invalid release type!')
     self.type = type.lower()
   def __str__(self):
@@ -138,6 +138,7 @@ if __name__ == '__main__':
 Commands:
   run <file> [-opts...]
   live [-opts...]
+  --version
 
 Options:
   -ast   —  Prints the AST
@@ -153,7 +154,7 @@ Versions:
   Tests are not usually released, they are used internally to mean that we aren't done with it.
   Alpha is for releases that don't have the full functionality.
   Beta is for releases that have most functionality, but are very buggy.
-  Canidate is for releases that are thought to be stable.
+  Candidate is for releases that are thought to be stable.
   A candidate is promoted to stable after successful testing
   A stable can be promoted to production if it is well enough refined.
     

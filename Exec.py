@@ -71,10 +71,42 @@ class Executor:
       'Function': Function,
       'Boolean': Boolean,
       'File': File,
-      'open': open
+      'Object': Object,
+      'open': open,
+      'include': self.include
     }) #Define builtins here
     #TODO: implement more builtins.
     self.errorhandler = errorhandler
+  def include(self, name):
+        file = [name, name + '.adk', 'libs/' + name, 'libs/' + name + '.adk']
+        i = 0
+        while True:
+          try:
+            with open(file[i]) as f:
+              text = f.read()
+            break
+          except:
+            if i > len(file) - 1:
+              self.errorhandler.throw('Include', f'Could not find library or file {expr["lib_name"]}.', {
+                'lineno': expr['positions']['start']['line'],
+                'underline': {
+                  'start': expr['positions']['start']['col'],
+                  'end': expr['positions']['end']['line']
+                },
+                'marker': {
+                  'start': expr['tokens']['lib_name'].start['col'],
+                  'length': len(expr['lib_name'])
+                },
+                'traceback': self.traceback
+              })
+            i += 1
+        lexer = Lexer.Lexer("#", "#*", "*#", self.errorhandler, False)
+        toks = lexer.tokenize(text)
+        parser = Parser.Parser(self.errorhandler, lexer)
+        ast = parser.parse()
+        executor = Executor(file, text, ast["body"], self.errorhandler)
+        executor.run()
+        return executor.Global
   def defineVar(self, name, value, scope):
     if name in scope.getAll() and name not in list(scope.vars.keys()):
       self.defineVar(name, value, scope.parent)
@@ -269,35 +301,7 @@ class Executor:
         return self.ExecExpr(expr['value'], scope)[self.ExecExpr(expr['property'], scope)]
       case {'type': 'IncludeStatement'}:
         file = expr['lib_name']
-        file = [file, file + '.adk', 'libs/' + file, 'libs/' + file + '.adk']
-        i = 0
-        while True:
-          try:
-            with open(file[i]) as f:
-              text = f.read()
-            break
-          except:
-            if i > len(file) - 1:
-              self.errorhandler.throw('Include', f'Could not find library or file {expr["lib_name"]}.', {
-                'lineno': expr['positions']['start']['line'],
-                'underline': {
-                  'start': expr['positions']['start']['col'],
-                  'end': expr['positions']['end']['line']
-                },
-                'marker': {
-                  'start': expr['tokens']['lib_name'].start['col'],
-                  'length': len(expr['lib_name'])
-                },
-                'traceback': self.traceback
-              })
-            i += 1
-        lexer = Lexer.Lexer("#", "#*", "*#", self.errorhandler, False)
-        toks = lexer.tokenize(text)
-        parser = Parser.Parser(self.errorhandler, lexer)
-        ast = parser.parse()
-        executor = Executor(file, text, ast["body"], self.errorhandler)
-        executor.run()
-        fscope = executor.Global
+        fscope = self.include(file)
         if expr['included'] == 'ALL':
           self.defineVar(expr['local_name'], fscope, scope)
         else:

@@ -36,7 +36,7 @@
  - [x] delete keyword
  - [x] return keyword
  - [x] Classes
- - [ ] Dynamic Include
+ - [x] Dynamic Include
  - [ ] Overloading
  - [ ] `include x from y, a from b, ...`
  - [x] `from x include y`
