@@ -14,7 +14,7 @@ import os
 # Prettifying the ast
 from Utils import prettify_ast
 
-sys.setrecursionlimit(2000)
+sys.setrecursionlimit(2500)
 
 class Version:
   def __init__(self, major=0, minor=0, patch=0, type='stable', serial=1):
@@ -38,16 +38,19 @@ python = sys.version_info
 python = Version(python.major, python.minor, python.micro, python.releaselevel, python.serial)
 
 
-def runTest(code, values={}, ret=None):
+def runTest(code, values={}, ret=None, testfunct=None):
   x = run(code)
+  #print(x['error'])
   if x['error']:
-    raise ValueError('Error')
+    raise ValueError(f'Error: {x["error"]}')
   scope = x['Global']
   if ret != None and x['return'] != ret:
     raise ValueError(f'Error, {ret} != {x["return"]}')
   for i in values:
     if scope[i] != values[i]:
       raise ValueError(f'Error, {scope[i]} != {values[i]} for variable {i}')
+  if testfunct: 
+    testfunct(x)
   return True
 
 def run(text, file='<main>', printToks=False, printAST=False, Global=None):
@@ -79,7 +82,15 @@ def run(text, file='<main>', printToks=False, printAST=False, Global=None):
       'Global': Global,
       'error': error
     }
-
+runTest('''
+class test as this {
+  attr1 = 1
+  $constructor() {
+    this.attr2 = 2
+  }
+}
+x = test()
+''', testfunct=lambda x: x['Global']['x']['attr1'] == 1)
   
 def runFile(file, *args, **kwargs):
   with open(file) as f:
@@ -123,7 +134,8 @@ if __name__ == '__main__':
         errorhandler = ErrorHandler(text, file, py_error=True)
     
         x = run(text, file, printtoks, printast, Global=saved_scope if saved_scope else None)
-        print(x['return'])
+        if 'no-ret' not in x:
+          print(x['return'])
         saved_scope = x['Global']
   
   elif mode == 'run':
@@ -161,3 +173,4 @@ Versions:
     ''')
   else:
     print('Usage: ./adk cmd [-opts...]')
+

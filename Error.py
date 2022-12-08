@@ -171,7 +171,6 @@ def print_error(type: str, pos, msg, didyoumean, err_trace, code):
 
     underline_str = underline_str.rstrip()
     error_underline = f'{" "*(padding+3)}{ef.bold + fg(225, 30, 10)}{underline_str}―>{ef.rs} {fg(225, 30, 10)}{msg}'
-
     code_lines = code.split("\n")
     code_lines[lineno - 1] = (
         code_lines[lineno - 1] + "\n" + error_underline + styles["default"]

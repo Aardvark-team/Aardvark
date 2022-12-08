@@ -114,12 +114,10 @@ Delimiters = {
 Keywords = {
     "class",
     "extends",
-    "type",
     "extending",
     "function",
     "for",
     "while",
-  
     "switch",
     "case",
     "if",

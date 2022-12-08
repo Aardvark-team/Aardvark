@@ -15,3 +15,4 @@ class X as this {
 
 myvar = X(5, 3)
 stdout.write('Method test,', myvar.method(), '\n')
+

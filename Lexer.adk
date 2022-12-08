@@ -1,0 +1,214 @@
+include TokenTypes, Operators, Keywords, Quotes, Whitespaces, Booleans, Delimiters from Data
+include Error
+
+
+class Token as this {
+  $constructor(type, 
+              start, 
+              end,
+              value = null,
+              variation = null) 
+  {
+    this.columnstart = columnstart
+    this.columnend = columnend
+    this.type = type
+    this.length = end - start
+    this.start = start
+    this.end = end
+    this.value = value
+    this.variation = variation
+  }
+}
+
+
+class Lexer as this {
+  $constructor(useIndents = false, tokenizeComments = false) {
+    this.useIndents = useIndents
+    this.tokenizeComments = tokenizeComments
+    this.data = ""
+    this.index = 0
+    this.line = 0
+    this.column = 0
+    this.output = []
+    this.empty = true
+    this.AtEnd = false
+    this.curChar = ""
+  }
+  function isWhitespace(char = null)
+    return (char ? this.curChar) in Whitespaces
+
+  function isNewline(char = null)
+    return (char ? this.curChar) in '\n;'
+
+  function isQuote(char = null)
+    return (char ? this.curChar) in Quotes
+
+  function isDelimiter(char = null)
+    return (char ? this.curChar) in Delimiters 
+
+  function isNumber(char = null)
+    return (char ? this.curChar) in '0123456789'
+
+  function addToken(...args)
+    return this.output.push(Token(...args))
+
+  function otherwise(char = null) {
+    char = char ? this.curChar
+    return !(this.isWhitespace(char) | self.isDelimiter(char) | self.isNewline(char) | char == comment | char in Operators)
+  }
+
+  function detect(text) {
+    if this.curChar = text[0] {
+      for i in range(text.length - 1) 
+        if this.peek(i + 1) != text[i + 1] return false;
+    } else return false;
+    return true
+  }
+  function newline() {
+    this.empty = true
+    this.line += 1
+    this.column = 0
+  }
+  function advance(Integer amt = 1) {
+    this.index = this.index + amt
+    this.column = this.column + amt
+    if this.index < this.data.length
+      this.curChar = this.data[this.index];  
+    else 
+      this.AtEnd = true;
+  }
+  function peek(Integer amt = 1) {
+    if this.index + amt < this.data.length 
+      return this.data[this.index + amt]
+    else return null;
+  }
+  function pos() {
+    return {index: this.index, line: this.line, column: this.column}
+  }
+  function tokenize(String data) {
+    #*
+      Takes code and converts it to tokens.
+    *#
+    if !data throw ValueError("String cannot be empty")
+    this.data = this.data + data
+    this.curChar = this.data[this.index]
+    while this.index < this.data.length {
+      # Newlines (\n or ;)
+      if this.isNewline() {
+        this.addToken('LineBreak', this.pos(), this.pos(), this.curChar, this.curChar)
+        if this.curChar = '\n' this.newline();#Only increment the line if its a \n
+        else this.empty = true
+      }
+
+      # Indents
+      else if this.isWhitespace() & this.empty & this.useIndents {
+        value = ''
+        start = this.index
+        startcolumn = this.column
+        while this.isWhitespace() & !this.AtEnd {
+          value = value + this.curChar
+          this.advance()
+        }
+        if !this.isNewline() {
+          this.advance(-1)
+          this.addToken('Indent', start, this.pos(), value)
+        }
+        else self.advance(-1);
+      }
+
+      #Delimiters
+      else if this.isDelimiter() 
+        this.addToken('Delimiter', this.pos(), this.pos(), this.curChar)
+
+      #Numbers
+      else if this.isNumber() {
+        start = this.pos()
+        value = ''
+        seen_dot = False
+        while (this.isNumber | this.curChar = '.') & !this.AtEnd {
+          if seen_dot & this.curChar = '.'
+            pass # Throw error
+          if this.curChar = '.' seen_dot = true
+          value = value + this.curChar
+          this.advance()
+        }
+        this.advance(-1)
+        this.addToken('Number', start, this.pos(), value)
+      }
+
+      # Multiline comments
+      else if this.detect('#*') {
+        value = ''
+        start = this.pos()
+        while !this.detect('*#') & !this.AtEnd {
+          value = value + this.curChar
+          this.advance()
+        }
+        this.advance('*#'.length-1) # To skip the *#
+        if (this.tokenizeComments) this.addToken('Comment', start, this.pos(), value)
+      }
+
+      # Single line comments
+      else if this.curChar = '#' {
+        value = ''
+        start = this.pos()
+        while this.curChar != '\n' & !this.AtEnd {
+          value = value + this.curChar
+          this.advance()
+        }
+        this.advance(-1) # To still register the newline
+        if (this.tokenizeComments) this.addToken('Comment', start, this.pos(), value)
+      }
+
+      # Strings
+      else if this.isQuote() {
+        variation = this.curChar
+        value = ''
+        start = this.pos()
+        while !this.AtEnd {
+          this.advance()
+          if self.curChar == variation & value[-1]? != '\\' { # Make sure its the same type of quote and there is no \ before it
+            value = value[:-1] # To remove the -1
+            break
+          }
+          (break) if this.AtEnd
+          value = value + this.curChar
+        }
+        this.addToken('String', start, this.pos(), value, variation)
+      }
+
+      # Operators
+      else if this.curChar in Operators {
+        value = ''
+        start = this.pos()
+        while !this.AtEnd & (value + this.curChar) in Operators {
+          value = value + this.curChar
+          this.advance()
+        }
+        this.advance(-1) 
+        this.addToken('Operator', start, this.pos(), value)
+      }
+
+      # Identifiers, Keywords, and Operators
+      else if this.otherwise() {
+        value = ''
+        start = this.pos()
+        while (this.otherwise() or this.isNumber()) & !this.AtEnd {
+          value = value + this.curChar
+          this.advance()
+        }
+        this.advance(-1)
+        type = 'Identifier'
+        type = 'Operator' if value in Operators
+        type = 'Keyword' if value in Keywords
+        type = 'Boolean' if value in Booleans
+        this.addToken(type, start, this.pos(), value)
+      }
+
+      # Advance
+      (break) if this.AtEnd
+      this.advance()
+    }
+    return this.output
+  }
+}

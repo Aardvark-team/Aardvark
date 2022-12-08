@@ -44,7 +44,11 @@ class Parser:
     # Advance to the next token
     def advance(self):
         self.pos += 1
-
+      
+    def eatLBs(self):
+        while self.compare(TokenTypes["LineBreak"]):
+            self.advance()
+          
     # Unexpected EOF
     def eofError(self, Type, value=None, is_type=False):
         last_tok = self.tokens[self.pos - 1]
@@ -141,8 +145,7 @@ class Parser:
     def parseListLike(self, delim, closer):
         items = []
         while self.peek() and not self.compare(*closer):
-            while self.compare(TokenTypes["LineBreak"]):
-                self.advance()
+            self.eatLBs()
             if len(items) > 0:
                 if not self.compare('Delimiter', delim):
                   tok = self.peek()
@@ -159,17 +162,16 @@ class Parser:
                     'did_you_mean': self.codelines[tok.start['line']-1][:tok.start['col']-1] + delim + self.codelines[tok.start['line']-1][tok.end['col']-1:]
                   })
                 self.eat(TokenTypes["Delimiter"], delim)
-            while self.compare(TokenTypes["LineBreak"]):
-                self.advance()
-
+            self.eatLBs()
             items.append(self.pStatement())
+            self.eatLBs()
         return items
 
     # Eats a list of statements contained in { and }
     def eatBlockScope(self):
+        self.eatLBs()
         self.eat(TokenTypes["Delimiter"], "{")
         body = []
-
         while self.peek() and not self.compare(TokenTypes["Delimiter"], "}"):
             if len(body) > 0:
                 self.eat(TokenTypes["LineBreak"])
@@ -410,16 +412,21 @@ class Parser:
         obj = {}
 
         while self.peek() and not self.compare(TokenTypes["Delimiter"], "}"):
+            self.eatLBs()
             if len(obj.keys()) > 0:
                 self.eat(TokenTypes["Delimiter"], ",")
+            self.eatLBs()
 
             name = None
             if self.compare(TokenTypes["Identifier"]):
                 name = self.eat(TokenTypes["Identifier"]).value
-
+            elif self.compare('Number'):
+                name = self.eat('Number').value
+            self.eatLBs()
             self.eat(TokenTypes["Delimiter"], ":")
+            self.eatLBs()
             value = self.pStatement()
-
+            self.eatLBs()
             obj[name] = value
 
         closing_par = self.eat(TokenTypes["Delimiter"], "}")
@@ -516,24 +523,31 @@ class Parser:
           starter = self.eat(TokenTypes["Keyword"], "function")
         if self.compare("Identifier"):
             name = self.eat(TokenTypes["Identifier"])
-
+        
         openparen = self.eat(TokenTypes["Delimiter"], "(")
         if special:
           starter = name if name else openparen
         parameters = []
         while self.peek() and not self.compare(TokenTypes["Delimiter"], ")"):
             var_type = None
+            self.eatLBs()
             if len(parameters) > 0:
                 self.eat(TokenTypes["Delimiter"], ",")
+            self.eatLBs()
             var_name = self.eat(TokenTypes["Identifier"])
+            self.eatLBs()
             var_default = None
             if self.compare("Delimiter", ":"):
                 self.eat("Delimiter")
+                self.eatLBs()
                 var_type = self.pExpression(exclude='=')
+            self.eatLBs()
             if self.compare('Operator', '='):
               self.eat('Operator')
+              self.eatLBs()
               var_default = self.pExpression()
               #TODO: Add modes to not parse , or something
+            self.eatLBs()
 
             parameters.append(
                 {
@@ -560,6 +574,7 @@ class Parser:
         if self.compare("Operator"):
             self.eat(TokenTypes["Operator"], "->")
             return_type = self.pExpression()
+        self.eatLBs()
         if self.compare("Delimiter", "{"):
             body, lasti = self.eatBlockScope()
         else:

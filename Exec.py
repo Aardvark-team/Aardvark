@@ -32,9 +32,7 @@ class Executor:
       'stdin': Object({
         #Many of our stdin functions can't be implemented in python.
         'prompt': lambda x: input(x), #Also simple
-        'read': sys.stdin.read,
         'readLine': lambda: input(),
-        'write': sys.stdin.write,
       }, name="stdin"),
       'stderr': File(sys.stderr),
       'python': Object({ 
@@ -77,15 +75,16 @@ class Executor:
     #TODO: implement more builtins.
     self.errorhandler = errorhandler
   def include(self, name):
-        file = [name, name + '.adk', 'libs/' + name, 'libs/' + name + '.adk']
+        locs = [name, name + '.adk', 'libs/' + name, 'libs/' + name + '.adk']
         i = 0
         while True:
+          file = locs[i]
           try:
-            with open(file[i]) as f:
+            with open(file) as f:
               text = f.read()
             break
           except:
-            if i > len(file) - 1:
+            if i > len(locs) - 1:
               self.errorhandler.throw('Include', f'Could not find library or file {expr["lib_name"]}.', {
                 'lineno': expr['positions']['start']['line'],
                 'underline': {
@@ -99,11 +98,12 @@ class Executor:
                 'traceback': self.traceback
               })
             i += 1
-        lexer = Lexer.Lexer("#", "#*", "*#", self.errorhandler, False)
+        errorhandler = Error.ErrorHandler(text, file, py_error=True)
+        lexer = Lexer.Lexer("#", "#*", "*#", errorhandler, False)
         toks = lexer.tokenize(text)
-        parser = Parser.Parser(self.errorhandler, lexer)
+        parser = Parser.Parser(errorhandler, lexer)
         ast = parser.parse()
-        executor = Executor(file, text, ast["body"], self.errorhandler)
+        executor = Executor(file, text, ast["body"], errorhandler)
         executor.run()
         return executor.Global
   def defineVar(self, name, value, scope):

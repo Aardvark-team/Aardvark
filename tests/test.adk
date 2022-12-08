@@ -1,3 +1,9 @@
+l = [
+'hi', 
+'test'
+]
+stdout.write(l, '\n')
+
 function x(val) as this { #Test
     stdout.write(val, '\n')
     return null #Note the static return value

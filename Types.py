@@ -22,15 +22,16 @@ class Type:
 
 
 class Object(Type):
-    def __init__(self, inherit={}, name="", _class=None, call=None, setitem=None, getitem=None):
+    def __init__(self, inherit={}, name="", _class=None, call=None, setitem=None, getitem=None, deleteitem=None):
         self._class = _class
         self.name = name
         self.vars = {}
         for i in inherit:
           self.vars[i] = pyToAdk(inherit[i])
         self._call = call
-        self._setitem = setitem #TODO
-        self._getitem = getitem #TODO
+        self._setitem = setitem 
+        self._getitem = getitem 
+        self._deleteitem = deleteitem
         #etc... Add later TODO
         self._index = 0
 
@@ -43,12 +44,12 @@ class Object(Type):
         
     def __setitem__(self, name, value):
         if self._setitem:
-          return self._setitem(self, self._class.AS)
+          return self._setitem(self, self._class.AS, name, value)
         return self.set(name, value)
 
     def __getitem__(self, name):
         if self._getitem:
-          return self._getitem(self, self._class.AS)
+          return self._getitem(self, self._class.AS, name)
         return self.get(name)
 
     def delete(self, name):
@@ -58,6 +59,8 @@ class Object(Type):
         return self.delete(name)
 
     def __delitem__(self, name):
+        if self._deleteitem:
+          return self._deleteitem(self, self._class.AS, name)
         return self.delete(name)
 
     def __iter__(self):
@@ -366,7 +369,7 @@ class Class(Type):
     def __str__(self):
         return f'<Class {self.name}>'
     def __call__(self, *args, **kwargs):
-        obj = Object(self.vars, _class=self, call=self.getSpecial('call'), getitem=self.getSpecial('getitem'), setitem=self.getSpecial('setitem'))
+        obj = Object(self.vars, _class=self, call=self.getSpecial('call'), getitem=self.getSpecial('getitem'), setitem=self.getSpecial('setitem'), deleteitem=self.getSpecial('deleteitem'))
         init = self.getSpecial('constructor')
         if init:
           init(obj, self.AS, *args, **kwargs)
