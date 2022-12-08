@@ -72,9 +72,13 @@ class Object(Type):
             return list(self.vars.keys())[self._index]
 
     def __repr__(self):
+        if self._class:
+            return self._class.childstr()
         return self.vars.__repr__()
 
     def __str__(self):
+        if self._class:
+            return self._class.childstr()
         return self.vars.__str__()
 
 
@@ -356,7 +360,7 @@ class Class(Type):
     def set_return_value(self, value):
         return False
     def childstr(self):
-      return f'<f{name} object>'
+      return f'<instance of {self.name}>'
     def __repr__(self):
         return str(self)
     def __str__(self):
