@@ -1,0 +1,17 @@
+class X as this {
+  $constructor(x, y) {
+    this.x = x
+    this.y = y
+    stdout.write('constructed!\n')
+  }
+  $call(x, y, z) {
+    stdout.write('Args work?', x, y, z, '\n')
+  }
+  function method() {
+    return 5
+  }
+  attr = 5
+}
+
+myvar = X(5, 3)
+stdout.write('Method test,', myvar.method(), '\n')

@@ -36,11 +36,9 @@
  - [x] delete keyword
  - [x] return keyword
  - [x] Classes
- - [x] Dynamic Include
  - [ ] Overloading
  - [ ] `include x from y, a from b, ...`
  - [x] `from x include y`
- - [ ] `include 'x.adk'`
 
 ## Expressions / Syntax
  - [x] Types
@@ -64,7 +62,7 @@
 - [x] Switch case (basic)
 - [ ] switch case (full)
 - [x] this/self/whatever
-- [ ] Finish Types
+- [x] Finish Types
 - [x] Add traceback
 - [ ] Includes
 - [ ] Refs

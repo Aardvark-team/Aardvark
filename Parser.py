@@ -274,6 +274,24 @@ class Parser:
             ast_node = self.pClassDefinition()
 
         while ast_node:
+            # 5x, number-var mult
+            if (
+                self.compare("Identifier")
+                and self.peek().start["col"] == ast_node["positions"]["end"]["col"] + 1
+            ):
+                var = self.eat(TokenTypes["Identifier"])
+                ast_node = {
+                    "type": "Multiply",
+                    "number": ast_node,
+                    "variable": var.value,
+                    "positions": {
+                        "start": ast_node["positions"]["start"],
+                        "end": var.end,
+                    },
+                    "tokens": {
+                        "variable": var,
+                    },
+                }
             while self.compare(TokenTypes["Delimiter"], "."):
                 self.eat(TokenTypes["Delimiter"])
                 property_name = self.eat(TokenTypes["Identifier"])
@@ -312,24 +330,6 @@ class Parser:
             if self.compare(TokenTypes["Delimiter"], "(") and self.peek().start['col'] == ast_node['positions']['end']['col'] + 1:
                 ast_node = self.pFunctionCall(ast_node)
                 continue #Check for others
-            # 5x, number-var mult
-            if (
-                self.compare("Identifier")
-                and self.peek().start["col"] == ast_node["positions"]["end"]["col"] + 1
-            ):
-                var = self.eat(TokenTypes["Identifier"])
-                ast_node = {
-                    "type": "Multiply",
-                    "number": ast_node,
-                    "variable": var.value,
-                    "positions": {
-                        "start": ast_node["positions"]["start"],
-                        "end": var.end,
-                    },
-                    "tokens": {
-                        "variable": var,
-                    },
-                }
             # Inline ifs
             if self.compare(TokenTypes["Keyword"], "if"):
                 if_ast = self.pIfStatement(True)
@@ -509,21 +509,17 @@ class Parser:
 
     # pFunctionDefinition:
     # 	function [identifier] ( [identifier] [identifier] ( , [identifier] [identifier] ) )
-    def pFunctionDefinition(self, is_class_method=False):
+    def pFunctionDefinition(self, special=False):
         starter = None
         name = None
-
-        if not is_class_method:
-            starter = self.eat(TokenTypes["Keyword"], "function")
-
-        if self.compare("Identifier") or is_class_method:
+        if not special:
+          starter = self.eat(TokenTypes["Keyword"], "function")
+        if self.compare("Identifier"):
             name = self.eat(TokenTypes["Identifier"])
 
-        if is_class_method:
-            starter = name
-
-        self.eat(TokenTypes["Delimiter"], "(")
-
+        openparen = self.eat(TokenTypes["Delimiter"], "(")
+        if special:
+          starter = name if name else openparen
         parameters = []
         while self.peek() and not self.compare(TokenTypes["Delimiter"], ")"):
             var_type = None
@@ -563,7 +559,7 @@ class Parser:
         return_type = None
         if self.compare("Operator"):
             self.eat(TokenTypes["Operator"], "->")
-            return_type = self.eat(TokenTypes["Identifier"], is_type=True)
+            return_type = self.pExpression()
         if self.compare("Delimiter", "{"):
             body, lasti = self.eatBlockScope()
         else:
@@ -575,10 +571,14 @@ class Parser:
             "name": name.value if name else "",
             "is_anonymous": name is None,
             "parameters": parameters,
+            'special': special,
             "body": body,
             "as": AS,
-            "return_type": return_type.value if return_type else "void",
-            "positions": {"start": starter.start, "end": lasti},
+            "return_type": return_type.value if return_type else None,
+            "positions": {
+              "start": starter.start, 
+              "end": lasti
+            },
         }
 
     # ExtendingStatement:
@@ -737,16 +737,14 @@ class Parser:
         while not self.compare("Delimiter", "}"):
             while self.compare("LineBreak"):
                 self.eat("LineBreak")
-
-            body.append(self.pFunctionDefinition(is_class_method=True))
+            if self.compare('Operator', '$'):
+              self.eat('Operator')
+              body.append(self.pFunctionDefinition(True))
+            body.append(self.pStatement())
 
         closer = self.eat("Delimiter", "}")
 
-        return {
-            "type": "ClassScope",
-            "body": body,
-            "positions": {"start": starter.start, "end": closer.end},
-        }
+        return body, closer.end
 
     # ClassDefinition:
     #     class [identifier] [ extends [identifier] ] ClassScope
@@ -758,7 +756,7 @@ class Parser:
 
         if self.compare(TokenTypes["Identifier"]):
             name = self.eat(TokenTypes["Identifier"]).value
-
+          
         if self.compare("Keyword", "extends"):
             self.eat("Keyword", "extends")
             extends.append(self.eat(TokenTypes["Identifier"]).value)
@@ -770,18 +768,18 @@ class Parser:
             self.eat("Keyword", "as")
             AS = self.eat(TokenTypes["Identifier"]).value
 
-        class_scope = self.pClassScope()
+        body, lasti = self.pClassScope()
 
         return {
             "type": "ClassDefinition",
             "name": name,
             "is_anonymous": name is None,
             "extends": extends,
-            "class_scope": class_scope,
+            "body": body,
             "as": AS,
             "positions": {
                 "start": starter.start,
-                "end": class_scope["positions"]["end"],
+                "end": lasti,
             },
         }
 

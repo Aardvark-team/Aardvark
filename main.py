@@ -14,6 +14,8 @@ import os
 # Prettifying the ast
 from Utils import prettify_ast
 
+sys.setrecursionlimit(2000)
+
 class Version:
   def __init__(self, major=0, minor=0, patch=0, type='stable', serial=1):
     self.major = major

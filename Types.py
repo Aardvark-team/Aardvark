@@ -22,32 +22,43 @@ class Type:
 
 
 class Object(Type):
-    def __init__(self, inherit={}, init=None, name=""):
+    def __init__(self, inherit={}, name="", _class=None, call=None, setitem=None, getitem=None):
+        self._class = _class
         self.name = name
         self.vars = {}
         for i in inherit:
           self.vars[i] = pyToAdk(inherit[i])
-        if init:
-            init(self)
+        self._call = call
+        self._setitem = setitem #TODO
+        self._getitem = getitem #TODO
+        #etc... Add later TODO
         self._index = 0
 
     def set(self, name, value):
         self.vars[name] = value
-
+      
+    def __call__(self, *args, **kwargs):
+      if self._call:
+        return self._call(self, self._class.AS, *args, **kwargs)
+        
     def __setitem__(self, name, value):
+        if self._setitem:
+          return self._setitem(self, self._class.AS)
         return self.set(name, value)
 
     def __getitem__(self, name):
+        if self._getitem:
+          return self._getitem(self, self._class.AS)
         return self.get(name)
 
     def delete(self, name):
         del self.vars[name]
 
     def __delattr__(self, name):
-        return self.delete()
+        return self.delete(name)
 
     def __delitem__(self, name):
-        return self.delete()
+        return self.delete(name)
 
     def __iter__(self):
         return iter(self.vars)
@@ -120,10 +131,10 @@ class Scope(Object):
         del self.vars[name]
 
     def __delattr__(self, name):
-        return self.delete()
+        return self.delete(name)
 
     def __delitem__(self, name):
-        return self.delete()
+        return self.delete(name)
 
     def __iter__(self):
         return self
@@ -182,17 +193,18 @@ class Number(Type, float):
             value = float(value)
           except:
             value = float(int(value))
+        float.__init__(value)
         self.vars = {
-            "digits": [Number(int(x)) if x in "0123456789" else x for x in list(str(value))]
+            "digits": [int(x) if x in "0123456789" else x for x in str(value)]
             if len(str(value)) > 1
             else [value],
-            "prime": Boolean(
-                self >= 1 and all(self % i for i in range(2, int(self**0.5) + 1))
-            )
             # methods and attributes here
         }
-        float.__init__(value)
-
+        try:
+            self.vars["prime"] = self >= 1 and all(self % i for i in range(2, int(self**0.5) + 1))
+        except OverflowError:
+            self.vars["prime"] = True
+        #TODO: add prime factorization function to math.
     def __repr__(self):
         if self % 1 == 0:
             return str(int(self))
@@ -216,8 +228,7 @@ class Number(Type, float):
 
 class Boolean(int, Type):
     def __init__(self, value):
-        if type(value) not in [int, bool]:
-          value = int(bool(value))
+        value = bool(value)
         if value != 0:
             value = 1
         self.vars = {
@@ -317,9 +328,9 @@ class File(Type):
   def readAll(self):
     return self.obj.read()
   def write(self, *args):
-    return self.obj.write(' '.join(args))
+    return self.obj.write(' '.join([str(a) for a in args]))
   def writeLines(self, *lines):
-    return self.obj.writelines(*lines)
+    return self.obj.writelines(*str(lines))
   def delete(self):
     os.remove(self.name)
   def erase(self):
@@ -327,12 +338,54 @@ class File(Type):
   def move(self, new):
     os.rename(self.name, new)
 
-    
+class Class(Type):
+    def __init__(self, name, parent=None, extends=[], AS=None):
+      self.name = name
+      self.vars = {}
+      self.parent = parent
+      self.AS = AS
+      for e in extends:
+        self.vars.update(e.vars)
+      #Just to make it act like a scope
+      self._returned_value = Null
+      self._has_returned = False
+      self._is_function_scope = False
+      self.returnActions = []
+    def addReturnAction(self, item):
+        pass
+    def set_return_value(self, value):
+        return False
+    def childstr(self):
+      return f'<f{name} object>'
+    def __repr__(self):
+        return str(self)
+    def __str__(self):
+        return f'<Class {self.name}>'
+    def __call__(self, *args, **kwargs):
+        obj = Object(self.vars, _class=self, call=self.getSpecial('call'), getitem=self.getSpecial('getitem'), setitem=self.getSpecial('setitem'))
+        init = self.getSpecial('constructor')
+        if init:
+          init(obj, self.AS, *args, **kwargs)
+        return obj
+    def getSpecial(self, sp):
+        return self.get('$'+sp)
+    def getAll(self):
+        """Gets all variables useable in the current scope."""
+        if self.parent:
+            return self.vars | self.parent.getAll()
+        else:
+            return self.vars
+
+    def get(self, name, default=None):
+        if self.parent:
+            return self.vars.get(name, self.parent.get(name, default))
+
+        return self.vars.get(name, default)
 
 # TODO: Add: File, Stream, Bitarray
 Null = __Null()
 
-Types = [Object, Scope, Type, __Null, Number, String, Function, Boolean, Set, Array]
+Types = [Object, Scope, Type, __Null, Number, String, Function, Boolean, Set, Array, File, Class]
 
 
 def dict_from_other(old):
@@ -345,32 +398,35 @@ def dict_from_other(old):
     return context
 
 def pyToAdk(py):
-    if type(py) in Types:
-        return py
-    elif py == None:
-        return Null
-    elif isinstance(py, bool):
-        return Boolean(py)
-    elif isinstance(py, int) or isinstance(py, float):
-        return Number(py)
-    elif isinstance(py, str):
-        return String(py)
-    elif isinstance(py, list):
-        return Array(py)
-    elif isinstance(py, set):
-        return Set(py)
-    elif isinstance(py, dict):
-        return Object(py)
-    elif isinstance(py, type):
-        return Function(py)
-    elif isinstance(py, types.ModuleType):
-        return Object(dict_from_other(py))
-    elif callable(py):
-        return Function(py)
-    elif isinstance(py, io.TextIOBase) or isinstance(py, io.BufferedIOBase) or isinstance(py, io.RawIOBase) or isinstance(py, io.IOBase):
-      return File(py)
-    else:
-        return Object(dict_from_other(py))
+    try:
+        if type(py) in Types:
+            return py
+        elif py == None:
+            return Null
+        elif isinstance(py, bool):
+            return Boolean(py)
+        elif isinstance(py, int) or isinstance(py, float):
+            return Number(py)
+        elif isinstance(py, str):
+            return String(py)
+        elif isinstance(py, list):
+            return Array(py)
+        elif isinstance(py, set):
+            return Set(py)
+        elif isinstance(py, dict):
+            return Object(py)
+        elif isinstance(py, type):
+            return Class(py.__name__)
+        elif isinstance(py, types.ModuleType):
+            return Object(dict_from_other(py))
+        elif callable(py):
+            return Function(py)
+        elif isinstance(py, io.TextIOBase) or isinstance(py, io.BufferedIOBase) or isinstance(py, io.RawIOBase) or isinstance(py, io.IOBase):
+          return File(py)
+        else:
+            return Object(dict_from_other(py))
+    except RecursionError:
+      return py
 
 def adkToPy(adk):
   if type(adk) not in Types:

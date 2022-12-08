@@ -10,7 +10,7 @@ from Operators import Operators
 import random
 import math
 from nltk import edit_distance
-from Types import Null, Object, Scope, Number, String, Boolean, pyToAdk, Function, Set, Array, File
+from Types import Null, Object, Scope, Number, String, Boolean, pyToAdk, Function, Set, Array, File, Class
 import importlib
 
 def get_call_scope(scope):
@@ -28,22 +28,21 @@ class Executor:
     self.traceback = [ ]
     self.switch = None
     self.Global = Scope({
-      'stdout': Object({
-        'write': lambda *args: print(*args, end=""), #Just simple for now
-      }, name="stdout"),
+      'stdout': File(sys.stdout),
       'stdin': Object({
         #Many of our stdin functions can't be implemented in python.
         'prompt': lambda x: input(x), #Also simple
-        'readLine': lambda: input()
+        'read': sys.stdin.read,
+        'readLine': lambda: input(),
+        'write': sys.stdin.write,
       }, name="stdin"),
-      'stderr': Object({
-        'write': lambda *args: print(*args, end="", file=sys.stderr)
-      }, name="stderr"),
+      'stderr': File(sys.stderr),
       'python': Object({ 
-        'import': lambda mod: importlib.import_module(mod)
+        'import': lambda mod: importlib.import_module(mod),
+        'eval': lambda code: eval(code, {'importlib':importlib, 'math':math, 'random':random, 'sys':sys})
       }),
       'slice': lambda str, start, end: str[start:end],
-      'typeof': lambda obj: type(obj).__name__,
+      'typeof': lambda obj: type(obj)._class.name if type(obj) == Object and obj._class else type(obj).__name__ ,
       'dir': lambda x=None: x.vars if x else self.Global.vars,
       'sort': lambda iterable, reverse=False, key=(lambda x: x): sorted(iterable, reverse=reverse, key=key) ,
       'null': Null,
@@ -113,12 +112,17 @@ class Executor:
     else:
       scope.vars[name] = pyToAdk(value)
   def makeFunct(self, expr, parent):
-      name = expr['name']
+      special = expr['special']
+      name = '$'+expr['name'] if special else expr['name']
       params = expr['parameters']
       code = expr['body']
       AS = expr['as']
       def x(*args, **kwargs):
         functscope = Scope({}, parent = parent, is_func = True)
+        if special:
+          if args[1]:
+            functscope[args[1]] = args[0]
+          args = args[2:]
         if AS:
           functscope[AS] = x
         for i in range(len(params)):
@@ -204,7 +208,7 @@ class Executor:
           })
           ret = funct(*[self.ExecExpr(arg, scope) for arg in expr['arguments']], **{k:self.ExecExpr(v, scope) for k, v in list(expr['keywordArguments'].items())})
           self.traceback = self.traceback[:-1]
-          return pyToAdk(ret)
+          return ret
       case {'type' : 'Operator', 'operator': '='}:
         value = self.ExecExpr(expr['right'], scope)
         var = expr['left']
@@ -279,11 +283,17 @@ class Executor:
           self.Exec(expr['body'], casescope)
       case {'type': 'SwitchStatement'}:
         switchscope = Scope({}, parent = scope)
-        self.switch = pyToAdk(self.ExecExpr(expr['value'], scope))
+        self.switch = self.ExecExpr(expr['value'], scope)
         self.Exec(expr['body'], scope)
       case { 'type': 'FunctionDefinition' }:
         funct = self.makeFunct(expr, scope)
         return funct
+      case {'type': 'ClassDefinition'}:
+        classcope = Class(expr['name'], scope, expr['extends'], expr['as'])
+        self.Exec(expr['body'], classcope)
+        if expr['name']:
+          self.defineVar(expr['name'], classcope, scope)
+        return classcope
       case {'type': 'DeferStatement'}:
         scope.addReturnAction(lambda: self.ExecExpr(expr['value'], scope))
       case { 'type': 'ReturnStatement' }:

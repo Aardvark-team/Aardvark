@@ -48,7 +48,7 @@ PureOperators = {
     "@",  # at. reference
     "?",  # x.y? will be null if x.y doesn't exist or if it is null
     "->",  # For defining a function return type
-    # "$",  #idk
+     "$",  #special
     # "<-",  #idk, we can use it for something maybe.
 }
 #!& should be valid, not and.
