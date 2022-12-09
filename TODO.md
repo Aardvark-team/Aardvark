@@ -40,6 +40,7 @@
  - [ ] Overloading
  - [ ] `include x from y, a from b, ...`
  - [x] `from x include y`
+ - [ ] Throw err 
 
 ## Expressions / Syntax
  - [ ] ... spread operator
@@ -72,6 +73,9 @@
 - [x] Classes
 - [x] Indexes
 - [x] Fix Defer!
+- [ ] Throw err
+- [ ] Try catch
+- [ ] Extending
 
 
 

@@ -125,14 +125,15 @@ Keywords = {
     "else",  # Blocks
     "return",
     "delete",
-    "static",
     "include",
     "async",
     "yield",
-    "defer",
-    #'let', #Statements
+    "defer", #Statements
     "as",
     "from",  # other
+    'throw',
+    'try',
+    'catch'
 }
 
 
