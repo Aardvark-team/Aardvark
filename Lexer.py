@@ -230,6 +230,9 @@ class Lexer:
                 while not self.detect(self.commentend) and not self.AtEnd:
                     value += self.curChar
                     self.advance()
+                    if self.curChar == '\n':
+                      self.line += 1
+                      self.column = 1
                 if self.tokenizeComments:
                     self.addToken(
                         "Comment",

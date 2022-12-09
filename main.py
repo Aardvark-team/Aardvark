@@ -82,15 +82,15 @@ def run(text, file='<main>', printToks=False, printAST=False, Global=None):
       'Global': Global,
       'error': error
     }
-runTest('''
-class test as this {
-  attr1 = 1
-  $constructor() {
-    this.attr2 = 2
-  }
-}
-x = test()
-''', testfunct=lambda x: x['Global']['x']['attr1'] == 1)
+# runTest('''
+# class test as this {
+#   attr1 = 1
+#   $constructor() {
+#     this.attr2 = 2
+#   }
+# }
+# x = test()
+# ''', testfunct=lambda x: x['Global']['x']['attr1'] == 1)
   
 def runFile(file, *args, **kwargs):
   with open(file) as f:

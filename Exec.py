@@ -12,6 +12,7 @@ import math
 from nltk import edit_distance
 from Types import Null, Object, Scope, Number, String, Boolean, pyToAdk, Function, Set, Array, File, Class
 import importlib
+from pathlib import Path
 
 def get_call_scope(scope):
     call_scope = [ "scope " + str(id(scope)) ]
@@ -78,12 +79,13 @@ class Executor:
         locs = [name, name + '.adk', 'libs/' + name, 'libs/' + name + '.adk']
         i = 0
         while True:
-          file = locs[i]
-          try:
-            with open(file) as f:
-              text = f.read()
-            break
-          except:
+          file = Path(locs[i])
+          if file.is_dir():
+              file = file.joinpath(file.name+'.adk')
+          if file.exists():
+              text = file.read_text()
+              break
+          else:
             if i > len(locs) - 1:
               self.errorhandler.throw('Include', f'Could not find library or file {expr["lib_name"]}.', {
                 'lineno': expr['positions']['start']['line'],
@@ -313,10 +315,7 @@ class Executor:
         file = expr['lib_name']
         fscope = self.include(file)
         if expr['included'] == 'ALL':
-          name = expr['local_name']
-          if '/' in name or '.' in name:
-            name = name.split('/')[-1]
-            name = name.split('.')[0]
+          name = Path(expr['local_name']).name.split('.')[0]
           self.defineVar(name, fscope, scope)
         else:
           for k, v in expr['included'].items():
@@ -356,7 +355,7 @@ def notImplemented(errorhandler, item, expr):
     })
 
 def findClosest(var, scope):
-  lowest = 99999999999999
+  lowest = 9999999999999999
   ret = '<identifier>'
   for item in list(scope.getAll().keys()):
     dist = edit_distance(var, item)

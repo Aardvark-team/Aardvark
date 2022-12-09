@@ -49,8 +49,8 @@ class Lexer as this {
   function isNumber(char = null)
     return (char ? this.curChar) in '0123456789'
 
-  function addToken(...args)
-    return this.output.push(Token(...args))
+  function addToken(type, start, end, value, variation)
+    return this.output.push(Token(type, start, end, value, variation))
 
   function otherwise(char = null) {
     char = char ? this.curChar
@@ -69,15 +69,15 @@ class Lexer as this {
     this.line += 1
     this.column = 0
   }
-  function advance(Integer amt = 1) {
+  function advance(amt = 1) {
     this.index = this.index + amt
     this.column = this.column + amt
     if this.index < this.data.length
-      this.curChar = this.data[this.index];  
+      this.curChar = this.data[this.index]
     else 
-      this.AtEnd = true;
+      this.AtEnd = true
   }
-  function peek(Integer amt = 1) {
+  function peek(amt = 1) {
     if this.index + amt < this.data.length 
       return this.data[this.index + amt]
     else return null;
@@ -85,7 +85,7 @@ class Lexer as this {
   function pos() {
     return {index: this.index, line: this.line, column: this.column}
   }
-  function tokenize(String data) {
+  function tokenize(data) {
     #*
       Takes code and converts it to tokens.
     *#

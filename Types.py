@@ -389,7 +389,7 @@ class Class(Type):
 
         return self.vars.get(name, default)
 
-# TODO: Add: File, Stream, Bitarray
+# TODO: Add: Stream, Bitarray
 Null = __Null()
 
 Types = [Object, Scope, Type, __Null, Number, String, Function, Boolean, Set, Array, File, Class]
@@ -423,7 +423,7 @@ def pyToAdk(py):
         elif isinstance(py, dict):
             return Object(py)
         elif isinstance(py, type):
-            return Class(py.__name__)
+            return Function(py)
         elif isinstance(py, types.ModuleType):
             return Object(dict_from_other(py))
         elif callable(py):

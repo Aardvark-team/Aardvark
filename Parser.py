@@ -173,7 +173,7 @@ class Parser:
         self.eat(TokenTypes["Delimiter"], "{")
         body = []
         while self.peek() and not self.compare(TokenTypes["Delimiter"], "}"):
-            if len(body) > 0:
+            if len(body) > 0 and self.peek(-1).type != TokenTypes['LineBreak']:
                 self.eat(TokenTypes["LineBreak"])
             while self.compare(TokenTypes["LineBreak"]):
                 self.advance()
@@ -676,6 +676,7 @@ class Parser:
             lasti = statm["positions"]["end"]
         closing_pos = lasti
         else_body = None
+        self.eatLBs()
         if self.compare(TokenTypes["Keyword"], "else"):
             self.eat(TokenTypes["Keyword"])
 
@@ -729,6 +730,7 @@ class Parser:
                 break
         self.eat("Operator", "in")
         iterable = self.pExpression()  # Get the iterable.
+        self.eatLBs()
         body = None
         lasti = iterable['positions']['end']
         if not inline:
@@ -975,7 +977,8 @@ class Parser:
     # Statement:
     # 	VariableDefinition
     def pStatement(self, require=False):
-
+      
+        self.eatLBs()
         if self.compare(TokenTypes["Keyword"], "function"):
             return self.pFunctionDefinition()
 
@@ -1020,9 +1023,9 @@ class Parser:
         self.statements = []
 
         while not self.isEOF():
-            if len(self.statements) > 0:
-                self.eat(TokenTypes["LineBreak"])
-            while self.compare(TokenTypes["LineBreak"]):
+            if len(self.statements) > 0 and self.peek(-1).type != TokenTypes['LineBreak']:
+                self.eat("LineBreak")
+            while self.compare("LineBreak"):
                 self.advance()
             if self.isEOF():
                 break
