@@ -313,7 +313,11 @@ class Executor:
         file = expr['lib_name']
         fscope = self.include(file)
         if expr['included'] == 'ALL':
-          self.defineVar(expr['local_name'], fscope, scope)
+          name = expr['local_name']
+          if '/' in name or '.' in name:
+            name = name.split('/')[-1]
+            name = name.split('.')[0]
+          self.defineVar(name, fscope, scope)
         else:
           for k, v in expr['included'].items():
             self.defineVar(v['local'], fscope[k], scope)

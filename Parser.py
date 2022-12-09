@@ -206,16 +206,6 @@ class Parser:
             else:
                 return None
 
-        if tok.type == TokenTypes["Operator"] and tok.value == "!":
-            self.eat("Operator", "!")
-            right = self.pExpression()
-            ast_node = {
-                "type": "LogicalExpression",
-                "operator": "!",
-                "right": right,
-                "positions": {"start": tok.start, "end": right["positions"]["end"]},
-            }
-
         if tok.type in [TokenTypes["String"], TokenTypes["Number"]]:
             self.eat(tok.type)
 
@@ -268,7 +258,19 @@ class Parser:
             self.eat('Delimiter')
             ast_node = self.pStatement()
             self.eat("Delimiter", ")")
-
+          
+        #Dynamic include
+        elif tok.type == TokenTypes['Keyword'] and tok.value == 'include' and  self.peek(1).type == TokenTypes['Delimiter'] and self.peek(1).value == '(' and self.peek(1).start['col'] == tok.end['col']+1:
+              keyw = self.eat('Keyword')
+              ast_node = self.pFunctionCall({
+                'type': 'VariableAccess',
+                'value': 'include',
+                'positions': {
+                  'start': keyw.start,
+                  'end': keyw.end
+                }
+              })
+          
         elif tok.type == TokenTypes["Keyword"] and tok.value == "function":
             ast_node = self.pFunctionDefinition()
 
@@ -817,7 +819,6 @@ class Parser:
                   'end': keyw.end
                 }
               })
-              
             if self.compare('String'):
               lib_or_start = self.eat("String")
             else:

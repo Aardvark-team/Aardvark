@@ -8,7 +8,8 @@
 
 
 # Lexer
-## All done!
+## The few things left to do.
+ - [ ] ... operator
 
 # Parser
 ## Basic Types
@@ -41,6 +42,7 @@
  - [x] `from x include y`
 
 ## Expressions / Syntax
+ - [ ] ... spread operator
  - [x] Types
  - [x] Indexes (x[])
  - [x] Abstract Multiplication (i.e. 5x, 7(2 + 3), etc...)
@@ -55,6 +57,7 @@
  - [x] All operators (?, *, &, ^, %, !, ~, -, +, =, /, <, >, ->, =>, >=, <=, |, etc...)
 
 # Execution
+- [ ] ... spread operator
 - [x] Remove let 
 - [x] For loops
 - [x] Return
@@ -64,9 +67,9 @@
 - [x] this/self/whatever
 - [x] Finish Types
 - [x] Add traceback
-- [ ] Includes
+- [x] Includes
 - [ ] Refs
-- [ ] Classes
+- [x] Classes
 - [x] Indexes
 - [x] Fix Defer!
 
