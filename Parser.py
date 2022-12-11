@@ -85,7 +85,6 @@ class Parser:
 
     # Consume the current token if the types match, else throw an error
     def eat(self, Type="any", value=None, is_type=False):
-        # print("ATE:", Type)
 
         if type(Type) == str:
             Type = TokenTypes[Type]
@@ -212,7 +211,7 @@ class Parser:
                 )
             else:
                 return None
-
+      
         if tok.type in [TokenTypes["String"], TokenTypes["Number"]]:
             self.eat(tok.type)
 
@@ -403,6 +402,9 @@ class Parser:
         ):
             op = self.eat(TokenTypes["Operator"])
             right = self.pExpression(level, require=False)
+
+            if not left and not right and not require: return None
+          
             return {
                 "type": "Operator",
                 "left": left,
@@ -416,11 +418,6 @@ class Parser:
                 },
             }
         return left
-
-    # Expression:
-    # 	Additive
-    # def pExpression(self):
-    #    return self.pAdditive()
 
     # Object:
     # 	{ [string] : Expression (, [string] : Expression ) }
@@ -691,7 +688,9 @@ class Parser:
     #   if condition BlockScope [ else Statement ]
     def pIfStatement(self, inline=False):
         starter = self.eat(TokenTypes["Keyword"], "if")
-        condition = self.pExpression(require=True)
+        condition = self.pExpression(require=False)
+        if condition == None:
+          condition = self.pExpression(require = True)
         body = None
         lasti = condition["positions"]["end"]
 

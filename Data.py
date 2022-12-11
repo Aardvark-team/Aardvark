@@ -27,7 +27,7 @@ Booleans = {"true", "false"}
 
 PureOperators = {
     "=",  # equals
-    "!",  # not, and factorial
+    "!",  # not
     "~",  # about
     "<",  # less than
     ">",  # more than

@@ -1,3 +1,7 @@
+# Immediate bugs:
+Try running `if !false {}`.
+It seems to break. This is a parser bug and probably has something todo with parsing operators.
+
 # Ideas
 ## Classes
 - [ ] Finish designing class syntax
