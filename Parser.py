@@ -667,15 +667,15 @@ class Parser:
     # 	while condition Statement
     def pWhileLoop(self):
         starter = self.eat(TokenTypes["Keyword"], "while")
-        condition = self.pExpression(require=True)
-
+        condition = self.pExpression(require=False)
+        if condition == None:
+          condition = self.pExpression(require=True)
         if self.compare(TokenTypes["Delimiter"], "{"):
             body, lasti = self.eatBlockScope()
         else:
             statm = self.pStatement()
             body = [statm]
             lasti = statm["positions"]["end"]
-
         return {
             "type": "WhileLoop",
             "condition": condition,
@@ -690,7 +690,7 @@ class Parser:
         starter = self.eat(TokenTypes["Keyword"], "if")
         condition = self.pExpression(require=False)
         if condition == None:
-          condition = self.pExpression(require = True)
+          condition = self.pExpression(require=True)
         body = None
         lasti = condition["positions"]["end"]
 

@@ -275,12 +275,17 @@ class Lexer:
                     self.advance()
                     if (
                         self.curChar == variation
-                        and (len(value) > 0 and value[-1] == "\\")
+                        and (len(value) > 0 and self.peek(-1) == "\\")
+                        and (self.column-startcolumn < 2 or not self.peek(-2) == '\\')
                         and not self.AtEnd
                     ):
                         value = value[:-1] + self.curChar
+                        continue
                     elif self.curChar == variation or self.AtEnd:
                         break
+                    elif (self.curChar == "\\") and (len(value) > 0 and value[-1] == '\\'):
+                        value = value[:-1] + self.curChar
+                        continue
                     value += self.curChar
 
                 self.addToken(

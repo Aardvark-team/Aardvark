@@ -1,6 +1,5 @@
 # Immediate bugs:
-Try running `if !false {}`.
-It seems to break. This is a parser bug and probably has something todo with parsing operators.
+ - [ ] this is not availiable in methods
 
 # Ideas
 ## Classes

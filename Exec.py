@@ -78,6 +78,7 @@ class Executor:
   def include(self, name):
         locs = [name, name + '.adk', 'libs/' + name, 'libs/' + name + '.adk']
         i = 0
+        text = None
         while True:
           file = Path(locs[i])
           if file.is_dir():
@@ -85,21 +86,22 @@ class Executor:
           if file.exists():
               text = file.read_text()
               break
-          else:
-            if i > len(locs) - 1:
-              self.errorhandler.throw('Include', f'Could not find library or file {expr["lib_name"]}.', {
-                'lineno': expr['positions']['start']['line'],
-                'underline': {
-                  'start': expr['positions']['start']['col'],
-                  'end': expr['positions']['end']['line']
-                },
-                'marker': {
-                  'start': expr['tokens']['lib_name'].start['col'],
-                  'length': len(expr['lib_name'])
-                },
-                'traceback': self.traceback
-              })
-            i += 1
+          if i > len(locs) - 2:
+              raise ValueError(f'Could not find library or file {name}.')
+              break
+              # self.errorhandler.throw('Include', f'Could not find library or file {name}.', {
+              #   'lineno': expr['positions']['start']['line'],
+              #   'underline': {
+              #     'start': expr['positions']['start']['col'],
+              #     'end': expr['positions']['end']['line']
+              #   },
+              #   'marker': {
+              #     'start': expr['tokens']['lib_name'].start['col'],
+              #     'length': len(name)
+              #   },
+              #   'traceback': self.traceback
+              # })
+          i += 1
         errorhandler = Error.ErrorHandler(text, file, py_error=True)
         lexer = Lexer.Lexer("#", "#*", "*#", errorhandler, False)
         toks = lexer.tokenize(text)
@@ -115,16 +117,12 @@ class Executor:
       scope.vars[name] = pyToAdk(value)
   def makeFunct(self, expr, parent):
       special = expr['special']
-      name = '$'+expr['name'] if special else expr['name']
+      name = '$' + expr['name'] if special else expr['name']
       params = expr['parameters']
       code = expr['body']
       AS = expr['as']
       def x(*args, **kwargs):
         functscope = Scope({}, parent = parent, is_func = True)
-        if special:
-          if args[1]:
-            functscope[args[1]] = args[0]
-          args = args[2:]
         if AS:
           functscope[AS] = x
         for i in range(len(params)):
@@ -147,7 +145,7 @@ class Executor:
         return pyToAdk(val)
     elif error:
         line = self.codelines[start['line']-1]
-        #print('Availiable vars in current scope (not including parent scopes):', ', '.join(scope.vars.keys()))
+        #print('Availiable vars in current scope:', ', '.join(scope.getAll()))
         did_you_mean = line[:start['col'] - 1] + findClosest(varname, scope) + line[start['col'] + len(varname) - 1:] 
         return self.errorhandler.throw('Value', message.format(name=varname), {
           'lineno':start['line'],
@@ -291,8 +289,7 @@ class Executor:
         funct = self.makeFunct(expr, scope)
         return funct
       case {'type': 'ClassDefinition'}:
-        classcope = Class(expr['name'], scope, expr['extends'], expr['as'])
-        self.Exec(expr['body'], classcope)
+        classcope = Class(expr['name'], lambda s: self.Exec(expr['body'], s), expr['extends'], expr['as'], scope)
         if expr['name']:
           self.defineVar(expr['name'], classcope, scope)
         return classcope
@@ -333,7 +330,7 @@ class Executor:
     for item in ast:
       ret_val = self.ExecExpr(item, scope)
       if scope._has_returned or scope._returned_value: break
-    return ret_val
+    return pyToAdk(ret_val)
     
   def run(self):
     return self.Exec(self.ast, self.Global)

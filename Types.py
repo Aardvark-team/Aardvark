@@ -5,10 +5,17 @@ import os
 
 
 class Type:
+    vars = {}
     def get(self, name, default=None):
+      if getattr(self, 'parent', None):
+        return self.vars.get(name, self.parent.get(name, default))
+      else:
         return self.vars.get(name, default)
 
     def getAll(self):
+      if getattr(self, 'parent', None):
+        return self.vars | self.parent.getAll()
+      else:
         return self.vars
       
     def set(self, name, value):
@@ -22,7 +29,7 @@ class Type:
 
 
 class Object(Type):
-    def __init__(self, inherit={}, name="", _class=None, call=None, setitem=None, getitem=None, deleteitem=None):
+    def __init__(self, inherit={}, name="", _class=None, call=None, setitem=None, getitem=None, deleteitem=None, delete=None):
         self._class = _class
         self.name = name
         self.vars = {}
@@ -32,26 +39,40 @@ class Object(Type):
         self._setitem = setitem 
         self._getitem = getitem 
         self._deleteitem = deleteitem
+        self._delete = delete
+        #Just to make it act like a scope
+        self._returned_value = Null
+        self._has_returned = False
+        self._is_function_scope = False
+        self.returnActions = []
+        self.addReturnAction = lambda x: None
+        self.set_return_value = lambda x: False
         #etc... Add later TODO
         self._index = 0
 
     def set(self, name, value):
+        # if self._class and self._class.AS and callable(value):
+          #TODO: make class methods have their this.
         self.vars[name] = value
       
     def __call__(self, *args, **kwargs):
       if self._call:
-        return self._call(self, self._class.AS, *args, **kwargs)
+        return self._call(*args, **kwargs)
         
     def __setitem__(self, name, value):
         if self._setitem:
-          return self._setitem(self, self._class.AS, name, value)
+          return self._setitem(name, value)
         return self.set(name, value)
 
     def __getitem__(self, name):
         if self._getitem:
-          return self._getitem(self, self._class.AS, name)
+          return self._getitem(name)
         return self.get(name)
-
+      
+    def __del__(self):
+      if self._delete:
+        self._delete()
+        
     def delete(self, name):
         del self.vars[name]
 
@@ -60,7 +81,7 @@ class Object(Type):
 
     def __delitem__(self, name):
         if self._deleteitem:
-          return self._deleteitem(self, self._class.AS, name)
+          return self._deleteitem(name)
         return self.delete(name)
 
     def __iter__(self):
@@ -97,7 +118,7 @@ class Scope(Object):
 
     def set(self, name, value):
         self.vars[name] = value
-
+    
     def __setitem__(self, name, value):
         return self.set(name, value)
 
@@ -159,6 +180,9 @@ class Scope(Object):
 
     def __str__(self):
         return self.vars.__str__()
+      
+    def __del__(self):
+      pass
 
 
 class __Null(Type):
@@ -261,6 +285,7 @@ class Function(Type):
     def __init__(self, funct):
         self.vars = {} # Funtions have no default attributes.
         self.funct = funct
+        self._locals = {} #TODO
         Type.__init__(self)
 
     def __call__(self, *args, **kwargs):
@@ -345,34 +370,47 @@ class File(Type):
   def move(self, new):
     os.rename(self.name, new)
 
+    
 class Class(Type):
-    def __init__(self, name, parent=None, extends=[], AS=None):
-      self.name = name
-      self.vars = {}
-      self.parent = parent
-      self.AS = AS
-      for e in extends:
-        self.vars.update(e.vars)
-      #Just to make it act like a scope
-      self._returned_value = Null
-      self._has_returned = False
-      self._is_function_scope = False
-      self.returnActions = []
-    def addReturnAction(self, item):
-        pass
-    def set_return_value(self, value):
-        return False
+    def __init__(self, name, build, extends=[], AS=None, parent=None):
+        self.name = name
+        self.build = build # A function the class with,
+        self.parent = parent
+        self._as = AS
+        self.vars = {}
+        for e in extends:
+          self.vars.update(e)
+        #Just to make it act like a scope
+        self._returned_value = Null
+        self._has_returned = False
+        self._is_function_scope = False
+        self.returnActions = []
+        self.addReturnAction = lambda x: None
+        self.set_return_value = lambda x: False
+        if self._as:
+          self.vars[self._as] = self
+        build(self)
+        
     def childstr(self):
-      return f'<instance of {self.name}>'
+        return f'<instance of {self.name}>'
     def __repr__(self):
         return str(self)
     def __str__(self):
         return f'<Class {self.name}>'
     def __call__(self, *args, **kwargs):
-        obj = Object(self.vars, _class=self, call=self.getSpecial('call'), getitem=self.getSpecial('getitem'), setitem=self.getSpecial('setitem'), deleteitem=self.getSpecial('deleteitem'))
-        init = self.getSpecial('constructor')
+        obj = Object({}, _class=self)
+        if self._as:
+          obj.vars[self._as] = obj
+        obj.parent = self.parent
+        self.build(obj)
+        obj._call = obj.vars.get('$call')
+        obj._setitem = obj.vars.get('$setitem')
+        obj._getitem = obj.vars.get('$getitem')
+        obj._deleteitem = obj.vars.get('$deleteitem')
+        obj._delete = obj.vars.get('$delete')
+        init = obj.vars.get('$constructor')
         if init:
-          init(obj, self.AS, *args, **kwargs)
+          init(*args, **kwargs)
         return obj
     def getSpecial(self, sp):
         return self.get('$'+sp)

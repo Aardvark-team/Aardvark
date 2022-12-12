@@ -1,5 +1,5 @@
 include TokenTypes, Operators, Keywords, Quotes, Whitespaces, Booleans, Delimiters from Data
-include Error
+#include Error
 
 
 class Token as this {
@@ -168,7 +168,7 @@ class Lexer as this {
         while !this.AtEnd {
           this.advance()
           if self.curChar == variation & value[-1]? != '\\' { # Make sure its the same type of quote and there is no \ before it
-            value = value[:-1] # To remove the -1
+            value = value.slice(0, -1) # To remove the -1
             break
           }
           (break) if this.AtEnd

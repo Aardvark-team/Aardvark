@@ -8,11 +8,7 @@ class X as this {
     stdout.write('Args work?', x, y, z, '\n')
   }
   function method() {
-    return 5
+    return this.x
   }
   attr = 5
 }
-
-myvar = X(5, 3)
-stdout.write('Method test,', myvar.method(), '\n')
-
