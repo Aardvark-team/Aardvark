@@ -387,12 +387,12 @@ class Parser:
             )
 
     # Expression:
-    #
+    # if !false & !false {}
     def pExpression(self, level=len(OrderOfOps) - 1, require=False, exclude=[]):
         if level < 0:
-            left = self.pPrimary(require=require)
+            left = self.pPrimary(require=False)
         else:
-            left = self.pExpression(level - 1, require=require)
+            left = self.pExpression(level - 1, require=False)
         if (
             self.peek()
             and self.compare(TokenTypes["Operator"])
@@ -403,8 +403,19 @@ class Parser:
             op = self.eat(TokenTypes["Operator"])
             right = self.pExpression(level, require=False)
 
-            if not left and not right and not require:
-                return None
+            if not left and not right:
+                #Just an operator by itself.
+                self.err_handler.throw('Syntax', 'Why is there an operator there just by itself? It makes no sense.', {
+                  'lineno': op.start['line'],
+                  'underline': {
+                    'start': op.start['col'],
+                    'end': op.end['col']
+                  },
+                  'marker': {
+                    'start': op.start['col'],
+                    'length': len(op.value)
+                  }
+                })
 
             return {
                 "type": "Operator",
@@ -418,6 +429,11 @@ class Parser:
                     .get("end", op.end),  # to handle if there is no right
                 },
             }
+        if left == None:
+          if level < 0:
+            left = self.pPrimary(require=require)
+          else:
+            left = self.pExpression(level - 1, require=require)
         return left
 
     # Object:
@@ -670,9 +686,7 @@ class Parser:
     # 	while condition Statement
     def pWhileLoop(self):
         starter = self.eat(TokenTypes["Keyword"], "while")
-        condition = self.pExpression(require=False)
-        if condition == None:
-            condition = self.pExpression(require=True)
+        condition = self.pExpression(require=True)
         if self.compare(TokenTypes["Delimiter"], "{"):
             body, lasti = self.eatBlockScope()
         else:
@@ -691,9 +705,7 @@ class Parser:
     #   if condition BlockScope [ else Statement ]
     def pIfStatement(self, inline=False):
         starter = self.eat(TokenTypes["Keyword"], "if")
-        condition = self.pExpression(require=False)
-        if condition == None:
-            condition = self.pExpression(require=True)
+        condition = self.pExpression(require=True)
         body = None
         lasti = condition["positions"]["end"]
 

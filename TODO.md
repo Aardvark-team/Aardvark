@@ -1,14 +1,6 @@
 # Immediate bugs:
  - [ ] Fix scoping in classes.
-
-# Ideas
-## Classes
-- [ ] Finish designing class syntax
-- [ ] Finish ideas
-- [ ] scopes
-- [ ] overloading
-
-
+ - [x] Fix parser bug
 
 # Lexer
 ## The few things left to do.

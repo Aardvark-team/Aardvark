@@ -184,5 +184,10 @@ Versions:
     
     """
         )
+    elif mode.startswith('./'):
+      printast = "-ast" in sys.argv
+      printtoks = "-toks" in sys.argv
+      runFile(mode[2:], printtoks, printast)
     else:
+        print(sys.argv)
         print("Usage: adk cmd [-opts...]")
