@@ -27,10 +27,12 @@ def genLine(linenum, digits):
 def getTextByPos(start, end, codelines):
     l = []
     for i in range(start["line"] - 1, end["line"]):
-        if i == start["line"] - 1:
+        if i == start["line"] - 1 and i == end["line"] - 1:
+            l.append(codelines[i][start['col']-1:end['col']-1])
+        elif i == start["line"] - 1:
             l.append(codelines[i][start["col"] - 1 :])
-        elif i == end["line"]:
-            l.append(codelines[i][: end["col"]])
+        elif i == end["line"]-1:
+            l.append(codelines[i][: end["col"]-1])
         else:
             l.append(codelines[i])
     return "\n".join(l)
@@ -129,7 +131,7 @@ def print_error(type: str, pos, msg, didyoumean, err_trace, code):
 
     underline_start = pos.get("underline", {}).get("start")
     underline_end = pos.get("underline", {}).get("end")
-    marker_pos = pos.get("marker", {}).get("start")
+    marker_pos = pos.get("marker", {}).get("start")-1
     marker_length = pos.get("marker", {}).get("length")
 
     underline = (underline_start - 1) * " " + "―" * (
@@ -221,7 +223,8 @@ class ErrorHandler:
         self.silenced = silenced
 
     def throw(self, type, message, options={}):
-        if self.silenced: return
+        if self.silenced:
+            return
         options["filename"] = self.filename
         options["linestart"] = options["lineno"] - (1 if options["lineno"] > 0 else 0)
         options["lineend"] = options["lineno"] + 1
@@ -238,7 +241,8 @@ class ErrorHandler:
         if not self.py_error:
             exit(1)
         else:
-            raise Exception("py_error is True.")
+            exc = Exception("py_error is True.", type, message)
+            raise exc
 
 
 if __name__ == "__main__":

@@ -303,13 +303,15 @@ def inop(x, y, errorhandler, line, ast):
         )
     # TODO: add if y and x equal none
     return x in y
+
+
 # Working on making Aardvark lexer work (from the compiler version)
-#Yep, `$test classes` it does work. As far as I know. I made unit tests btw and added stuff to that.
+# Yep, `$test classes` it does work. As far as I know. I made unit tests btw and added stuff to that.
 # ./adk run [file]
 # It just runs python3 main.py file when you run that command. But its not working because theres an error at the bottom of this file.
 # how do I run code here? oh it's compiled already? aha
-#now you can try.
-#./adk by itself does a live thing kinda like when you run python3 by itself.
+# now you can try.
+# ./adk by itself does a live thing kinda like when you run python3 by itself.
 @operator("~=")
 def aboutequal(x, y, errorhandler, line, ast):
     if x == Null:
@@ -322,13 +324,14 @@ def aboutequal(x, y, errorhandler, line, ast):
         )
     return round(x) == round(y)
 
-@operator('...')
+
+@operator("...")
 def spread(x, y, errorhandler, line, ast):
     if x == Null and y == Null:
-        return missingOperand(True, errorhandler, line, ast, '{}')
+        return missingOperand(True, errorhandler, line, ast, "{}")
     if x != Null and y != Null:
         return unexpectedOperand(False, errorhandler, line, ast)
     # if x != Null:
     #   return *x
     # return *y
-    #TODO
+    # TODO

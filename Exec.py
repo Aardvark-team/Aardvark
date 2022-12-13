@@ -10,9 +10,11 @@ from Operators import Operators
 import random
 import math
 from nltk import edit_distance
+import Types
 from Types import Null, Object, Scope, Number, String, Boolean, pyToAdk, Function, Set, Array, File, Class
 import importlib
 from pathlib import Path
+import os
 
 def get_call_scope(scope):
     call_scope = [ "scope " + str(id(scope)) ]
@@ -26,22 +28,18 @@ class Executor:
     self.code = code
     self.codelines = code.split('\n')
     self.ast = ast
-    self.traceback = [ ]
+    self.traceback = []
     self.switch = None
     self.Global = Scope({
       'stdout': File(sys.stdout),
-      'stdin': Object({
-        #Many of our stdin functions can't be implemented in python.
-        'prompt': lambda x: input(x), #Also simple
-        'readLine': lambda: input(),
-      }, name="stdin"),
+      'stdin': File(sys.stdin),
       'stderr': File(sys.stderr),
       'python': Object({ 
         'import': lambda mod: importlib.import_module(mod),
         'eval': lambda code: eval(code, {'importlib':importlib, 'math':math, 'random':random, 'sys':sys})
       }),
       'slice': lambda str, start, end: str[start:end],
-      'typeof': lambda obj: type(obj)._class.name if type(obj) == Object and obj._class else type(obj).__name__ ,
+      'typeof': lambda obj: obj._class.name if type(obj) == Object and getattr(obj, '_class', False) else type(obj).__name__ ,
       'dir': lambda x=None: x.vars if x else self.Global.vars,
       'sort': lambda iterable, reverse=False, key=(lambda x: x): sorted(iterable, reverse=reverse, key=key) ,
       'null': Null,
@@ -70,6 +68,7 @@ class Executor:
       'Boolean': Boolean,
       'File': File,
       'Object': Object,
+      'Error': Types.Error,
       'open': open,
       'include': self.include
     }) #Define builtins here
@@ -130,7 +129,7 @@ class Executor:
           arg = args[i] if i < len(args) else self.ExecExpr(param.get('default'), parent)
           if param['value_type'] != None:
             notImplemented(self.errorhandler, 'Type Checking', param)
-          self.defineVar(param['name'], arg, functscope)
+          functscope.vars[param['name']] = arg
         ret = self.Exec(code, functscope)
         return functscope._returned_value
       if name:
@@ -234,6 +233,8 @@ class Executor:
             },
             'traceback': self.traceback
           })
+        # if var == 'data':
+        #   print('set data to', value, expr['positions']['start']['line'])
         self.defineVar(var, value, defscope)
         return value
       case {'type' : 'Operator', 'operator': '?'}:
@@ -246,7 +247,21 @@ class Executor:
           left = self.ExecExpr(expr['left'], scope)
           op = Operators[operator]
           right = self.ExecExpr(expr['right'], scope)
-          return pyToAdk(op(left, right, self.errorhandler, self.codelines[expr['positions']['start']['line'] - 1], expr))
+          try:
+            return pyToAdk(op(left, right, self.errorhandler, self.codelines[expr['positions']['start']['line'] - 1], expr))
+          except TypeError as e:
+            self.errorhandler.throw('Value', e.args[0], {
+              'lineno': expr['positions']['start']['line'],
+              'underline': {
+                'start': expr['positions']['start']['col'],
+                'end': expr['positions']['end']['col']
+              },
+              'marker': {
+                'start': expr['positions']['start']['col'],
+                'length': expr['positions']['end']['col']-expr['positions']['start']['col']
+              },
+              'traceback': self.traceback
+            })
         else:
           return notImplemented(self.errorhandler, f'Operator "{expr["operator"]}" not yet implemented.', expr)
       case { 'type': 'IfStatement' }:
@@ -266,14 +281,23 @@ class Executor:
         ret = []
         for item in iterable:
           forscope = Scope({}, parent = scope)
-          item = iter(item)
-          for d in expr['declarations']:
+          decls = expr['declarations']
+          if len(decls) == 1:
+            d = decls[0]
             if d['type'] == 'variable':
-              self.defineVar(d['names'][0], next(item), scope)
+              self.defineVar(d['names'][0], item, forscope)
             elif d['type'] == 'destructure':
-              i = next(item)
-              self.defineVar(d['names'][0], i, scope)
-              self.defineVar(d['names'][1], iterable[i], scope)
+              self.defineVar(d['names'][0], item, forscope)
+              self.defineVar(d['names'][1], iterable[item], forscope)
+          else:
+            item = iter(item)
+            for d in decls:
+              if d['type'] == 'variable':
+                self.defineVar(d['names'][0], next(item), forscope)
+              elif d['type'] == 'destructure':
+                i = next(item)
+                self.defineVar(d['names'][0], i, forscope)
+                self.defineVar(d['names'][1], iterable[i], forscope)
 
           ret.append(self.Exec(expr['body'], forscope))
         return ret
@@ -307,7 +331,23 @@ class Executor:
         #for (num)x mult
         return self.ExecExpr(expr['number'], scope) * self.getVar(scope, expr['variable'], expr['tokens']['variable'].start)
       case {'type': 'Index'}:
-        return self.ExecExpr(expr['value'], scope)[self.ExecExpr(expr['property'], scope)]
+        try:
+          return self.ExecExpr(expr['value'], scope)[self.ExecExpr(expr['property'], scope)]
+        except IndexError:
+          if undefinedError:
+            self.errorhandler.throw('Index', 'No such index.', {
+              'lineno': expr['positions']['start']['line'],
+              'underline': {
+                'start': expr['positions']['start']['col'],
+                'end': expr['positions']['end']['col']
+              },
+              'marker': {
+                'start': expr['property']['positions']['start']['col'],
+                'length': expr['property']['positions']['end']['col'] - expr['property']['positions']['start']['col'] + 1
+              },
+              'traceback': self.traceback
+            })
+          else: return None
       case {'type': 'IncludeStatement'}:
         file = expr['lib_name']
         fscope = self.include(file)
@@ -317,6 +357,50 @@ class Executor:
         else:
           for k, v in expr['included'].items():
             self.defineVar(v['local'], fscope[k], scope)
+      case {'type': 'ThrowStatement'}:
+          tothrow = self.ExecExpr(expr['tothrow'], scope)
+          if type(tothrow) != Types.Error:
+            self.errorhandler.throw('Error', f'Can only throw Errors, not "{type(tothrow).__name__}"!', {
+              'lineno': expr['tothrow']['positions']['start']['line'],
+              'underline': {
+                'start': expr['tothrow']['positions']['start']['col'],
+                'end': expr['tothrow']['positions']['end']['col']
+              },
+              'marker': {
+                'start': expr['tothrow']['positions']['start']['col'],
+                'length': expr['tothrow']['positions']['end']['col']-expr['tothrow']['positions']['start']['col']+1
+              },
+            'traceback': self.traceback
+            })
+          self.errorhandler.throw(tothrow.type, tothrow.message, {
+              'lineno': expr['positions']['start']['line'],
+              'underline': {
+                'start': expr['positions']['start']['col'],
+                'end': expr['positions']['end']['col']
+              },
+              'marker': {
+                'start': expr['positions']['start']['col'],
+                'length': expr['positions']['end']['col']-expr['positions']['start']['col']+1
+              },
+            'traceback': self.traceback
+            })
+      case {'type': 'TryCatch'}:
+        stderr = sys.stderr
+        sys.stderr = open(os.devnull, 'w+')
+        tryscope = Scope({}, parent=scope)
+        try:
+          self.Exec(expr['body'], tryscope)
+        except Exception as e:
+          sys.stderr = stderr
+          if expr['catchbody']:
+            print(e, dir(e), e.__note__, e.args)
+            notes = e.args
+            error = Types.Error(notes[1], notes[2])
+            catchscope = Scope({}, parent=scope)
+            if expr['catchvar']:
+              catchscope[expr['catchvar']] = error
+            self.Exec(expr['catchbody'], catchscope)
+        sys.stderr = stderr
       case None:
         return Null
       case _:

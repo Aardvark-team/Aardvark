@@ -1,5 +1,5 @@
 # Immediate bugs:
- - [ ] this is not availiable in methods
+ - [ ] Fix scoping in classes.
 
 # Ideas
 ## Classes
@@ -13,6 +13,7 @@
 # Lexer
 ## The few things left to do.
  - [ ] ... operator
+ - [ ] break
 
 # Parser
 ## Basic Types
@@ -43,7 +44,8 @@
  - [ ] Overloading
  - [ ] `include x from y, a from b, ...`
  - [x] `from x include y`
- - [ ] Throw err 
+ - [x] Throw err
+ - [ ] break
 
 ## Expressions / Syntax
  - [ ] ... spread operator
@@ -76,9 +78,10 @@
 - [x] Classes
 - [x] Indexes
 - [x] Fix Defer!
-- [ ] Throw err
-- [ ] Try catch
+- [x] Throw err
+- [x] Try catch
 - [ ] Extending
+- [ ] break
 
 
 

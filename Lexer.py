@@ -230,9 +230,9 @@ class Lexer:
                 while not self.detect(self.commentend) and not self.AtEnd:
                     value += self.curChar
                     self.advance()
-                    if self.curChar == '\n':
-                      self.line += 1
-                      self.column = 1
+                    if self.curChar == "\n":
+                        self.line += 1
+                        self.column = 1
                 if self.tokenizeComments:
                     self.addToken(
                         "Comment",
@@ -243,14 +243,14 @@ class Lexer:
                         self.column,
                         value,
                     )
-                self.advance(len(self.commentend)-1)  # To skip past the *#
+                self.advance(len(self.commentend) - 1)  # To skip past the *#
 
             # Single line comments
             elif self.detect(self.comment):
                 value = ""
                 start = self.index
                 startcolumn = self.column
-                while self.curChar != '\n' and not self.AtEnd:
+                while self.curChar != "\n" and not self.AtEnd:
                     value += self.curChar
                     self.advance()
                 if self.tokenizeComments:
@@ -276,14 +276,16 @@ class Lexer:
                     if (
                         self.curChar == variation
                         and (len(value) > 0 and self.peek(-1) == "\\")
-                        and (self.column-startcolumn < 2 or not self.peek(-2) == '\\')
+                        and (self.column - startcolumn < 2 or not self.peek(-2) == "\\")
                         and not self.AtEnd
                     ):
                         value = value[:-1] + self.curChar
                         continue
                     elif self.curChar == variation or self.AtEnd:
                         break
-                    elif (self.curChar == "\\") and (len(value) > 0 and value[-1] == '\\'):
+                    elif (self.curChar == "\\") and (
+                        len(value) > 0 and value[-1] == "\\"
+                    ):
                         value = value[:-1] + self.curChar
                         continue
                     value += self.curChar

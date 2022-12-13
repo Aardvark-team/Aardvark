@@ -2,22 +2,24 @@ import types
 import io
 import time
 import os
+import sys
 
 
 class Type:
     vars = {}
+
     def get(self, name, default=None):
-      if getattr(self, 'parent', None):
-        return self.vars.get(name, self.parent.get(name, default))
-      else:
-        return self.vars.get(name, default)
+        if getattr(self, "parent", None):
+            return self.vars.get(name, self.parent.get(name, default))
+        else:
+            return self.vars.get(name, default)
 
     def getAll(self):
-      if getattr(self, 'parent', None):
-        return self.vars | self.parent.getAll()
-      else:
-        return self.vars
-      
+        if getattr(self, "parent", None):
+            return self.vars | self.parent.getAll()
+        else:
+            return self.vars
+
     def set(self, name, value):
         self.vars[name] = value
 
@@ -29,50 +31,60 @@ class Type:
 
 
 class Object(Type):
-    def __init__(self, inherit={}, name="", _class=None, call=None, setitem=None, getitem=None, deleteitem=None, delete=None):
+    def __init__(
+        self,
+        inherit={},
+        name="",
+        _class=None,
+        call=None,
+        setitem=None,
+        getitem=None,
+        deleteitem=None,
+        delete=None,
+    ):
         self._class = _class
         self.name = name
         self.vars = {}
         for i in inherit:
-          self.vars[i] = pyToAdk(inherit[i])
+            self.vars[i] = pyToAdk(inherit[i])
         self._call = call
-        self._setitem = setitem 
-        self._getitem = getitem 
+        self._setitem = setitem
+        self._getitem = getitem
         self._deleteitem = deleteitem
         self._delete = delete
-        #Just to make it act like a scope
+        # Just to make it act like a scope
         self._returned_value = Null
         self._has_returned = False
         self._is_function_scope = False
         self.returnActions = []
         self.addReturnAction = lambda x: None
         self.set_return_value = lambda x: False
-        #etc... Add later TODO
+        # etc... Add later TODO
         self._index = 0
 
     def set(self, name, value):
         # if self._class and self._class.AS and callable(value):
-          #TODO: make class methods have their this.
+        # TODO: make class methods have their this.
         self.vars[name] = value
-      
+
     def __call__(self, *args, **kwargs):
-      if self._call:
-        return self._call(*args, **kwargs)
-        
+        if self._call:
+            return self._call(*args, **kwargs)
+
     def __setitem__(self, name, value):
         if self._setitem:
-          return self._setitem(name, value)
+            return self._setitem(name, value)
         return self.set(name, value)
 
     def __getitem__(self, name):
         if self._getitem:
-          return self._getitem(name)
+            return self._getitem(name)
         return self.get(name)
-      
+
     def __del__(self):
-      if self._delete:
-        self._delete()
-        
+        if self._delete:
+            self._delete()
+
     def delete(self, name):
         del self.vars[name]
 
@@ -81,7 +93,7 @@ class Object(Type):
 
     def __delitem__(self, name):
         if self._deleteitem:
-          return self._deleteitem(name)
+            return self._deleteitem(name)
         return self.delete(name)
 
     def __iter__(self):
@@ -118,7 +130,7 @@ class Scope(Object):
 
     def set(self, name, value):
         self.vars[name] = value
-    
+
     def __setitem__(self, name, value):
         return self.set(name, value)
 
@@ -180,9 +192,9 @@ class Scope(Object):
 
     def __str__(self):
         return self.vars.__str__()
-      
+
     def __del__(self):
-      pass
+        pass
 
 
 class __Null(Type):
@@ -205,7 +217,7 @@ class String(str, Type):
         self.vars = {
             "length": len(value),
             "split": lambda sep=" ": self.split(sep),
-            "slice": lambda start, end: self[start : end],
+            "slice": lambda start, end: self[start:end],
             "startsWith": lambda prefix: self.startswith(x),
             "endsWith": lambda suffix: self.endswith(x),
             "replace": lambda x, y="": self.replace(x, y),
@@ -220,10 +232,10 @@ class String(str, Type):
 class Number(Type, float):
     def __init__(self, value):
         if type(value) not in [float, int]:
-          try:
-            value = float(value)
-          except:
-            value = float(int(value))
+            try:
+                value = float(value)
+            except:
+                value = float(int(value))
         float.__init__(value)
         self.vars = {
             "digits": [int(x) if x in "0123456789" else x for x in str(value)]
@@ -232,10 +244,13 @@ class Number(Type, float):
             # methods and attributes here
         }
         try:
-            self.vars["prime"] = self >= 1 and all(self % i for i in range(2, int(self**0.5) + 1))
+            self.vars["prime"] = self >= 1 and all(
+                self % i for i in range(2, int(self**0.5) + 1)
+            )
         except OverflowError:
             self.vars["prime"] = True
-        #TODO: add prime factorization function to math.
+        # TODO: add prime factorization function to math.
+
     def __repr__(self):
         if self % 1 == 0:
             return str(int(self))
@@ -253,6 +268,7 @@ class Number(Type, float):
 
     def __getitem__(self, *args):
         return self.vars["digits"].__getitem__(*args)
+
     def __call__(self, x):
         return self * x
 
@@ -283,104 +299,118 @@ class Boolean(int, Type):
 
 class Function(Type):
     def __init__(self, funct):
-        self.vars = {} # Funtions have no default attributes.
+        self.vars = {}  # Funtions have no default attributes.
         self.funct = funct
-        self._locals = {} #TODO
+        self._locals = {}  # TODO
         Type.__init__(self)
 
     def __call__(self, *args, **kwargs):
         return pyToAdk(self.funct(*args, **kwargs))
 
-      
+
 class Array(Type, list):
     def __init__(self, value):
         value = list(value)
         self.vars = {
-            'contains': lambda x: x in self,
-            'add': self.append,
-            'remove': self.remove
+            "contains": lambda x: x in self,
+            "add": self.append,
+            "remove": self.remove
             # methods and attributes here
         }
         list.__init__([])
         for i in value:
-          self.append(pyToAdk(i))
+            self.append(pyToAdk(i))
 
-      
+
 class Set(Type, list):
     def __init__(self, value):
         value = list(value)
         self.vars = {
-            'contains': lambda x: x in self,
-            'add': self.append,
-            'remove': self.remove
+            "contains": lambda x: x in self,
+            "add": self.append,
+            "remove": self.remove
             # methods and attributes here
         }
         list.__init__([])
         for i in value:
-          if i not in self:
-            self.append(pyToAdk(i))
-          #x = set{1, 2, 3}
+            if i not in self:
+                self.append(pyToAdk(i))
+            # x = set{1, 2, 3}
+
     def __repr__(self):
-      s = ''
-      for i in self:
-        s += str(i) + ', '
-      s = s[:-2]
-      return f'set{{{s}}}'
-      
+        s = ""
+        for i in self:
+            s += str(i) + ", "
+        s = s[:-2]
+        return f"set{{{s}}}"
+
     def __str__(self):
-      s = ''
-      for i in self:
-        s += str(i) + ', '
-      s = s[:-2]
-      return f'set{{{s}}}'
+        s = ""
+        for i in self:
+            s += str(i) + ", "
+        s = s[:-2]
+        return f"set{{{s}}}"
+
 
 class File(Type):
-  def __init__(self, obj):
-    #NOT FINISHED
-    # print(dir(value))
-    self.name = obj.name
-    self.mode = obj.mode
-    self.obj = obj
-    self.vars = {
-      'read': self.read,
-      'write': self.write,
-      'readAll': self.readAll,
-      'readLine': self.readLine,
-      'writeLines': self.writeLines,
-      'erase': self.erase,
-      'move': self.move,
-      'delete': self.delete,
-      'name': self.name,
-      'mode': self.mode
-    }
-  def read(self, chars=1):
-    return self.obj.read(chars)
-  def readLine(self):
-    return self.obj.readline()
-  def readAll(self):
-    return self.obj.read()
-  def write(self, *args):
-    return self.obj.write(' '.join([str(a) for a in args]))
-  def writeLines(self, *lines):
-    return self.obj.writelines(*str(lines))
-  def delete(self):
-    os.remove(self.name)
-  def erase(self):
-    open(self.name, 'w').close()
-  def move(self, new):
-    os.rename(self.name, new)
+    def __init__(self, obj):
+        # NOT FINISHED
+        # print(dir(value))
+        if obj == None:
+          obj = open(os.devnull, 'w+')
+        self.name = obj.name
+        self.mode = obj.mode
+        self.obj = obj
+        self.vars = {
+            "read": self.read,
+            "write": self.write,
+            "readAll": self.readAll,
+            "readLine": self.readLine,
+            "writeLines": self.writeLines,
+            "erase": self.erase,
+            "move": self.move,
+            "delete": self.delete,
+            "name": self.name,
+            "mode": self.mode,
+        }
+        if self.obj == sys.stdin:
+          self.vars['prompt'] = input
 
-    
+    def read(self, chars=1):
+        return self.obj.read(chars)
+
+    def readLine(self):
+        return self.obj.readline()
+
+    def readAll(self):
+        return self.obj.read()
+
+    def write(self, *args):
+        return self.obj.write(" ".join([str(a) for a in args]))
+
+    def writeLines(self, *lines):
+        return self.obj.writelines(*str(lines))
+
+    def delete(self):
+        os.remove(self.name)
+
+    def erase(self):
+        open(self.name, "w").close()
+
+    def move(self, new):
+        os.rename(self.name, new)
+
+
 class Class(Type):
     def __init__(self, name, build, extends=[], AS=None, parent=None):
         self.name = name
-        self.build = build # A function the class with,
+        self.build = build  # A function the class with,
         self.parent = parent
         self._as = AS
         self.vars = {}
         for e in extends:
-          self.vars.update(e)
-        #Just to make it act like a scope
+            self.vars.update(e)
+        # Just to make it act like a scope
         self._returned_value = Null
         self._has_returned = False
         self._is_function_scope = False
@@ -388,32 +418,37 @@ class Class(Type):
         self.addReturnAction = lambda x: None
         self.set_return_value = lambda x: False
         if self._as:
-          self.vars[self._as] = self
+            self.vars[self._as] = self
         build(self)
-        
+
     def childstr(self):
-        return f'<instance of {self.name}>'
+        return f"<instance of {self.name}>"
+
     def __repr__(self):
         return str(self)
+
     def __str__(self):
-        return f'<Class {self.name}>'
+        return f"<Class {self.name}>"
+
     def __call__(self, *args, **kwargs):
         obj = Object({}, _class=self)
         if self._as:
-          obj.vars[self._as] = obj
+            obj.vars[self._as] = obj
         obj.parent = self.parent
         self.build(obj)
-        obj._call = obj.vars.get('$call')
-        obj._setitem = obj.vars.get('$setitem')
-        obj._getitem = obj.vars.get('$getitem')
-        obj._deleteitem = obj.vars.get('$deleteitem')
-        obj._delete = obj.vars.get('$delete')
-        init = obj.vars.get('$constructor')
+        obj._call = obj.vars.get("$call")
+        obj._setitem = obj.vars.get("$setitem")
+        obj._getitem = obj.vars.get("$getitem")
+        obj._deleteitem = obj.vars.get("$deleteitem")
+        obj._delete = obj.vars.get("$delete")
+        init = obj.vars.get("$constructor")
         if init:
-          init(*args, **kwargs)
+            init(*args, **kwargs)
         return obj
+
     def getSpecial(self, sp):
-        return self.get('$'+sp)
+        return self.get("$" + sp)
+
     def getAll(self):
         """Gets all variables useable in the current scope."""
         if self.parent:
@@ -427,10 +462,38 @@ class Class(Type):
 
         return self.vars.get(name, default)
 
+
+class Error(Type):
+    def __init__(self, t="?", msg="Error"):
+        self.type = t
+        self.message = msg
+        self.vars = {"type": t, "message": msg}
+
+    def __repr(self):
+        return str(self)
+
+    def __str__(self):
+        return f"<{self.type}Error>"
+
+
 # TODO: Add: Stream, Bitarray
 Null = __Null()
 
-Types = [Object, Scope, Type, __Null, Number, String, Function, Boolean, Set, Array, File, Class]
+Types = [
+    Object,
+    Scope,
+    Type,
+    __Null,
+    Number,
+    String,
+    Function,
+    Boolean,
+    Set,
+    Array,
+    File,
+    Class,
+    Error,
+]
 
 
 def dict_from_other(old):
@@ -441,6 +504,7 @@ def dict_from_other(old):
             if not isinstance(v, types.ModuleType):
                 context[setting] = getattr(old, setting)
     return context
+
 
 def pyToAdk(py):
     try:
@@ -466,19 +530,26 @@ def pyToAdk(py):
             return Object(dict_from_other(py))
         elif callable(py):
             return Function(py)
-        elif isinstance(py, io.TextIOBase) or isinstance(py, io.BufferedIOBase) or isinstance(py, io.RawIOBase) or isinstance(py, io.IOBase):
-          return File(py)
+        elif (
+            isinstance(py, io.TextIOBase)
+            or isinstance(py, io.BufferedIOBase)
+            or isinstance(py, io.RawIOBase)
+            or isinstance(py, io.IOBase)
+        ):
+            return File(py)
         else:
             return Object(dict_from_other(py))
     except RecursionError:
-      return py
+        return py
+
 
 def adkToPy(adk):
-  if type(adk) not in Types:
-      return adk
-  elif adk == Null:
-    return None
-  #TODO: finish later
+    if type(adk) not in Types:
+        return adk
+    elif adk == Null:
+        return None
+    # TODO: finish later
+
 
 # print(type(open('main.py')))
 # print(dir(io.TextIOWrapper))

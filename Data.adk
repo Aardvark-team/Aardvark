@@ -111,3 +111,5 @@ Keywords = set{
     'as',
     'from' # other
 }
+
+Quotes = set{'"', "'", "`"}

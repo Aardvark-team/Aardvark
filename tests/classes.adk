@@ -12,3 +12,10 @@ class X as this {
   }
   attr = 5
 }
+
+x = [X()]
+stdout.write(typeof(x), x, '\n')
+
+for i in x {
+  stdout.write(typeof(i), dir(i), i, i.attr, '\n')
+}

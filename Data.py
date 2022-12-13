@@ -48,8 +48,8 @@ PureOperators = {
     "@",  # at. reference
     "?",  # x.y? will be null if x.y doesn't exist or if it is null
     "->",  # For defining a function return type
-     "$",  #special
-    '...'
+    "$",  # special
+    "..."
     # "<-",  #idk, we can use it for something maybe.
 }
 #!& should be valid, not and.
@@ -65,7 +65,7 @@ Operators = PureOperators | {
 }
 OrderOfOps = {
     0: ["?"],
-    1: ["~", "!", "@", '...'],
+    1: ["~", "!", "@", "..."],
     2: ["^"],
     3: ["*", "/"],
     4: ["-", "+"],
@@ -122,18 +122,19 @@ Keywords = {
     "switch",
     "case",
     "if",
+    #'break',
     "else",  # Blocks
     "return",
     "delete",
     "include",
     "async",
     "yield",
-    "defer", #Statements
+    "defer",  # Statements
     "as",
     "from",  # other
-    'throw',
-    'try',
-    'catch'
+    "throw",
+    "try",
+    "catch",
 }
 
 

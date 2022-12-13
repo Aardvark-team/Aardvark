@@ -123,7 +123,7 @@ class Parser:
         )
         self.err_handler.throw(
             "Syntax",
-            f"Unexpected {str(next_tok.type)}: {str(next_tok.value)}",
+            f"Unexpected {str(next_tok.type)}: \"{str(next_tok.value)}\"",
             {
                 "lineno": next_tok.line,
                 "marker": {
@@ -211,7 +211,7 @@ class Parser:
                 )
             else:
                 return None
-      
+
         if tok.type in [TokenTypes["String"], TokenTypes["Number"]]:
             self.eat(tok.type)
 
@@ -403,8 +403,9 @@ class Parser:
             op = self.eat(TokenTypes["Operator"])
             right = self.pExpression(level, require=False)
 
-            if not left and not right and not require: return None
-          
+            if not left and not right and not require:
+                return None
+
             return {
                 "type": "Operator",
                 "left": left,
@@ -436,6 +437,8 @@ class Parser:
                 name = self.eat(TokenTypes["Identifier"]).value
             elif self.compare("Number"):
                 name = self.eat("Number").value
+            elif self.compare('String'):
+                name = self.eat('String').value
             self.eatLBs()
             self.eat(TokenTypes["Delimiter"], ":")
             self.eatLBs()
@@ -669,7 +672,7 @@ class Parser:
         starter = self.eat(TokenTypes["Keyword"], "while")
         condition = self.pExpression(require=False)
         if condition == None:
-          condition = self.pExpression(require=True)
+            condition = self.pExpression(require=True)
         if self.compare(TokenTypes["Delimiter"], "{"):
             body, lasti = self.eatBlockScope()
         else:
@@ -690,7 +693,7 @@ class Parser:
         starter = self.eat(TokenTypes["Keyword"], "if")
         condition = self.pExpression(require=False)
         if condition == None:
-          condition = self.pExpression(require=True)
+            condition = self.pExpression(require=True)
         body = None
         lasti = condition["positions"]["end"]
 
@@ -1023,7 +1026,7 @@ class Parser:
                 body = self.pStatement(True)
                 lasti = body["positions"]["end"]
             node["positions"]["end"] = lasti
-            node["catchvar"] = var
+            node["catchvar"] = var.value
             node["catchbody"] = body
         return node
 

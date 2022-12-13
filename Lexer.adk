@@ -1,6 +1,7 @@
 include TokenTypes, Operators, Keywords, Quotes, Whitespaces, Booleans, Delimiters from Data
 #include Error
 
+break = null # So it won't throw an error
 
 class Token as this {
   $constructor(type, 
@@ -9,10 +10,8 @@ class Token as this {
               value = null,
               variation = null) 
   {
-    this.columnstart = columnstart
-    this.columnend = columnend
     this.type = type
-    this.length = end - start
+    this.length = end.index - start.index + 1
     this.start = start
     this.end = end
     this.value = value
@@ -34,39 +33,39 @@ class Lexer as this {
     this.AtEnd = false
     this.curChar = ""
   }
-  function isWhitespace(char = null)
+  function isWhitespace(char)
     return (char ? this.curChar) in Whitespaces
 
-  function isNewline(char = null)
+  function isNewline(char)
     return (char ? this.curChar) in '\n;'
 
-  function isQuote(char = null)
+  function isQuote(char)
     return (char ? this.curChar) in Quotes
 
-  function isDelimiter(char = null)
+  function isDelimiter(char)
     return (char ? this.curChar) in Delimiters 
 
-  function isNumber(char = null)
+  function isNumber(char)
     return (char ? this.curChar) in '0123456789'
 
   function addToken(type, start, end, value, variation)
-    return this.output.push(Token(type, start, end, value, variation))
+    return this.output.add(Token(type, start, end, value, variation))
 
-  function otherwise(char = null) {
+  function otherwise(char) {
     char = char ? this.curChar
-    return !(this.isWhitespace(char) | self.isDelimiter(char) | self.isNewline(char) | char == comment | char in Operators)
+    return !(this.isWhitespace(char) | this.isDelimiter(char) | this.isNewline(char) | char == '#' | char in Operators)
   }
 
   function detect(text) {
-    if this.curChar = text[0] {
-      for i in range(text.length - 1) 
+    if this.curChar == text[0] {
+      for i in sequence(0, text.length, 1) 
         if this.peek(i + 1) != text[i + 1] return false;
     } else return false;
     return true
   }
   function newline() {
     this.empty = true
-    this.line += 1
+    this.line = this.line + 1
     this.column = 0
   }
   function advance(amt = 1) {
@@ -76,6 +75,7 @@ class Lexer as this {
       this.curChar = this.data[this.index]
     else 
       this.AtEnd = true
+    #stdout.write(this.curChar, this.index, this.data.length, this.index < this.data.length, '\n')
   }
   function peek(amt = 1) {
     if this.index + amt < this.data.length 
@@ -85,18 +85,20 @@ class Lexer as this {
   function pos() {
     return {index: this.index, line: this.line, column: this.column}
   }
-  function tokenize(data) {
+  function tokenize(data='') {
     #*
       Takes code and converts it to tokens.
     *#
     if !data throw ValueError("String cannot be empty")
     this.data = this.data + data
     this.curChar = this.data[this.index]
+    stdout.write(this.curChar, '\n')
     while this.index < this.data.length {
+
       # Newlines (\n or ;)
       if this.isNewline() {
         this.addToken('LineBreak', this.pos(), this.pos(), this.curChar, this.curChar)
-        if this.curChar = '\n' this.newline();#Only increment the line if its a \n
+        if this.curChar = '\n' this.newline(); # Only increment the line if its a \n
         else this.empty = true
       }
 
@@ -113,7 +115,7 @@ class Lexer as this {
           this.advance(-1)
           this.addToken('Indent', start, this.pos(), value)
         }
-        else self.advance(-1);
+        else this.advance(-1);
       }
 
       #Delimiters
@@ -124,11 +126,11 @@ class Lexer as this {
       else if this.isNumber() {
         start = this.pos()
         value = ''
-        seen_dot = False
-        while (this.isNumber | this.curChar = '.') & !this.AtEnd {
-          if seen_dot & this.curChar = '.'
-            pass # Throw error
-          if this.curChar = '.' seen_dot = true
+        seen_dot = false
+        while (this.isNumber() | this.curChar == '.') & !this.AtEnd {
+          if seen_dot & this.curChar == '.'
+            throw Error('Syntax', 'Already saw the dot!')
+          if this.curChar == '.' seen_dot = true
           value = value + this.curChar
           this.advance()
         }
@@ -144,12 +146,12 @@ class Lexer as this {
           value = value + this.curChar
           this.advance()
         }
-        this.advance('*#'.length-1) # To skip the *#
+        this.advance('*#'.length - 1) # To skip the *#
         if (this.tokenizeComments) this.addToken('Comment', start, this.pos(), value)
       }
 
       # Single line comments
-      else if this.curChar = '#' {
+      else if this.curChar == '#' {
         value = ''
         start = this.pos()
         while this.curChar != '\n' & !this.AtEnd {
@@ -165,11 +167,12 @@ class Lexer as this {
         variation = this.curChar
         value = ''
         start = this.pos()
-        while !this.AtEnd {
+        end = false
+        while !this.AtEnd & !end {
           this.advance()
-          if self.curChar == variation & value[-1]? != '\\' { # Make sure its the same type of quote and there is no \ before it
+          if this.curChar == variation & value[-1]? != '\\' { # Make sure its the same type of quote and there is no \ before it
             value = value.slice(0, -1) # To remove the -1
-            break
+            end = true
           }
           (break) if this.AtEnd
           value = value + this.curChar
@@ -179,6 +182,7 @@ class Lexer as this {
 
       # Operators
       else if this.curChar in Operators {
+        stdout.write('operator\n')
         value = ''
         start = this.pos()
         while !this.AtEnd & (value + this.curChar) in Operators {
@@ -191,24 +195,32 @@ class Lexer as this {
 
       # Identifiers, Keywords, and Operators
       else if this.otherwise() {
+        stdout.write('otherwise\n')
         value = ''
         start = this.pos()
         while (this.otherwise() or this.isNumber()) & !this.AtEnd {
           value = value + this.curChar
           this.advance()
+          #stdout.write(this.AtEnd, '\n')
         }
         this.advance(-1)
         type = 'Identifier'
         type = 'Operator' if value in Operators
-        type = 'Keyword' if value in Keywords
-        type = 'Boolean' if value in Booleans
+        type = 'Keyword'  if value in Keywords
+        type = 'Boolean'  if value in Booleans
         this.addToken(type, start, this.pos(), value)
       }
 
       # Advance
-      (break) if this.AtEnd
+      (return this.output) if this.AtEnd
       this.advance()
     }
     return this.output
   }
+}
+
+lexer = Lexer.Lexer()
+toks = lexer.tokenize('stdout.write("Hello World")')
+for tok in toks {
+  stdout.write(dir(tok), '\n')
 }
