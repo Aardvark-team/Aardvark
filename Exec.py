@@ -75,7 +75,7 @@ class Executor:
     #TODO: implement more builtins.
     self.errorhandler = errorhandler
   def include(self, name):
-        locs = [name, name + '.adk', 'libs/' + name, 'libs/' + name + '.adk']
+        locs = [name, name + '.adk', '.adk/lib/' + name, '.adk/lib/' + name + '.adk']
         i = 0
         text = None
         while True:

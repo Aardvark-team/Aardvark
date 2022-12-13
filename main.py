@@ -14,7 +14,7 @@ import os
 # Prettifying the ast
 from Utils import prettify_ast
 
-sys.setrecursionlimit(2500)
+sys.setrecursionlimit(3000)
 
 
 class Version:
@@ -157,7 +157,7 @@ if __name__ == "__main__":
     elif mode == "help":
         print(f"Aardvark {version} \n[Python {python}]\n{sys.platform.upper()}")
         print(
-            """Usage: ./adk cmd [-opts...]
+            """Usage: adk cmd [-opts...]
 
 Commands:
   run <file> [-opts...]
@@ -185,4 +185,4 @@ Versions:
     """
         )
     else:
-        print("Usage: ./adk cmd [-opts...]")
+        print("Usage: adk cmd [-opts...]")
