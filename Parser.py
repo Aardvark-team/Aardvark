@@ -14,13 +14,15 @@ type_helper["Number"] = "<Number>"
 type_helper["String"] = "<String>"
 type_helper["ValueType"] = "<String | Int>"
 
+
 def shift_ast_columns(ast, amount):
     ast["positions"]["start"]["col"] += amount
     ast["positions"]["end"]["col"] += amount
 
-    for k,v in ast.items():
+    for k, v in ast.items():
         if type(v) == dict and v.get("type", None):
             shift_ast_columns(v, amount)
+
 
 class Parser:
     def __init__(self, err_handler, lexer):
@@ -266,28 +268,25 @@ class Parser:
                     saved_pos = self.pos
                     saved_code = self.err_handler.code
                     saved_toks = self.tokens
-                    
+
                     self.err_handler.code = inner
-                    self.err_handler.codelines = [ inner ]
+                    self.err_handler.codelines = [inner]
                     self.tokens = inner_toks
                     self.pos = 0
 
-                    inner_ast = self.pExpression(require = True)
+                    inner_ast = self.pExpression(require=True)
 
-                    shift_ast_columns(inner_ast,  templ.start["col"] + ind)
+                    shift_ast_columns(inner_ast, templ.start["col"] + ind)
 
                     self.pos = saved_pos
                     self.tokens = saved_toks
                     self.err_handler.code = saved_code
                     self.err_handler.codelines = saved_code.split("\n")
 
-                    replacements.append({
-                        "from": starti,
-                        "to": ind,
-                        "value": inner_ast,
-                        "string": inner
-                    })
-                    
+                    replacements.append(
+                        {"from": starti, "to": ind, "value": inner_ast, "string": inner}
+                    )
+
                 else:
                     text += templ_val[ind]
 

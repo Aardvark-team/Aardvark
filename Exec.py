@@ -589,21 +589,23 @@ class Executor:
                             "traceback": self.traceback,
                         },
                     )
-            case {'type': 'TemplateString'}:
-                string = expr['value']
-                for rep in expr['replacements']:
-                  value = rep['value']
-                  codelines = rep['string'].split('\n')
-                  self.traceback.append(
-                      {
-                          "name": Error.getAstText(value, codelines),
-                          "line": value["positions"]["start"]["line"],
-                          "col": value["positions"]["start"]["col"],
-                          "filename": self.file,
-                      }
-                  )
-                  value = self.ExecExpr(value, scope)
-                  string = string[:rep['from']] + str(value) + string[rep['to']+1:]
+            case {"type": "TemplateString"}:
+                string = expr["value"]
+                for rep in expr["replacements"]:
+                    value = rep["value"]
+                    codelines = rep["string"].split("\n")
+                    self.traceback.append(
+                        {
+                            "name": Error.getAstText(value, codelines),
+                            "line": value["positions"]["start"]["line"],
+                            "col": value["positions"]["start"]["col"],
+                            "filename": self.file,
+                        }
+                    )
+                    value = self.ExecExpr(value, scope)
+                    string = (
+                        string[: rep["from"]] + str(value) + string[rep["to"] + 1 :]
+                    )
                 return String(string)
             case None:
                 return Null

@@ -191,7 +191,7 @@ class Lexer:
                 )
 
             # Numbers
-            elif self.isNumber(): #Has to be in 0123456789 for this to be true.
+            elif self.isNumber():  # Has to be in 0123456789 for this to be true.
                 start = self.index
                 startcolumn = self.column
                 value = ""
@@ -284,24 +284,26 @@ class Lexer:
                 value = ""
                 begin = self.index
                 startcolumn = self.column
-                while not self.AtEnd:
+                backslash = False
+                while True:
                     self.advance()
-                    if (
-                        self.curChar == variation
-                        and (len(value) > 0 and self.peek(-1) == "\\")
-                        and (self.column - startcolumn < 2 or not self.peek(-2) == "\\")
-                        and not self.AtEnd
-                    ):
-                        value = value[:-1] + self.curChar
-                        continue
-                    elif self.curChar == variation or self.AtEnd:
-                        break
-                    elif (self.curChar == "\\") and (
-                        len(value) > 0 and value[-1] == "\\"
-                    ):
-                        value = value[:-1] + self.curChar
-                        continue
-                    value += self.curChar
+                    if self.AtEnd:
+                        raise Exception("Error: Unexpected EOF")
+                    if backslash:
+                        if self.curChar == "\\":
+                            value += "\\"
+                        if self.curChar == "n":
+                            value += "\n"
+                        if self.curChar == variation:
+                            value += variation
+                        backslash = False
+                    else:
+                        if self.curChar == "\\":
+                            backslash = True
+                        elif self.curChar == variation:
+                            break
+                        else:
+                            value += self.curChar
 
                 self.addToken(
                     "String",
