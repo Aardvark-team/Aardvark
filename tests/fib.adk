@@ -1,4 +1,4 @@
-#stdout.write("Hello World!\n")
+stdout.write("Hello World!\n")
 
 function fib(n) -> int {
   if n <= 0 {
@@ -12,5 +12,6 @@ function fib(n) -> int {
 
 num = 7
 stdout.write('Fib of', num, 'is', fib(num), "\n")
-תֲ = 5
-stdout.write(תֲ, '\n')
+
+# תֲ = 5
+# stdout.write(תֲ, '\n')

@@ -9,6 +9,8 @@ import sys
 from Types import Null
 from sty import fg
 import os
+import shutil
+
 
 # Import module for colouring.
 # Prettifying the ast
@@ -160,9 +162,10 @@ if __name__ == "__main__":
             """Usage: adk cmd [-opts...]
 
 Commands:
-  run <file> [-opts...]
-  live [-opts...]
-  --version
+  run <file> [-opts...]           # Runs a file
+  live [-opts...]                 # 
+  setup-lib <file-or-dir>         # Adds that as a library
+  --version                       # Prints version info
 
 Options:
   -ast   —  Prints the AST
@@ -184,10 +187,23 @@ Versions:
     
     """
         )
-    elif mode.startswith('./'):
-      printast = "-ast" in sys.argv
-      printtoks = "-toks" in sys.argv
-      runFile(mode[2:], printtoks, printast)
+    elif mode.startswith("./"):
+        printast = "-ast" in sys.argv
+        printtoks = "-toks" in sys.argv
+        runFile(mode[2:], printtoks, printast)
+
+    elif mode == "setup-lib":
+        dirloc = cmdargs[1]
+        dir = dirloc.split("/")[-1]
+        if os.path.isfile(dirloc):
+            name = ".".join(dir.split(".")[:-1])
+            os.makedirs(f".adk/lib/{name}")
+            shutil.copy(dirloc, f".adk/lib/{name}")
+        elif not os.path.isdir(dirloc):
+            print(f'ERROR: "{dirloc}" not found.')
+        else:
+            shutil.copytree(dirloc, ".adk/lib/" + dir)
+
     else:
         print(sys.argv)
         print("Usage: adk cmd [-opts...]")

@@ -2,12 +2,29 @@
 #   Indent: spaces - 4
 
 from sty import fg
-from Error import styles
-from Lexer import Token
+import Error
+import Lexer
 import json
 
 
+class FunctDict:
+    def __init__(self, d):
+        self.data = d
+
+    def __getitem__(self, name):
+        return self.data[name]()
+
+    def __setitem__(self, name, value):
+        self.data[name] = value
+
+    def get(self, name, default):
+        if name in self.data:
+            return self[name]
+        return default
+
+
 def prettify_ast(ast, level=0, indent="  "):
+    styles = Error.styles
     ind = level * indent
 
     if type(ast) == int or type(ast) == float:
@@ -55,7 +72,7 @@ def prettify_ast(ast, level=0, indent="  "):
             else (repr + ind + styles["Delimiter"] + "}" + fg.rs)
         )
 
-    if type(ast) == Token:
+    if type(ast) == Lexer.Token:
         return ind + styles["default"] + str(ast) + fg.rs
 
     raise Exception("Couldn't prettify " + str(ast) + " type " + str(type(ast)))

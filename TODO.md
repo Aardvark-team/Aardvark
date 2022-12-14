@@ -37,7 +37,7 @@
  - [ ] `include x from y, a from b, ...`
  - [x] `from x include y`
  - [x] Throw err
- - [ ] break
+ - [x] break
 
 ## Expressions / Syntax
  - [ ] ... spread operator
@@ -48,10 +48,10 @@
  - [x] Binary Expressions
  - [x] Function calls
  - [x] Conditions
- - [x] Properties — Doesn't work in my tests
+ - [x] Properties
  - [x] Methods
  - [x] Function as this
- - [x] Extending
+ - [ ] Extending
  - [x] All operators (?, *, &, ^, %, !, ~, -, +, =, /, <, >, ->, =>, >=, <=, |, etc...)
 
 # Execution
@@ -69,11 +69,10 @@
 - [ ] Refs
 - [x] Classes
 - [x] Indexes
-- [x] Fix Defer!
 - [x] Throw err
 - [x] Try catch
 - [ ] Extending
-- [ ] break
+- [x] break
 
 
 

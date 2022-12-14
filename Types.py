@@ -41,6 +41,7 @@ class Object(Type):
         getitem=None,
         deleteitem=None,
         delete=None,
+        string=None,
     ):
         self._class = _class
         self.name = name
@@ -52,6 +53,7 @@ class Object(Type):
         self._getitem = getitem
         self._deleteitem = deleteitem
         self._delete = delete
+        self._string = string
         # Just to make it act like a scope
         self._returned_value = Null
         self._has_returned = False
@@ -59,6 +61,9 @@ class Object(Type):
         self.returnActions = []
         self.addReturnAction = lambda x: None
         self.set_return_value = lambda x: False
+        self._has_been_broken = False
+        self._scope_type = "Object"
+        self._completed = False
         # etc... Add later TODO
         self._index = 0
 
@@ -108,24 +113,26 @@ class Object(Type):
             return list(self.vars.keys())[self._index]
 
     def __repr__(self):
-        if self._class:
-            return self._class.childstr()
-        return self.vars.__repr__()
+        return str(self)
 
     def __str__(self):
+        if self._string:
+            return self._string()
         if self._class:
             return self._class.childstr()
         return self.vars.__str__()
 
 
 class Scope(Object):
-    def __init__(self, vars, parent=None, is_func=False):
+    def __init__(self, vars, parent=None, scope_type=None):
         self.vars = vars
         self.parent = parent or None
         self._index = 0  # for next() implementation.
         self._returned_value = Null
         self._has_returned = False
-        self._is_function_scope = is_func
+        self._has_been_broken = False
+        self._completed = False
+        self._scope_type = scope_type
         self.returnActions = []
 
     def set(self, name, value):
@@ -151,16 +158,23 @@ class Scope(Object):
         for act in self.returnActions:
             act()
 
-    def addReturnAction(self, item):
+    def addReturnAction(self, item, stype="function"):
+        if self._scope_type != stype:
+            return self.parent.setReturnAction(item, stype) if self.parent else False
+
         self.returnActions.append(item)
+        return True
 
-    def set_return_value(self, value):
-        if not self._is_function_scope:
-            return self.parent.set_return_value(value) if self.parent != None else False
+    def complete(self, stype="function", ret=None):
+        if self._scope_type != stype:
+            return self.parent.complete(stype, ret) if self.parent else False
 
-        # print(id(self), "Returned", value)
-        self._returned_value = value
-        self._has_returned = True
+        self._returned_value = ret if ret != None else Null
+        if self._scope_type == "loop":
+            self._has_been_broken = True
+        if self._scope_type == "function":
+            self._has_returned = True
+        self._completed = True
         self._triggerReturnAction()
         return True
 
@@ -357,7 +371,7 @@ class File(Type):
         # NOT FINISHED
         # print(dir(value))
         if obj == None:
-          obj = open(os.devnull, 'w+')
+            obj = open(os.devnull, "w+")
         self.name = obj.name
         self.mode = obj.mode
         self.obj = obj
@@ -374,7 +388,7 @@ class File(Type):
             "mode": self.mode,
         }
         if self.obj == sys.stdin:
-          self.vars['prompt'] = input
+            self.vars["prompt"] = input
 
     def read(self, chars=1):
         return self.obj.read(chars)
@@ -417,6 +431,9 @@ class Class(Type):
         self.returnActions = []
         self.addReturnAction = lambda x: None
         self.set_return_value = lambda x: False
+        self._has_been_broken = False
+        self._completed = False
+        self._scope_type = "Class"
         if self._as:
             self.vars[self._as] = self
         build(self)
@@ -441,13 +458,11 @@ class Class(Type):
         obj._getitem = obj.vars.get("$getitem")
         obj._deleteitem = obj.vars.get("$deleteitem")
         obj._delete = obj.vars.get("$delete")
+        obj._string = obj.vars.get("$string")
         init = obj.vars.get("$constructor")
         if init:
             init(*args, **kwargs)
         return obj
-
-    def getSpecial(self, sp):
-        return self.get("$" + sp)
 
     def getAll(self):
         """Gets all variables useable in the current scope."""

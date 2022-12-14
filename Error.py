@@ -28,11 +28,11 @@ def getTextByPos(start, end, codelines):
     l = []
     for i in range(start["line"] - 1, end["line"]):
         if i == start["line"] - 1 and i == end["line"] - 1:
-            l.append(codelines[i][start['col']-1:end['col']-1])
+            l.append(codelines[i][start["col"] - 1 : end["col"] - 1])
         elif i == start["line"] - 1:
             l.append(codelines[i][start["col"] - 1 :])
-        elif i == end["line"]-1:
-            l.append(codelines[i][: end["col"]-1])
+        elif i == end["line"] - 1:
+            l.append(codelines[i][: end["col"] - 1])
         else:
             l.append(codelines[i])
     return "\n".join(l)
@@ -131,13 +131,14 @@ def print_error(type: str, pos, msg, didyoumean, err_trace, code):
 
     underline_start = pos.get("underline", {}).get("start")
     underline_end = pos.get("underline", {}).get("end")
-    marker_pos = pos.get("marker", {}).get("start")-1
+    marker_pos = pos.get("marker", {}).get("start") - 1
     marker_length = pos.get("marker", {}).get("length")
 
     underline = (underline_start - 1) * " " + "―" * (
         underline_end - underline_start + 1
     )
     marker = (marker_pos - 1) * " " + "^" * (marker_length)
+    # print(marker)
     underline_str = ""
     # Maybe change the arrow? ▲, ^, ^
     # whats this big for loop
@@ -183,9 +184,10 @@ def print_error(type: str, pos, msg, didyoumean, err_trace, code):
 
     if didyoumean_par != None:
         lines_mean = code_lines.copy()
-        lines_mean[
-            lineno - 1
-        ] = f"{' ' * (padding - len(str(lineno)))}{styles['default']}{lineno} │ {didyoumean}"
+        lines_mean[lineno - 1] = (
+            f"{' ' * (padding - len(str(lineno)))}{styles['default']}{lineno} │"
+            f" {didyoumean}"
+        )
         # Highlight(didyoumean, {
         #    'startline': pos["lineno"]+1,
         #    'leftpadding': padding,

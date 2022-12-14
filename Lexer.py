@@ -38,7 +38,11 @@ class Token:
         self.variation = variation
 
     def __repr__(self):
-        return f"Token({self.type.name}, '{self.value}', from {self.start['line']}:{self.start['col']} to {self.end['line']}:{self.end['col']})"
+        return (
+            f"Token({self.type.name}, '{self.value}', from"
+            f" {self.start['line']}:{self.start['col']} to"
+            f" {self.end['line']}:{self.end['col']})"
+        )
 
 
 class Lexer:
@@ -115,6 +119,16 @@ class Lexer:
         self.line += 1
         self.column = 1
 
+    def reset(self):
+        self.data = ""
+        self.index = 0
+        self.line = 1
+        self.column = 1
+        self.output = []
+        self.empty = True
+        self.AtEnd = False
+        self.curChar = ""
+
     def tokenize(self, data: str):
         """
         Takes code and converts it to tokens.
@@ -125,7 +139,6 @@ class Lexer:
         self.data += data
         self.curChar = self.data[self.index]
         while self.index < len(self.data):
-
             # Newlines (\n or ;)
             if self.isNewline():
                 self.addToken(
@@ -178,7 +191,7 @@ class Lexer:
                 )
 
             # Numbers
-            elif self.isNumber():
+            elif self.isNumber(): #Has to be in 0123456789 for this to be true.
                 start = self.index
                 startcolumn = self.column
                 value = ""

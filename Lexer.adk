@@ -1,7 +1,6 @@
 include TokenTypes, Operators, Keywords, Quotes, Whitespaces, Booleans, Delimiters from Data
 #include Error
 
-break = null # So it won't throw an error
 
 class Token as this {
   $constructor(type, 
@@ -17,6 +16,9 @@ class Token as this {
     this.value = value
     this.variation = variation
   }
+  $string() {
+    return 'Token(' + this.type + ', ' + "'" + this.value + "'" + ", " + ")"
+  }
 }
 
 
@@ -28,6 +30,7 @@ class Lexer as this {
     this.index = 0
     this.line = 0
     this.column = 0
+    #TODO: merge index, line, and column into a position attribute
     this.output = []
     this.empty = true
     this.AtEnd = false
@@ -92,7 +95,6 @@ class Lexer as this {
     if !data throw ValueError("String cannot be empty")
     this.data = this.data + data
     this.curChar = this.data[this.index]
-    stdout.write(this.curChar, '\n')
     while this.index < this.data.length {
 
       # Newlines (\n or ;)
@@ -167,22 +169,27 @@ class Lexer as this {
         variation = this.curChar
         value = ''
         start = this.pos()
-        end = false
-        while !this.AtEnd & !end {
+        backslash = false
+        while !this.AtEnd {
           this.advance()
-          if this.curChar == variation & value[-1]? != '\\' { # Make sure its the same type of quote and there is no \ before it
-            value = value.slice(0, -1) # To remove the -1
-            end = true
+          if this.AtEnd throw "Error: Unexpected EOF";
+          if backslash {
+            if this.curChar == '\\' value = value + '\\'
+            else if this.curChar == 'n' value = value + '\n'
+            else value = value + this.curChar
+            backslash = false
           }
-          (break) if this.AtEnd
-          value = value + this.curChar
+          else {
+            if (this.curChar == '\\') backslash = true
+            else if this.curChar == variation break
+            else value = value + this.curChar
+          }
         }
         this.addToken('String', start, this.pos(), value, variation)
       }
 
       # Operators
       else if this.curChar in Operators {
-        stdout.write('operator\n')
         value = ''
         start = this.pos()
         while !this.AtEnd & (value + this.curChar) in Operators {
@@ -195,7 +202,6 @@ class Lexer as this {
 
       # Identifiers, Keywords, and Operators
       else if this.otherwise() {
-        stdout.write('otherwise\n')
         value = ''
         start = this.pos()
         while (this.otherwise() or this.isNumber()) & !this.AtEnd {
@@ -205,14 +211,14 @@ class Lexer as this {
         }
         this.advance(-1)
         type = 'Identifier'
-        type = 'Operator' if value in Operators
-        type = 'Keyword'  if value in Keywords
-        type = 'Boolean'  if value in Booleans
+        (type = 'Operator') if value in Operators else
+        (type = 'Keyword') if value in Keywords else
+        (type = 'Boolean') if value in Booleans
         this.addToken(type, start, this.pos(), value)
       }
 
       # Advance
-      (return this.output) if this.AtEnd
+      (break) if this.AtEnd
       this.advance()
     }
     return this.output
@@ -220,7 +226,7 @@ class Lexer as this {
 }
 
 lexer = Lexer.Lexer()
-toks = lexer.tokenize('stdout.write("Hello World")')
+toks = lexer.tokenize('stdout.write("Hello World\\"test")')
 for tok in toks {
-  stdout.write(dir(tok), '\n')
+  stdout.write(tok, '\n')
 }

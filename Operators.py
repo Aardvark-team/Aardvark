@@ -292,6 +292,10 @@ def logicalxor(x, y, errorhandler, line, ast):
             False, errorhandler, line, ast, f"<{str(type(x or 0).__name__)}>"
         )
     # TODO: add if y and x equal none
+    try:
+        return x ^ y
+    except:
+        pass
     return (x or y) and not (x and y)
 
 

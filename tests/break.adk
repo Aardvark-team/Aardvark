@@ -1,0 +1,7 @@
+
+
+while true {
+  stdout.write("Hello, World! (should be printed once)\n")
+  break
+  stdout.write("Shouldn't be printed.\n")
+}
