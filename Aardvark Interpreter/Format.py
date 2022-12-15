@@ -4,6 +4,26 @@ import Parser
 import Error
 
 
+def getTextByPos(start, end, codelines):
+    l = []
+    for i in range(start["line"] - 1, end["line"]):
+        if i == start["line"] - 1 and i == end["line"] - 1:
+            print(start)
+            l.append(codelines[i][start["col"] - 2 : end["col"] - 1])
+        elif i == start["line"] - 1:
+            l.append(codelines[i][start["col"] - 1 :])
+        elif i == end["line"] - 1:
+            l.append(codelines[i][: end["col"] - 1])
+        else:
+            l.append(codelines[i])
+    print(l)
+    return "\n".join(l)
+
+
+def getAstText(expr, codelines):
+    return getTextByPos(expr["positions"]["start"], expr["positions"]["end"], codelines)
+
+
 class Formatter:
     def __init__(self, parser, ast, settings):
         self.parser = parser
@@ -24,23 +44,11 @@ class Formatter:
             case {"type": "Set", "items": items}:
                 inside = ", ".join(self.formatToList(items))
                 return f"set{{{inside}}}"
+            # case {'type': 'FunctionDefinition'}:
+            #     return
 
             case _:
-                start = expr["positions"]["start"]
-                end = expr["positions"]["end"]
-                return self.getText(start, end)
-
-    def getText(self, start, end, codelines=None):
-        codelines = codelines or self.codelines
-        l = []
-        for i in range(start["line"] - 1, end["line"]):
-            if i == start["line"] - 1:
-                l.append(codelines[i][start["col"] - 1 :])
-            elif i == end["line"]:
-                l.append(codelines[i][: end["col"]])
-            else:
-                l.append(codelines[i])
-        return "\n".join(l)
+                return getAstText(expr, self.codelines)
 
     def format(self, ast=None):
         ast = ast or self.ast
@@ -74,5 +82,5 @@ def format(text):
 if __name__ == "__main__":
     # Needs to handle comments and everything too.
     text = """
-  function x(y:String,z){return set {y,z}}"""
+function x(y:String,z){return set {y,z}}"""
     print(format(text))

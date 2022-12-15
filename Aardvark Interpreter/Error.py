@@ -28,7 +28,7 @@ def getTextByPos(start, end, codelines):
     l = []
     for i in range(start["line"] - 1, end["line"]):
         if i == start["line"] - 1 and i == end["line"] - 1:
-            l.append(codelines[i][start["col"] - 1 : end["col"] - 1])
+            l.append(codelines[i][start["col"] - 2 : end["col"] - 1])
         elif i == start["line"] - 1:
             l.append(codelines[i][start["col"] - 1 :])
         elif i == end["line"] - 1:

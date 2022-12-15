@@ -1,7 +1,4 @@
-# Note, doing an operataion on a obj changes its type back to the python version.
-# So, I added a function to convert it to its Aardvark version.
-# Note, we need to add unit test.
-# Recusively execute code.
+searchDirs = ["/home/runner/Aardvark-py/.adk/lib/"]
 import Error
 import Lexer
 import Parser
@@ -56,8 +53,8 @@ def get_call_scope(scope):
 
 
 class Executor:
-    def __init__(self, file, code, ast, errorhandler):
-        self.file = file
+    def __init__(self, path, code, ast, errorhandler):
+        self.path = path
         self.code = code
         self.codelines = code.split("\n")
         self.ast = ast
@@ -131,7 +128,14 @@ class Executor:
         self.errorhandler = errorhandler
 
     def include(self, name):
-        locs = [name, name + ".adk", ".adk/lib/" + name, ".adk/lib/" + name + ".adk"]
+        locs = []
+        path = Path(Path(self.path).parent, name)
+        locs.append(str(path))
+        locs.append(str(path) + ".adk")
+        if "/" not in name and "\\" not in name:
+            for dir in searchDirs:
+                locs.append(dir + name)
+                locs.append(dir + name + ".adk")
         i = 0
         text = None
         while True:
@@ -296,7 +300,7 @@ class Executor:
                         + "()",
                         "line": expr["positions"]["start"]["line"],
                         "col": expr["positions"]["start"]["col"],
-                        "filename": self.file,
+                        "filename": self.path,
                     }
                 )
                 ret = funct(
@@ -591,7 +595,8 @@ class Executor:
                     )
             case {"type": "TemplateString"}:
                 string = expr["value"]
-                for rep in expr["replacements"]:
+                replacements = reversed(expr["replacements"])
+                for rep in replacements:
                     value = rep["value"]
                     codelines = rep["string"].split("\n")
                     self.traceback.append(
@@ -599,7 +604,7 @@ class Executor:
                             "name": Error.getAstText(value, codelines),
                             "line": value["positions"]["start"]["line"],
                             "col": value["positions"]["start"]["col"],
-                            "filename": self.file,
+                            "filename": self.path,
                         }
                     )
                     value = self.ExecExpr(value, scope)

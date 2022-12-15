@@ -1,2 +1,2 @@
 #!/bin/bash
-python3 main.py "$@"
+python3 "/home/runner/Aardvark-py/Aardvark Interpreter/main.py" "$@"

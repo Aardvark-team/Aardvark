@@ -1,6 +1,6 @@
-# Immediate bugs:
- - [ ] Fix scoping in classes.
- - [x] Fix parser bug
+# Immediate TODO:
+ - [ ] Place aardvark in `.adk` folder
+ - [ ] Add `adk update` to fetch from github.
 
 # Lexer
 ## The few things left to do.

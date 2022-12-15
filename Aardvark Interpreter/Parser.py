@@ -225,6 +225,7 @@ class Parser:
             self.compare(TokenTypes["Operator"], "$")
             and self.peek(1)
             and self.peek(1).type == TokenTypes["String"]
+            and self.peek().end["col"] == self.peek(1).start["col"] - 1
         ):
             start = self.eat(TokenTypes["Operator"])
             templ = self.eat(TokenTypes["String"])
@@ -233,9 +234,15 @@ class Parser:
             replacements = []
             text = ""
             ind = 0
-
             while ind < len(templ_val):
-                if templ_val[ind] == "{":
+                if (
+                    templ_val[ind] == "{"
+                    and ind + 1 < len(templ_val)
+                    and templ_val[ind + 1] == "{"
+                ):
+                    ind += 2
+                    text += "{"
+                elif templ_val[ind] == "{":
                     starti = ind
                     inner = ""
                     ind += 1
@@ -259,6 +266,22 @@ class Parser:
                                     "end": templ.end["col"],
                                 },
                                 # TODO: add a suggestion
+                            },
+                        )
+                    if inner == "":
+                        self.err_handler.throw(
+                            "Syntax",
+                            "Template string cannot be empty.",
+                            {
+                                "lineno": templ.line,
+                                "marker": {
+                                    "start": templ.start["col"] + ind,
+                                    "length": 1,
+                                },
+                                "underline": {
+                                    "start": start.start["col"],
+                                    "end": templ.end["col"],
+                                },
                             },
                         )
                     self.lexer.reset()

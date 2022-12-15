@@ -1,0 +1,15 @@
+include Lexer from Lexer
+
+lexer = Lexer()
+toks = lexer.tokenize(`
+y = 2
+x = 54.78y
+stdout.write("Hello World\\"test", '\n')
+#Single line
+#*
+Multiline
+*#
+`)
+for tok in toks {
+  stdout.write(tok, '\n')
+}

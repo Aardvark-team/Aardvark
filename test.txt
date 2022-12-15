@@ -1,2 +1,0 @@
-TEST TEXT
-THIS IS A test file for TESTING file Objects and Files in general

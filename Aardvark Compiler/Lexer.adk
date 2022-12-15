@@ -17,7 +17,7 @@ class Token as this {
     this.variation = variation
   }
   $string() {
-    return 'Token(' + this.type + ', ' + "'" + this.value + "'" + ", " + ")"
+    return $"Token({this.type}, \"{this.value}\", from {this.start.line}:{this.start.column} to {this.end.line}:{this.end.column})"
   }
 }
 
@@ -145,8 +145,9 @@ class Lexer as this {
         value = ''
         start = this.pos()
         while !this.detect('*#') & !this.AtEnd {
-          value = value + this.curChar
-          this.advance()
+            value = value + this.curChar
+            if this.curChar == '\n' this.newline()
+            this.advance()
         }
         this.advance('*#'.length - 1) # To skip the *#
         if (this.tokenizeComments) this.addToken('Comment', start, this.pos(), value)
@@ -223,10 +224,4 @@ class Lexer as this {
     }
     return this.output
   }
-}
-
-lexer = Lexer.Lexer()
-toks = lexer.tokenize('stdout.write("Hello World\\"test")')
-for tok in toks {
-  stdout.write(tok, '\n')
 }
