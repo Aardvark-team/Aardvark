@@ -1,17 +1,10 @@
-#!/home/runner/Aardvark-py/.adk/bin/adk
-#*
-TEST
-and
-test
-*#
-
 stdout.write('This is a test of the Aardvark programming language!\n')
 name = stdin.prompt('What is your name? ')
 stdout.write('Hello,', name + '.', 'Welcome to Aardvark!\n\n')
 
 function fib(n) {
   if (n <= 1) return n
-  return fib(n-1) + fib(n-2)
+  return fib(n - 1) + fib(n - 2)
 }
 
 stdout.write('Running calculations...\n')
