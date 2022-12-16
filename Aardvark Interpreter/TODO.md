@@ -1,11 +1,13 @@
 # Immediate TODO:
- - [ ] Place aardvark in `.adk` folder
  - [ ] Add `adk update` to fetch from github.
+ - [ ] Make it work outside of replit somehow.
+ - [ ] Add structural pattern matching
+ - [ ] Extending & function overloading.
 
 # Lexer
 ## The few things left to do.
  - [ ] ... operator
- - [ ] break
+ - [x] break
 
 # Parser
 ## Basic Types

@@ -1,3 +1,7 @@
+# PLEASE NOTE: fork via replit: 
+[CLICK HERE](https://replit.com/@Programit/Aardvark-py)
+The adk command, tests, and some libs use absolute paths to work, and so they only work within the repli file structure for now.
+
 # Aardvark-py Version 1.0 Test 1
 First implementation of Aardvark, written in python. 
 This is a interpretted language meant to be easy and extensible.

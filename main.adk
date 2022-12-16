@@ -1,3 +1,11 @@
+#!/home/runner/Aardvark-py/.adk/bin/adk
+#*
+This is a multiline comment
+*#
+# This is a single line comment
+
+
+
 stdout.write('This is a test of the Aardvark programming language!\n')
 name = stdin.prompt('What is your name? ')
 stdout.write('Hello,', name + '.', 'Welcome to Aardvark!\n\n')

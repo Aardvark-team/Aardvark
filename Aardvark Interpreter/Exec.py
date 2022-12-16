@@ -83,7 +83,7 @@ class Executor:
                 "typeof": lambda obj: obj._class.name
                 if type(obj) == Object and getattr(obj, "_class", False)
                 else type(obj).__name__,
-                "dir": lambda x=None: x.vars if x else self.Global.vars,
+                "dir": lambda x=None: x.getAll() if x else self.Global.vars,
                 "sort": lambda iterable, reverse=False, key=(lambda x: x): sorted(
                     iterable, reverse=reverse, key=key
                 ),
