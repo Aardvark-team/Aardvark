@@ -74,12 +74,13 @@ class Executor:
                                 "importlib": importlib,
                                 "math": math,
                                 "random": random,
-                                "sys": sys,
+                                "sys": sys
                             },
                         ),
                     }
                 ),
-                "slice": lambda str, start, end: str[start:end],
+                "slice": lambda str, start=0, end=0: str[start:end],
+                "range": lambda *args: list(range(*args)),
                 "typeof": lambda obj: obj._class.name
                 if type(obj) == Object and getattr(obj, "_class", False)
                 else type(obj).__name__,
@@ -107,6 +108,7 @@ class Executor:
                         "comb": math.comb,
                         "copysign": math.copysign,
                         "lcm": math.lcm,
+                        "pow": math.pow
                     }
                 ),
                 "String": String,

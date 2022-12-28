@@ -16,7 +16,7 @@ import shutil
 # Prettifying the ast
 from Utils import prettify_ast
 
-sys.setrecursionlimit(3000)
+sys.setrecursionlimit(3500)
 
 
 class Version:
@@ -108,7 +108,7 @@ def runLive(debugmode=False, noret=False, printToks=False, printAST=False):
     saved_scope = None
     while True:
         file = "<main>"
-        text = input("aardvark: ")
+        text = input(">>> ")
         if debugmode:
             if text == "$clear":
                 print("\033[2J\033[H")
@@ -119,6 +119,13 @@ def runLive(debugmode=False, noret=False, printToks=False, printAST=False):
                 with open(file) as f:
                     text = f.read()
                 print(f"Running test {test_name}...")
+
+        # multiline support
+        openc = text.count("{") - text.count("}")
+        while openc > 0:
+            newl = input("... ")
+            openc += newl.count("{") - newl.count("}")
+            text += "\n" + newl
 
         errorhandler = ErrorHandler(text, file, py_error=True)
 

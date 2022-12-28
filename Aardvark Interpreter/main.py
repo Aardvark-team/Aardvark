@@ -22,7 +22,7 @@ if __name__ == "__main__":
     def Run(ctx):
         runFile(ctx.positional[1], ctx.getSwitch('toks'), ctx.getSwitch('ast'))
 
-    @argp.command('live', 'Run a live thing (idk what to call it)')
+    @argp.command('live', 'Start an interactable language shell.') #''Run a live thing (idk what to call it)')
     def live(ctx):
         runLive(ctx.getSwitch('debug'), ctx.getSwitch('no-ret'), ctx.getSwitch('toks'), ctx.getSwitch('ast'))
         
@@ -42,7 +42,20 @@ if __name__ == "__main__":
             print(f'ERROR: "{dirloc}" not found.')
         else:
             shutil.copytree(dirloc, searchDirs[0] + dir)
-        
+
+    @argp.command("[file]", "Default action if only a file is passed.")
+    def run_file(ctx):
+        file = ctx.positional[0]
+
+        if "/" in file or "." in file:
+            runFile(file, ctx.getSwitch('toks'), ctx.getSwitch('ast'))
+        else:
+            ctx.help(error = True, message = f"Unknown command '{file}'.")
+
+    """
+    # The command above does the same thing without any preparse things.
+    # argp.command basically takes a pattern to match the array with.
+    
     @argp.preparse
     def dotslash(args):
         opts = []
@@ -55,6 +68,7 @@ if __name__ == "__main__":
         if len(other) == 1 and other[0].startswith('./'):
             runFile(other[0].removeprefix('./'), 'toks' in opts, 'ast' in opts)
             return True
+    """
 
             
     argp.parse(sys.argv[1:])

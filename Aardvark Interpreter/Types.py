@@ -235,9 +235,10 @@ class String(str, Type):
             "startsWith": lambda prefix: self.startswith(x),
             "endsWith": lambda suffix: self.endswith(x),
             "replace": lambda x, y="": self.replace(x, y),
-            "contains": lambda x: x in y,
+            "contains": lambda x: x in self,
+            'join': self.join
         }
-        str.__init__(value)
+        str.__init__(self)
 
     def __sub__(self, other):
         return self.removesuffix(other)
@@ -250,7 +251,10 @@ class Number(Type, float):
                 value = float(value)
             except:
                 value = float(int(value))
-        float.__init__(value)
+        if type(value) == float:
+            float.__init__(self)
+        else:
+            int.__init__(self)
         self.vars = {
             "digits": [int(x) if x in "0123456789" else x for x in str(value)]
             if len(str(value)) > 1
@@ -295,7 +299,7 @@ class Boolean(int, Type):
         self.vars = {
             # methods and attributes here
         }
-        int.__init__(value)
+        int.__init__(self)
 
     def __repr__(self):
         if self == 1:
@@ -327,13 +331,36 @@ class Array(Type, list):
         value = list(value)
         self.vars = {
             "contains": lambda x: x in self,
-            "add": self.append,
-            "remove": self.remove
+            "add": self._append,
+            "remove": self._remove,
+            "length": len(self),
+            'reverse': self._reverse
             # methods and attributes here
         }
-        list.__init__([])
+        list.__init__(self)
+        self.value = []
         for i in value:
-            self.append(pyToAdk(i))
+            i = pyToAdk(i)
+            self.append(i)
+            self.value.append(i)
+            
+    def _reverse(self):
+        self.reverse()
+        self.value.reverse()
+        
+    def __getitem__(self, *args, **kwargs):
+        #print('\n', self.value, *self.value)
+        return self.value.__getitem__(*args, **kwargs)
+        
+    def _append(self, *args, **kwargs):
+        self.append(*args, **kwargs)
+        self.value.append(*args, **kwargs)
+        self.vars['length'] = len(self)
+        
+    def _remove(self, *args, **kwargs):
+        self.remove(*args, **kwargs)
+        self.value.remove(*args, **kwargs)
+        self.vars['length'] = len(self)
 
 
 class Set(Type, list):
@@ -341,16 +368,38 @@ class Set(Type, list):
         value = list(value)
         self.vars = {
             "contains": lambda x: x in self,
-            "add": self.append,
-            "remove": self.remove
+            "add": self._append,
+            "remove": self._remove,
+            "length": len(self),
+            'reverse': self._reverse
             # methods and attributes here
         }
-        list.__init__([])
+        list.__init__(self)
+        self.value = []
         for i in value:
+            i = pyToAdk(i)
             if i not in self:
-                self.append(pyToAdk(i))
-            # x = set{1, 2, 3}
-
+                self.append(i)
+                self.value.append(i)
+                
+    def _reverse(self):
+        self.reverse()
+        self.value.reverse()
+        
+    def __getitem__(self, *args, **kwargs):
+        return self.value.__getitem__(*args, **kwargs)
+        
+    def _append(self, *args, **kwargs):
+        if args[0] not in self:
+            self.append(*args, **kwargs)
+            self.value.append(*args, **kwargs)
+        self.vars['length'] = len(self)
+        
+    def _remove(self, *args, **kwargs):
+        self.remove(*args, **kwargs)
+        self.value.remove(*args, **kwargs)
+        self.vars['length'] = len(self)
+        
     def __repr__(self):
         s = ""
         for i in self:
@@ -368,8 +417,6 @@ class Set(Type, list):
 
 class File(Type):
     def __init__(self, obj):
-        # NOT FINISHED
-        # print(dir(value))
         if obj == None:
             obj = open(os.devnull, "w+")
         self.name = obj.name

@@ -3,6 +3,8 @@
  - [ ] Make it work outside of replit somehow.
  - [ ] Add structural pattern matching
  - [ ] Extending & function overloading.
+ - [ ] array indices don't work. arr[0]
+ - [ ] slice function doesn't work with arrays at least
 
 # Lexer
 ## The few things left to do.

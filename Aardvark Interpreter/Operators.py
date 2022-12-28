@@ -81,7 +81,6 @@ def operator(*names):
 @operator("+")
 def add(x, y, errorhandler, line, ast):
     # print("OP", x, '+', y)
-
     if x == Null:
         return missingOperand(
             True, errorhandler, line, ast, f"<{str(type(y or 0).__name__)}>"

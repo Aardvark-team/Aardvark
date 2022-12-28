@@ -1,10 +1,10 @@
 #!/home/runner/Aardvark-py/.adk/bin/adk
+include english
 #*
 This is a multiline comment
 *#
 # This is a single line comment
-
-
+stdout.write(english.numWord(1234567890), '\n')
 
 stdout.write('This is a test of the Aardvark programming language!\n')
 name = stdin.prompt('What is your name? ')
@@ -16,7 +16,8 @@ function fib(n) {
 }
 
 stdout.write('Running calculations...\n')
-stdout.write('The 15th Fibonacci number is', fib(15), '\n')
+fibnum = 15
+stdout.write('The', english.number(fibnum), 'Fibonacci number is', String(fib(15)) + '.', '\n')
 
-stdout.write('15 factorial is', Math.factorial(15), '\n')
-stdout.write('The least common multiple of 75 and 193 is', Math.lcm(75, 193), '\n')
+stdout.write('15 factorial is', String(Math.factorial(15)) + '.', '\n')
+stdout.write('The least common multiple of 75 and 193 is', String(Math.lcm(75, 193)) + '.', '\n') 

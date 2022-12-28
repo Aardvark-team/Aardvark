@@ -27,8 +27,8 @@ class ArgumentContext:
         self.switches = switches
         self.__argp = argp
 
-    def help(self, message=None):
-        self.__argp.print_help(message, printer=print)
+    def help(self, message = None, error = False):
+        self.__argp.print_help(message, printer=print if not error else eprint)
 
     def __repr__(self):
         return f"Context(\n  positional={self.positional},\n  keywords={self.keywords},\n  switches={self.switches}\n)"
@@ -76,7 +76,7 @@ class ArgumentParser:
         if message:
             printer(message, end="\n\n")
 
-        printer(f"Usage: {self.__name} [command] [-switches, -keyword args]\n")
+        printer(f"Usage: {self.__name} [command] [...options] [-switches, -keyword args]\n")
 
         printer("Commands:")
         for command, c, desc in self.__positional:
@@ -84,7 +84,7 @@ class ArgumentParser:
                 continue
 
             printer(
-                f"  {command[0].ljust(10, ' ')}  {'' if not desc else f' - {desc}'}"
+                f"  {' '.join(command).ljust(15, ' ')}  {'' if not desc else f' - {desc}'}"
             )
 
         printer("\nSwitches and keyword arguments:")
