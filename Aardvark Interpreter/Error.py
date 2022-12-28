@@ -2,7 +2,6 @@ from sty import bg, fg, ef, rs
 from Data import *
 import Lexer
 import sys
-import Format
 
 
 styles = {
@@ -66,7 +65,7 @@ def Highlight(code: str, opts={}):
             output += (
                 styles[str(token.type)]
                 + token.variation
-                + str(token.value)
+                + str(token.value).replace('\n', '\\n')
                 + token.variation
             )
         # To give strings their quotes back.
