@@ -236,7 +236,7 @@ class String(str, Type):
             "endsWith": lambda suffix: self.endswith(x),
             "replace": lambda x, y="": self.replace(x, y),
             "contains": lambda x: x in self,
-            'join': self.join
+            "join": self.join,
         }
         str.__init__(self)
 
@@ -334,7 +334,7 @@ class Array(Type, list):
             "add": self._append,
             "remove": self._remove,
             "length": len(self),
-            'reverse': self._reverse
+            "reverse": self._reverse
             # methods and attributes here
         }
         list.__init__(self)
@@ -343,24 +343,24 @@ class Array(Type, list):
             i = pyToAdk(i)
             self.append(i)
             self.value.append(i)
-            
+
     def _reverse(self):
         self.reverse()
         self.value.reverse()
-        
+
     def __getitem__(self, *args, **kwargs):
-        #print('\n', self.value, *self.value)
+        # print('\n', self.value, *self.value)
         return self.value.__getitem__(*args, **kwargs)
-        
+
     def _append(self, *args, **kwargs):
         self.append(*args, **kwargs)
         self.value.append(*args, **kwargs)
-        self.vars['length'] = len(self)
-        
+        self.vars["length"] = len(self)
+
     def _remove(self, *args, **kwargs):
         self.remove(*args, **kwargs)
         self.value.remove(*args, **kwargs)
-        self.vars['length'] = len(self)
+        self.vars["length"] = len(self)
 
 
 class Set(Type, list):
@@ -371,7 +371,7 @@ class Set(Type, list):
             "add": self._append,
             "remove": self._remove,
             "length": len(self),
-            'reverse': self._reverse
+            "reverse": self._reverse
             # methods and attributes here
         }
         list.__init__(self)
@@ -381,25 +381,25 @@ class Set(Type, list):
             if i not in self:
                 self.append(i)
                 self.value.append(i)
-                
+
     def _reverse(self):
         self.reverse()
         self.value.reverse()
-        
+
     def __getitem__(self, *args, **kwargs):
         return self.value.__getitem__(*args, **kwargs)
-        
+
     def _append(self, *args, **kwargs):
         if args[0] not in self:
             self.append(*args, **kwargs)
             self.value.append(*args, **kwargs)
-        self.vars['length'] = len(self)
-        
+        self.vars["length"] = len(self)
+
     def _remove(self, *args, **kwargs):
         self.remove(*args, **kwargs)
         self.value.remove(*args, **kwargs)
-        self.vars['length'] = len(self)
-        
+        self.vars["length"] = len(self)
+
     def __repr__(self):
         s = ""
         for i in self:
@@ -450,7 +450,7 @@ class File(Type):
         return self.obj.write(" ".join([str(a) for a in args]))
 
     def writeLines(self, *lines):
-        return self.obj.writelines(*str(lines))
+        return self.obj.writelines([str(lines) for line in lines])
 
     def delete(self):
         os.remove(self.name)
@@ -580,6 +580,8 @@ def pyToAdk(py):
             return Number(py)
         elif isinstance(py, str):
             return String(py)
+        elif isinstance(py, tuple):
+            return Array(list(py))
         elif isinstance(py, list):
             return Array(py)
         elif isinstance(py, set):

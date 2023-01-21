@@ -65,7 +65,7 @@ def Highlight(code: str, opts={}):
             output += (
                 styles[str(token.type)]
                 + token.variation
-                + str(token.value).replace('\n', '\\n')
+                + str(token.value).replace("\n", "\\n")
                 + token.variation
             )
         # To give strings their quotes back.

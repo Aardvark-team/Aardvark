@@ -1,0 +1,8 @@
+function x(...arg1) {
+    stdout.write('In adk', arg1, '\n')
+    stdout.write([1, 2, ...arg1])
+}
+x(6, 7)
+
+y = {x:1, y:2}
+stdout.write({z:3, ...y})

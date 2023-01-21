@@ -1,0 +1,39 @@
+#TODO
+
+ESC = python.eval('"\\033"')
+full_reset = ESC + "[0m"
+function ac(a, b, c, d, e) {
+    x = [a, b, c, d, e]
+    val = ESC + '['
+    stdout.write(val)
+    for i in x {
+        (break) if i == null
+        val = val + String(i)
+        stdout.write(val)
+    }
+    val = val + 'm'
+    stdout.write(val)
+    return val
+}
+#*
+def sgr(num: int) -> str:
+    return "\033[" + str(num) + "m"
+
+
+def eightbit_fg(num: int) -> str:
+    return "\033[38;5;" + str(num) + "m"
+
+
+def eightbit_bg(num: int) -> str:
+    return "\033[48;5;" + str(num) + "m"
+
+
+def rgb_fg(r: int, g: int, b: int) -> str:
+    return "\x1b[38;2;" + str(r) + ";" + str(g) + ";" + str(b) + "m"
+
+
+def rgb_bg(r: int, g: int, b: int) -> str:
+    return "\x1b[48;2;" + str(r) + ";" + str(g) + ";" + str(b) + "m"
+*#
+#function 
+ac(1, 2, 3, 4)

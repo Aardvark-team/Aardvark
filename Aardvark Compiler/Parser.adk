@@ -1,1 +1,7 @@
 include Data
+
+class Parser {
+    $constructor() {
+
+    }
+}

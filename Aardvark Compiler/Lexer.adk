@@ -3,12 +3,12 @@ include TokenTypes, Operators, Keywords, Quotes, Whitespaces, Booleans, Delimite
 
 
 class Token as this {
-  $constructor(type, 
-              start, 
-              end,
-              value = null,
-              variation = null) 
-  {
+    $constructor(type, 
+            start, 
+            end,
+            value = null,
+            variation = null) 
+    {
     this.type = type
     this.length = end.index - start.index + 1
     this.start = start
@@ -78,7 +78,6 @@ class Lexer as this {
       this.curChar = this.data[this.index]
     else 
       this.AtEnd = true
-    #stdout.write(this.curChar, this.index, this.data.length, this.index < this.data.length, '\n')
   }
   function peek(amt = 1) {
     if this.index + amt < this.data.length 
@@ -97,7 +96,14 @@ class Lexer as this {
     this.curChar = this.data[this.index]
     while this.index < this.data.length {
 
-      # Newlines (\n or ;)
+        # Operators
+        for op in Operators:
+                if self.detect(op):
+                    start = self.pos()
+                    this.advance(len(op))
+                    this.addToken("Operator", op, start, self.pos())
+
+        # Newlines (\n or ;)
       if this.isNewline() {
         this.addToken('LineBreak', this.pos(), this.pos(), this.curChar, this.curChar)
         if this.curChar = '\n' this.newline(); # Only increment the line if its a \n
@@ -187,18 +193,6 @@ class Lexer as this {
           }
         }
         this.addToken('String', start, this.pos(), value, variation)
-      }
-
-      # Operators
-      else if this.curChar in Operators {
-        value = ''
-        start = this.pos()
-        while !this.AtEnd & (value + this.curChar) in Operators {
-          value = value + this.curChar
-          this.advance()
-        }
-        this.advance(-1) 
-        this.addToken('Operator', start, this.pos(), value)
       }
 
       # Identifiers, Keywords, and Operators

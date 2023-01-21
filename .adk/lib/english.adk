@@ -1,4 +1,9 @@
+# A lib for english stuff. Right now there are two functions, number and numWord. They just convert numbers to words or stuff
+
 function getParts(n) {
+    #*
+    Internal function, not meant for others to use
+    *#
     x = Array(String(n))
     x.reverse()
     sections = []
@@ -19,12 +24,18 @@ function getParts(n) {
 }
 
 function number(n) {
+    #*
+    Adds th, st, or whatever it needs to turn use numbers like nth etc.
+    *#
     if n[n.digits.length - 1] == 1 return String(n) + "st"
     if n[n.digits.length - 1] == 2 return String(n) + 'nd'
     if n[n.digits.length - 1] == 3 return String(n) + 'rd'
     else return String(n) + 'th'
 }
 function numWord(d, zero=true) {
+    #*
+    Converts numbers to words
+    *#
     a = ''
     if d == 0 & zero a = "zero"
     else if d == 0 & !zero a = ""

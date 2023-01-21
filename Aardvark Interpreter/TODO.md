@@ -1,7 +1,9 @@
 # Immediate TODO:
+ - [ ] Make number keys in Objects be number, not strings.
+ - [ ] Allow break in switch case.
  - [ ] Add `adk update` to fetch from github.
  - [ ] Make it work outside of replit somehow.
- - [ ] Add structural pattern matching
+ - [x] Add structural pattern matching
  - [ ] Extending & function overloading.
  - [ ] array indices don't work. arr[0]
  - [ ] slice function doesn't work with arrays at least
@@ -27,7 +29,7 @@
  - [ ] Add `x, y, z = a` and deconstruction
  - [x] Inline ifs
  - [x] Switch Case (basic)
- - [ ] Switch Case (full)
+ <!--- [ ] Switch Case (full)-->
  - [x] Include statement
  - [x] Function definition
  - [x] anynomous functions 

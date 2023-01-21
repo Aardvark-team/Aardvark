@@ -1,0 +1,15 @@
+x = {
+    name: 'John',
+    age: 19,
+    location: 'United States of America',
+    username: 'johnusername'
+}
+switch x {
+    case {age: 19, name: $name} {
+        stdout.write('Yea!', name, '\n')
+        break
+    }
+    case {} {
+        stdout.writeLines('Default works!')
+    }
+}

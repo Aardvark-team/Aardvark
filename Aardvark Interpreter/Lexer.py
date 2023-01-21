@@ -139,6 +139,18 @@ class Lexer:
         self.data += data
         self.curChar = self.data[self.index]
         while self.index < len(self.data):
+            
+            # Operators
+            for op in Operators:
+                if self.detect(op):
+                    start = self.index
+                    startcolumn = self.column
+                    self.advance(len(op))
+                    self.addToken("Operator", start, self.index, self.line, startcolumn, self.column, op)
+                    if self.AtEnd:
+                        break
+                    continue
+                    
             # Newlines (\n or ;)
             if self.isNewline():
                 self.addToken(
@@ -314,26 +326,6 @@ class Lexer:
                     self.column,
                     value,
                     variation,
-                )
-
-            # Operators
-            elif self.curChar in PureOperators:
-                # If the current character is one of the non-word operators
-                value = ""
-                start = self.index
-                startcolumn = self.column
-                while not self.AtEnd and (value + self.curChar) in Operators:
-                    value += self.curChar
-                    self.advance()
-                self.advance(-1)  # Go back to a valid character
-                self.addToken(
-                    "Operator",
-                    start,
-                    self.index,
-                    self.line,
-                    startcolumn,
-                    self.column,
-                    value,
                 )
 
             # Identifiers, Keywords, and Operators.

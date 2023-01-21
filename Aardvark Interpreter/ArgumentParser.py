@@ -27,11 +27,12 @@ class ArgumentContext:
         self.switches = switches
         self.__argp = argp
 
-    def help(self, message = None, error = False):
+    def help(self, message=None, error=False):
         self.__argp.print_help(message, printer=print if not error else eprint)
 
     def __repr__(self):
         return f"Context(\n  positional={self.positional},\n  keywords={self.keywords},\n  switches={self.switches}\n)"
+
     def getSwitch(self, switch):
         return self.switches.get(switch, False)
 
@@ -44,11 +45,11 @@ class ArgumentParser:
         self.__name = name
         self.__arg_descriptions = {}
         self.__pre_parse_callbacks = []
-        
+
     def preparse(self, callback):
         self.__pre_parse_callbacks.append(callback)
         return callback
-        
+
     def command(self, name=None, desc=None):
         if type(name) == str:
             name = name.split(" ")
@@ -76,7 +77,9 @@ class ArgumentParser:
         if message:
             printer(message, end="\n\n")
 
-        printer(f"Usage: {self.__name} [command] [...options] [-switches, -keyword args]\n")
+        printer(
+            f"Usage: {self.__name} [command] [...options] [-switches, -keyword args]\n"
+        )
 
         printer("Commands:")
         for command, c, desc in self.__positional:
@@ -101,11 +104,11 @@ class ArgumentParser:
         positional = []
         switches = {}
         keywords = {}
-        
+
         for callback in self.__pre_parse_callbacks:
             if callback(string):
                 return
-                
+
         i = 0
         while i < len(string):
             if string[i].startswith("-"):
@@ -157,6 +160,5 @@ if __name__ == "__main__":
     def help(ctx):
         print(ctx)
         ctx.help()
-        
-            
+
     argp.parse(sys.argv[1:])

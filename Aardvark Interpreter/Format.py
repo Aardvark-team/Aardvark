@@ -82,5 +82,7 @@ def format(text):
 if __name__ == "__main__":
     # Needs to handle comments and everything too.
     text = """
-function x(y:String,z){return set {y,z}}"""
+function x(y:String,z){return set {y,z}}
+
+stdout.write("Hello World")"""
     print(format(text))

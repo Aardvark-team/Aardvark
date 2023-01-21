@@ -74,7 +74,7 @@ class Executor:
                                 "importlib": importlib,
                                 "math": math,
                                 "random": random,
-                                "sys": sys
+                                "sys": sys,
                             },
                         ),
                     }
@@ -108,7 +108,7 @@ class Executor:
                         "comb": math.comb,
                         "copysign": math.copysign,
                         "lcm": math.lcm,
-                        "pow": math.pow
+                        "pow": math.pow,
                     }
                 ),
                 "String": String,
@@ -198,6 +198,8 @@ class Executor:
                 )
                 if param["value_type"] != None:
                     notImplemented(self.errorhandler, "Type Checking", param)
+                if param["absorb"]:
+                    arg = args[i:]
                 functscope.vars[param["name"]] = arg
             ret = self.Exec(code, functscope)
             return functscope._returned_value
@@ -283,12 +285,22 @@ class Executor:
             case {"type": "Object"}:
                 obj = Object()
                 for k, v in expr["pairs"].items():
-                    obj[k] = self.ExecExpr(v, scope)
+                    if k == ('...',) and v[0] == '...':
+                        obj.vars.update(self.ExecExpr(v[1], scope).vars)
+                    else:
+                        obj[k] = self.ExecExpr(v, scope)
                 return obj
             case {"type": "Set"}:
                 return Set({self.ExecExpr(item, scope) for item in expr["items"]})
             case {"type": "Array"}:
-                return Array([self.ExecExpr(item, scope) for item in expr["items"]])
+                items = []
+                for item in expr['items']:
+                    if item.get('type') == 'Operator' and item.get('operator') == '...':
+                        item = self.ExecExpr(item['left'] if item['left'] else item['right'], scope)
+                        items = [*items, *item]
+                    else:
+                        items.append(self.ExecExpr(item, scope))
+                return Array(items)
             case {"type": "DeleteStatement"}:
                 self.getVar(
                     scope, expr["target"]["value"], expr["target"]["positions"]["start"]
@@ -305,12 +317,23 @@ class Executor:
                         "filename": self.path,
                     }
                 )
-                ret = funct(
-                    *[self.ExecExpr(arg, scope) for arg in expr["arguments"]],
-                    **{
+                args = []
+                kwargs = {
                         k: self.ExecExpr(v, scope)
                         for k, v in list(expr["keywordArguments"].items())
-                    },
+                }
+                for arg in expr['arguments']:
+                    if arg.get('type') == 'Operator' and arg.get('operator') == '...':
+                        arg = self.ExecExpr(arg['left'] if arg['left'] else arg['right'], scope)
+                        if type(arg) == Object:
+                            kwargs.update(arg.vars)
+                        else:
+                            args = [*args, *arg]
+                    else:
+                        args.append(self.ExecExpr(arg, scope))
+                ret = funct(
+                    *args,
+                    **kwargs,
                 )
                 self.traceback = self.traceback[:-1]
                 return ret
@@ -439,10 +462,34 @@ class Executor:
                     if forscope._has_been_broken:
                         break
                 return ret
+            case {"type": "SPMObject"}:
+                c = expr["pairs"]
+                define = {}
+                compare = {}
+                for k in c:
+                    v = c[k]
+                    if v[0] == "Define":
+                        define[v[1]] = (k,)
+                    if v[0] == "Compare":
+                        compare[k] = self.ExecExpr(v[1], scope)
+                return compare, define
             case {"type": "CaseStatement"}:
-                if self.switch == self.ExecExpr(expr["compare"], scope):
-                    casescope = Scope({}, parent=scope)
-                    self.Exec(expr["body"], casescope)
+                casescope = Scope({}, parent=scope)
+                if expr["compare"]["type"] == "SPMObject":
+                    compare, define = self.ExecExpr(expr["compare"], scope)
+                    for c in compare:
+                        if self.switch[c] != compare[c]:
+                            return
+                    for d in define:
+                        value = self.switch
+                        for i in define[d]:
+                            value = value[i]
+                        self.defineVar(d, value, casescope)
+                    return self.Exec(expr["body"], casescope)
+                else:
+                    compare = self.ExecExpr(expr["compare"], scope)
+                    if self.switch == compare:
+                        return self.Exec(expr["body"], casescope)
             case {"type": "SwitchStatement"}:
                 switchscope = Scope({}, parent=scope)
                 self.switch = self.ExecExpr(expr["value"], scope)
@@ -565,7 +612,7 @@ class Executor:
                 except Exception as e:
                     sys.stderr = stderr
                     if expr["catchbody"]:
-                        print(e, dir(e), e.__note__, e.args)
+                        #print(e, dir(e), e.__note__, e.args)
                         notes = e.args
                         error = Types.Error(notes[1], notes[2])
                         catchscope = Scope({}, parent=scope)

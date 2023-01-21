@@ -566,10 +566,14 @@ class Parser:
             self.eatLBs()
 
             name = None
-            if self.compare(TokenTypes["Identifier"]):
+            if self.compare('Operator', '...'):
+                self.eat('Operator')
+                obj[('...',)] = ('...', self.pStatement())
+                continue
+            elif self.compare(TokenTypes["Identifier"]):
                 name = self.eat(TokenTypes["Identifier"]).value
             elif self.compare("Number"):
-                name = self.eat("Number").value
+                name = float(self.eat("Number").value)
             elif self.compare("String"):
                 name = self.eat("String").value
             self.eatLBs()
@@ -695,10 +699,14 @@ class Parser:
                 starter = name if name else openparen
             while self.peek() and not self.compare(TokenTypes["Delimiter"], ")"):
                 var_type = None
+                absorb = False
                 self.eatLBs()
                 if len(parameters) > 0:
                     self.eat(TokenTypes["Delimiter"], ",")
                 self.eatLBs()
+                if self.compare('Operator', '...'):
+                    self.eat('Operator')
+                    absorb = True
                 var_name = self.eat(TokenTypes["Identifier"])
                 self.eatLBs()
                 var_default = None
@@ -720,6 +728,7 @@ class Parser:
                         "name": var_name.value,
                         "value_type": var_type,
                         "default": var_default,
+                        "absorb": absorb,
                         "positions": {
                             "start": var_type["positions"]["start"]
                             if var_type
@@ -728,6 +737,8 @@ class Parser:
                         },
                     }
                 )
+                if absorb:
+                    break
 
             self.eat(TokenTypes["Delimiter"], ")")
         AS = None
@@ -1069,15 +1080,58 @@ class Parser:
             "tokens": {"lib_name": lib_name},
         }
 
+    def pSPMObject(self):
+        starter = self.eat(TokenTypes["Delimiter"], "{")
+        obj = {}
+        while self.peek() and not self.compare(TokenTypes["Delimiter"], "}"):
+            self.eatLBs()
+            if len(obj.keys()) > 0:
+                self.eat(TokenTypes["Delimiter"], ",")
+            self.eatLBs()
+
+            name = None
+
+            if self.compare(TokenTypes["Identifier"]):
+                name = self.eat(TokenTypes["Identifier"]).value
+            elif self.compare("Number"):
+                name = self.eat("Number").value
+            elif self.compare("String"):
+                name = self.eat("String").value
+            self.eatLBs()
+            self.eat(TokenTypes["Delimiter"], ":")
+            self.eatLBs()
+            if (
+                self.compare("Operator", "$")
+                and self.peek(1).type == TokenTypes["Identifier"]
+                and self.peek(1).start["col"] == self.peek().start["col"] + 1
+            ):
+                self.eat("Operator")
+                value = ("Define", self.eat("Identifier").value)
+            else:
+                value = ("Compare", self.pStatement())
+            self.eatLBs()
+            obj[name] = value
+
+        closing_par = self.eat(TokenTypes["Delimiter"], "}")
+
+        return {
+            "type": "SPMObject",
+            "pairs": obj,
+            "positions": {"start": starter.start, "end": closing_par.end},
+        }
+
     # Statement:
     #   Case
     def pCaseStatement(self):
         starter = self.eat("Keyword", "case")
-        compare = self.pExpression()
+        if self.compare("Delimiter", "{"):
+            compare = self.pSPMObject()
+        else:
+            compare = self.pExpression()
         # ADD the case in y, case == 5 later
 
         if self.compare("Delimiter", "{"):
-            body, lati = self.eatBlockScope()
+            body, lasti = self.eatBlockScope()
         else:
             body = [self.pStatement(require=True)]
             lasti = body[0]["positions"]["end"]

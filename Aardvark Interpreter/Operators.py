@@ -10,10 +10,10 @@ Operators = {}
 def missingOperand(left, errorhandler, line, ast, placeholder):
     if left:
         line = (
-            line[: ast["positions"]["start"]["col"] - 1]
+            line[: ast["positions"]["start"]["col"]]
             + placeholder
             + " "
-            + line[ast["positions"]["start"]["col"] - 1 :]
+            + line[ast["positions"]["start"]["col"] :]
         )
     else:
         line = (
@@ -30,7 +30,7 @@ def missingOperand(left, errorhandler, line, ast, placeholder):
         "Expected non-null Operand.",
         {
             "lineno": start["line"],
-            "marker": {"start": start["col"] - 1 if left else end["col"], "length": 1},
+            "marker": {"start": start["col"] if left else end["col"], "length": 1},
             "underline": {
                 "start": start["col"] if left else start["col"],
                 "end": end["col"] if left else end["col"],
@@ -43,12 +43,12 @@ def missingOperand(left, errorhandler, line, ast, placeholder):
 def unexpectedOperand(left, errorhandler, line, ast):
     if left:
         line = (
-            line[: ast["left"]["positions"]["start"]["col"] - 1]
+            line[: ast["left"]["positions"]["start"]["col"]]
             + line[ast["left"]["positions"]["end"]["col"] :]
         )
     else:
         line = (
-            line[: ast["right"]["positions"]["start"]["col"] - 1]
+            line[: ast["right"]["positions"]["start"]["col"]]
             + line[ast["right"]["positions"]["end"]["col"] :]
         )
     did_you_mean = Highlight(line, {"background": None, "linenums": None})
@@ -330,11 +330,14 @@ def aboutequal(x, y, errorhandler, line, ast):
 
 @operator("...")
 def spread(x, y, errorhandler, line, ast):
-    if x == Null and y == Null:
-        return missingOperand(True, errorhandler, line, ast, "{}")
-    if x != Null and y != Null:
-        return unexpectedOperand(False, errorhandler, line, ast)
-    # if x != Null:
-    #   return *x
-    # return *y
-    # TODO
+    start = ast['positions']['start']
+    end = ast['positions']['end']
+    errorhandler.throw('Operator', 'Spread operator not available in this context.',
+        {
+            "lineno": start["line"],
+            "marker": {"start": start["col"], "length": end['col'] - start['col'] + 1},
+            "underline": {
+                "start": start["col"],
+                "end": end["col"],
+            }
+    })
