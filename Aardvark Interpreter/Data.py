@@ -25,6 +25,8 @@ TokenTypes = {
 
 Booleans = {"true", "false"}
 
+NotIncluded = "`'\"~!@#$%^&*()-+=[]{}\\|:;,<.>/?"
+
 PureOperators = {
     "=",  # equals
     "!",  # not

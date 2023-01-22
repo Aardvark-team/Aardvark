@@ -7,6 +7,7 @@ from Data import (
     PureOperators,
     Booleans,
     Delimiters,
+    NotIncluded
 )
 import Error
 
@@ -111,6 +112,7 @@ class Lexer:
             or self.isNewline(char)
             or char == self.comment
             or char in PureOperators
+            or char in NotIncluded
         )
 
     def newline(self):
@@ -141,15 +143,14 @@ class Lexer:
         while self.index < len(self.data):
             
             # Operators
-            for op in Operators:
-                if self.detect(op):
-                    start = self.index
-                    startcolumn = self.column
-                    self.advance(len(op))
-                    self.addToken("Operator", start, self.index, self.line, startcolumn, self.column, op)
-                    if self.AtEnd:
-                        break
-                    continue
+            if self.curChar in NotIncluded:
+                for op in sorted(Operators, key=len, reverse=True):
+                    if self.detect(op):
+                        start = self.index
+                        startcolumn = self.column
+                        self.advance(len(op) - 1)
+                        self.addToken("Operator", start, self.index, self.line, startcolumn, self.column, op)
+                        self.advance()
                     
             # Newlines (\n or ;)
             if self.isNewline():

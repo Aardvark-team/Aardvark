@@ -39,11 +39,11 @@ if __name__ == "__main__":
             ctx.getSwitch("ast"),
         )
 
-    @argp.command("help", "Show this menu.")
+    @argp.command("help", "Shows help menu.")
     def help(ctx):
         ctx.help()
 
-    @argp.command("setup-lib [lib]", "Show this menu.")
+    @argp.command("setup-lib [lib]", "Creates a new library.")
     def setup_lib(ctx):
         dirloc = ctx.positional[1]
         dir = dirloc.split("/")[-1]

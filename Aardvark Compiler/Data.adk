@@ -13,6 +13,8 @@ TokenTypes = set{
 
 Booleans = set{'true', 'false'}
 
+NotIncluded = "`'\"~!@#$%^&*()-+=[]{}\\|:;,<.>/?"
+
 Operators = set{
   "=",   # equals
   "!",   # not,

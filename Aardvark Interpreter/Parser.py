@@ -220,9 +220,9 @@ class Parser:
                 )
             else:
                 return None
-
+        #print(self.compare("Operator", "$"), self.peek(1), self.peek(1).type == TokenTypes["String"], self.peek().end["col"] == self.peek(1).start["col"] - 1)
         if (
-            self.compare(TokenTypes["Operator"], "$")
+            self.compare("Operator", "$")
             and self.peek(1)
             and self.peek(1).type == TokenTypes["String"]
             and self.peek().end["col"] == self.peek(1).start["col"] - 1

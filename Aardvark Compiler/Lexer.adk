@@ -1,4 +1,4 @@
-include TokenTypes, Operators, Keywords, Quotes, Whitespaces, Booleans, Delimiters from Data
+include TokenTypes, Operators, Keywords, Quotes, Whitespaces, Booleans, Delimiters, NotIncluded from Data
 #include Error
 
 
@@ -61,8 +61,9 @@ class Lexer as this {
 
   function detect(text) {
     if this.curChar == text[0] {
-      for i in sequence(0, text.length, 1) 
-        if this.peek(i + 1) != text[i + 1] return false;
+        for i in sequence(0, text.length, 1) {
+            if this.peek(i) != text[i] return false;
+        }
     } else return false;
     return true
   }
@@ -95,13 +96,18 @@ class Lexer as this {
     this.data = this.data + data
     this.curChar = this.data[this.index]
     while this.index < this.data.length {
-
+        
         # Operators
-        for op in Operators:
-                if self.detect(op):
-                    start = self.pos()
-                    this.advance(len(op))
-                    this.addToken("Operator", op, start, self.pos())
+        if this.curChar in NotIncluded {
+            for op in Operators {
+                if this.detect(op) {
+                    start = this.pos()
+                    this.advance(op.length - 1)
+                    this.addToken("Operator", start, this.pos(), op)
+                    this.advance()
+                }
+            }
+        }
 
         # Newlines (\n or ;)
       if this.isNewline() {
