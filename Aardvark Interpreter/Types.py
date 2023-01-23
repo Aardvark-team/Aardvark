@@ -348,6 +348,10 @@ class Array(Type, list):
             i = pyToAdk(i)
             self.append(i)
             self.value.append(i)
+            
+    def __sub__(self, other):
+        self._remove(other)
+        
     def _filter(self, key):
         new = []
         for i in self.value:
@@ -392,7 +396,10 @@ class Set(Type, list):
             if i not in self:
                 self.append(i)
                 self.value.append(i)
-                
+    def __sub__(self, other):
+        self._remove(other)
+        #TODO: make this work.
+        return self
     def _filter(self, key):
         new = []
         for i in self.value:

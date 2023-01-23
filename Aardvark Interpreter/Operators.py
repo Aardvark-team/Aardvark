@@ -419,3 +419,12 @@ def moduloequals(x, y, errorhandler, line, expr, scope, exec):
     right = exec.ExecExpr(y, scope)
     return assign(x, left % right, errorhandler, line, expr, scope, exec, True)
 
+@operator('++')
+def plusplus(x, y, errorhandler, line, expr, scope, exec):
+    left = exec.ExecExpr(x, scope)
+    return assign(x, left + 1, errorhandler, line, expr, scope, exec, True)
+
+@operator('--')
+def minusminus(x, y, errorhandler, line, expr, scope, exec):
+    left = exec.ExecExpr(x, scope)
+    return assign(x, left - 1, errorhandler, line, expr, scope, exec, True)

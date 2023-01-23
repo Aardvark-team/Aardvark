@@ -407,7 +407,7 @@ class Executor:
                 while bool(self.ExecExpr(expr["condition"], scope)):
                     whilescope = Scope({}, parent=scope, scope_type="loop")
                     ret.append(self.Exec(expr["body"], whilescope))
-                    if whilescope._completed:
+                    if whilescope._has_been_broken:
                         break
                 return ret
             case {"type": "ForLoop"}:
@@ -434,7 +434,7 @@ class Executor:
                                 self.defineVar(d["names"][1], iterable[i], forscope)
 
                     ret.append(self.Exec(expr["body"], forscope))
-                    if forscope._completed:
+                    if forscope._has_been_broken:
                         break
                 return ret
             case {"type": "SPMObject"}:
@@ -603,6 +603,26 @@ class Executor:
                     self.errorhandler.throw(
                         "BreakOutside",
                         "Keyword 'break' can only be used inside loops",
+                        {
+                            "lineno": expr["positions"]["start"]["line"],
+                            "underline": {
+                                "start": expr["positions"]["start"]["col"],
+                                "end": expr["positions"]["end"]["col"],
+                            },
+                            "marker": {
+                                "start": expr["positions"]["start"]["col"],
+                                "length": expr["positions"]["end"]["col"]
+                                - expr["positions"]["start"]["col"],
+                            },
+                            "traceback": self.traceback,
+                        },
+                    )
+            case {"type": "ContinueStatement"}:
+                success = scope._completed = True
+                if not success:
+                    self.errorhandler.throw(
+                        "ContinueOutside",
+                        "Keyword 'continue' can only be used inside loops",
                         {
                             "lineno": expr["positions"]["start"]["line"],
                             "underline": {

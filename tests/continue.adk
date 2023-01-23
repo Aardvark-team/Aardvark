@@ -1,0 +1,7 @@
+i = 0
+while i < 4 {
+    i++
+    stdout.write(i, '\n')
+    continue
+    stdout.write('passed\n')
+}

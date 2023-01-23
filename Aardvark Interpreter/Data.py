@@ -132,7 +132,6 @@ Keywords = {
     "switch",
     "case",
     "if",
-    #'break',
     "else",  # Blocks
     "return",
     "delete",
@@ -146,6 +145,7 @@ Keywords = {
     "try",
     "catch",
     "break",
+    "continue"
 }
 
 

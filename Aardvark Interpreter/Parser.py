@@ -1229,7 +1229,15 @@ class Parser:
             "type": "BreakStatement",
             "positions": {"start": keyw.start, "end": keyw.end},
         }
+        
+    def pContinue(self):
+        keyw = self.eat('Keyword', 'continue')
 
+        return {
+            "type": "ContinueStatement",
+            "positions": {"start": keyw.start, "end":keyw.end}
+        }
+        
     # Statement:
     # 	VariableDefinition
     def pStatement(self, require=False):
@@ -1279,6 +1287,9 @@ class Parser:
 
         if self.compare(TokenTypes["Keyword"], "break"):
             return self.pBreak()
+            
+        if self.compare(TokenTypes["Keyword"], "continue"):
+            return self.pContinue()
 
         return self.pExpression(require=require)
 
