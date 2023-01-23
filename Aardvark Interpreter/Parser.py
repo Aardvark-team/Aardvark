@@ -334,8 +334,6 @@ class Parser:
                     value = float(value)
                 else:
                     value = int(value)
-            else:
-                value = value.replace("\\n", "\n")
             ast_node = {
                 # StringLiteral, NumberLiteral, etc...
                 "type": tok.type.name + "Literal",
@@ -441,7 +439,7 @@ class Parser:
             if self.compare("Delimiter", "["):
                 self.eat("Delimiter")
                 property = self.pExpression()
-                self.eat("Delimiter")
+                self.eat("Delimiter", ']')
                 ast_node = {
                     "type": "Index",
                     "property": property,
@@ -1300,7 +1298,7 @@ class Parser:
             if self.isEOF():
                 break
 
-            self.statements.append(self.pStatement())
+            self.statements.append(self.pStatement(True))
 
         return {
             "type": "Program",

@@ -337,40 +337,6 @@ class Executor:
                 )
                 self.traceback = self.traceback[:-1]
                 return ret
-            case {"type": "Operator", "operator": "="}:
-                value = self.ExecExpr(expr["right"], scope)
-                var = expr["left"]
-                defscope = scope
-                if var["type"] == "PropertyAccess":
-                    defscope = self.enterScope(var["value"], scope, scope)
-                    var = var["property"]
-                elif var["type"] == "Index":
-                    defscope = self.enterScope(var["value"], scope, scope)
-                    var = self.ExecExpr(var["property"], scope)
-                elif var["type"] == "VariableAccess":
-                    var = var["value"]
-                else:
-                    self.errorhandler.throw(
-                        "Assign",
-                        "Cannot set value of a literal.",
-                        {
-                            "lineno": var["positions"]["start"]["line"],
-                            "underline": {
-                                "start": var["positions"]["start"]["col"],
-                                "end": var["positions"]["end"]["col"],
-                            },
-                            "marker": {
-                                "start": var["positions"]["start"]["col"],
-                                "length": var["positions"]["end"]["col"]
-                                - var["positions"]["start"]["col"],
-                            },
-                            "traceback": self.traceback,
-                        },
-                    )
-                # if var == 'data':
-                #   print('set data to', value, expr['positions']['start']['line'])
-                self.defineVar(var, value, defscope)
-                return value
             case {"type": "Operator", "operator": "?"}:
                 left = self.ExecExpr(expr["left"], scope, False)
                 op = Operators[expr["operator"]]
@@ -381,12 +347,18 @@ class Executor:
                     self.errorhandler,
                     self.codelines[expr["positions"]["start"]["line"] - 1],
                     expr,
+                    scope,
+                    self
                 )
             case {"type": "Operator", "operator": operator}:
                 if operator in Operators:
-                    left = self.ExecExpr(expr["left"], scope)
                     op = Operators[operator]
-                    right = self.ExecExpr(expr["right"], scope)
+                    if operator in ['=', '+=', '-=', '*=', '/=', '^=', '%=', '++', '--', '|', '&', 'or', 'and']:
+                        left = expr['left']
+                        right = expr['right']
+                    else:
+                        left = self.ExecExpr(expr["left"], scope)
+                        right = self.ExecExpr(expr["right"], scope)
                     try:
                         return pyToAdk(
                             op(
@@ -395,9 +367,12 @@ class Executor:
                                 self.errorhandler,
                                 self.codelines[expr["positions"]["start"]["line"] - 1],
                                 expr,
+                                scope,
+                                self
                             )
                         )
                     except TypeError as e:
+                        print(e, dir(e), e.__traceback__)
                         self.errorhandler.throw(
                             "Value",
                             e.args[0],
@@ -422,7 +397,7 @@ class Executor:
                         expr,
                     )
             case {"type": "IfStatement"}:
-                ifscope = Scope({}, parent=scope)
+                ifscope = Scope({}, parent=scope, scope_type='conditional')
                 if bool(self.ExecExpr(expr["condition"], scope)):
                     return self.Exec(expr["body"], ifscope)
                 elif expr["else_body"]:
@@ -432,7 +407,7 @@ class Executor:
                 while bool(self.ExecExpr(expr["condition"], scope)):
                     whilescope = Scope({}, parent=scope, scope_type="loop")
                     ret.append(self.Exec(expr["body"], whilescope))
-                    if whilescope._has_been_broken:
+                    if whilescope._completed:
                         break
                 return ret
             case {"type": "ForLoop"}:
@@ -459,7 +434,7 @@ class Executor:
                                 self.defineVar(d["names"][1], iterable[i], forscope)
 
                     ret.append(self.Exec(expr["body"], forscope))
-                    if forscope._has_been_broken:
+                    if forscope._completed:
                         break
                 return ret
             case {"type": "SPMObject"}:
@@ -669,6 +644,7 @@ class Executor:
                 notImplemented(self.errorhandler, expr["type"], expr)
 
     def Exec(self, ast, scope: Scope):
+        if scope._completed: return Null
         ret_val = Null
         if type(ast).__name__ != "list":
             ast = [ast]

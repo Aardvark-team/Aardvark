@@ -1,7 +1,174 @@
+from Data include OrderOfOps
 include Data
+include Lexer
 
-class Parser {
-    $constructor() {
 
+class Parser as this {
+    $constructor(err_handler, lexer) {
+        this.code = lexer.data
+        this.codelines = this.code.split("\n")
+        this.tokens = lexer.output
+        this.pos = 0
+        this.err_handler = err_handler
+        this.lexer = lexer
     }
+    ## Utility
+
+    # Get next tokens
+    function peek(n=0)
+        return this.tokens[this.pos + n] if this.pos + n < this.tokens.length else null
+
+    # Compare the next token with type, value
+    function compare(Type, value, n=0) {
+        if this.isEOF() return false
+
+        tok = this.peek(n)
+        if tok & tok.type == Type & (value == null | value == tok.value) return true
+        return false
+    }
+
+    # Advance to the next token.
+    function advance() this.pos = this.pos + 1
+
+    # Eat all consecutive linebreaks
+    function eatLBs() while this.compare('LineBreak') this.advance()
+    
+    # Is at the end of the file
+    function isEOF() return this.pos >= this.tokens.length;
+
+    # Unexpected End Of File Error
+    function EOFError(Type, value) {
+        #TODO
+    }
+
+    # Consume the current token if the type and value match, else throw an error
+    function eat(Type="any", value) {
+        if Type == 'any' or this.compare(Type, value) {
+            curr = this.peek()
+            this.advance()
+            return curr
+        }
+        if this.isEOF() return this.eofError(Type, value);
+
+        #TODO: Throw an error
+    }
+
+    function pPrimary(require=false) {
+        tok = this.peek()
+        ast_node = null
+
+        if !tok | this.isEOF() 
+            return this.EOFError('Value') if require else null;
+
+        if tok.type in ['String', 'Number'] {
+            this.eat()
+            value = tok.value
+            if tok.type == "Number"
+                value = float(value) if "." in tok.value else int(value);
+            ast_node = {
+                type: tok.type + 'Literal',
+                value: value,
+                position: tok.position,
+                tokens: {value: tok}
+            }
+        }
+        else if tok.type == "Boolean" {
+            this.eat()
+            ast_node = {
+                type: "BooleanLiteral",
+                value: tok.value == 'true',
+                position: tok.position,
+                tokens: {value: tok}
+            }
+        }
+        #TODO
+        while ast_node {
+            if this.compare('Delimiter', '.') {
+                this.eat()
+                property_name = this.eat('Identifier')
+                ast_node = {
+                    type: "PropertyAccess",
+                    property: property_name.value,
+                    value: ast_node,
+                    position: {
+                        start: ast_node.position.start,
+                        end: property_name.end
+                    },
+                    tokens: {
+                        property: property_name,
+                        value: ast_node.tokens
+                    }
+                }
+                continue;
+            }
+            if this.compare('Delimiter', '[') {
+                this.eat()
+                property = this.pExpression()
+                this.eat('Delimiter', ']')
+                ast_node = {
+                    type: 'Index',
+                    property: property,
+                    value: ast_node,
+                    positions: {
+                        start: ast_node.position.start,
+                        end: property.position.end if property else ast_node.position.end
+                    }
+                }
+                continue;
+            }
+            return ast_node
+            break
+            #TODO
+        }
+        if require {
+            # Throw an error because nothing was found
+            #TODO
+        }
+    }
+    function pExpression(level=OrderOfOps.length-1, require=false, exclude=[]) {
+        left = this.pPrimary(false) if level < 0 else this.pExpression(level - 1, false, exclude)
+        if (this.peek() and this.compare('Operator') and !(this.peek().value == '$') and level in OrderOfOps and this.peek().value in OrderOfOps[level] and !( this.peek().value in exclude)) {
+            op = this.eat()
+            right = this.pExpression(level, false)
+            if !left and !right {
+                # Throw an error because its just an operator all by itself
+                #TODO
+            }
+            return {
+                type: 'Operator',
+                left: left,
+                right: right,
+                operator: op.value,
+                position: {
+                    start: left.position.start if left else op.start,
+                    end: right.position.end if right else op.end
+                }
+            }
+        }
+        if !left 
+            left = this.pPrimary(require) if level < 0 else this.pExpression(level - 1, require, exclude);
+        return left
+    }
+    function pStatement(require=false) {
+        this.eatLBs()
+        return this.pExpression(require)
+    }
+    function pProgram() {
+        this.statements = []
+        while !this.isEOF() {
+            if this.statements.length > 0 and this.peek(-1).type != 'LineBreak' this.eat('LineBreak')
+            this.eatLBs()
+            if this.isEOF() break;
+            this.statements.add(this.pStatement(true))
+        }
+        return {
+            type: "Program",
+            body: this.statements,
+            position: {
+                start: 0 if this.statements.length == 0 else this.statements[0].position.start,
+                end: 0 if this.statements.length == 0 else this.statements[-1].position.end
+            }
+        }
+    }
+    function parse() return this.pProgram()
 }

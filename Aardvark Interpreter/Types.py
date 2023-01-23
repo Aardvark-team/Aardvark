@@ -84,7 +84,7 @@ class Object(Type):
     def __getitem__(self, name):
         if self._getitem:
             return self._getitem(name)
-        return self.get(name)
+        return self.get(name, Null)
 
     def __del__(self):
         if self._delete:
@@ -132,6 +132,7 @@ class Scope(Object):
         self._has_returned = False
         self._has_been_broken = False
         self._completed = False
+        #print('Scope is', scope_type)
         self._scope_type = scope_type
         self.returnActions = []
 
@@ -167,7 +168,10 @@ class Scope(Object):
 
     def complete(self, stype="function", ret=None):
         if self._scope_type != stype:
-            return self.parent.complete(stype, ret) if self.parent else False
+            x = self.parent.complete(stype, ret) if self.parent else False
+            if x:
+                self._completed = True
+                return x
 
         self._returned_value = ret if ret != None else Null
         if self._scope_type == "loop":
@@ -334,7 +338,8 @@ class Array(Type, list):
             "add": self._append,
             "remove": self._remove,
             "length": len(self),
-            "reverse": self._reverse
+            "reverse": self._reverse,
+            "filter": self._filter
             # methods and attributes here
         }
         list.__init__(self)
@@ -343,7 +348,12 @@ class Array(Type, list):
             i = pyToAdk(i)
             self.append(i)
             self.value.append(i)
-
+    def _filter(self, key):
+        new = []
+        for i in self.value:
+            if key(i):
+                new.append(i)
+        return new
     def _reverse(self):
         self.reverse()
         self.value.reverse()
@@ -371,7 +381,8 @@ class Set(Type, list):
             "add": self._append,
             "remove": self._remove,
             "length": len(self),
-            "reverse": self._reverse
+            "reverse": self._reverse,
+            "filter": self._filter
             # methods and attributes here
         }
         list.__init__(self)
@@ -381,7 +392,13 @@ class Set(Type, list):
             if i not in self:
                 self.append(i)
                 self.value.append(i)
-
+                
+    def _filter(self, key):
+        new = []
+        for i in self.value:
+            if key(i):
+                new.append(i)
+        return new
     def _reverse(self):
         self.reverse()
         self.value.reverse()

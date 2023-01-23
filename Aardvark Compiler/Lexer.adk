@@ -15,6 +15,10 @@ class Token as this {
     this.end = end
     this.value = value
     this.variation = variation
+    this.position = {
+        start: start,
+        end: end
+    }
   }
   $string() {
     return $"Token({this.type}, \"{this.value}\", from {this.start.line}:{this.start.column} to {this.end.line}:{this.end.column})"
@@ -92,19 +96,20 @@ class Lexer as this {
     #*
       Takes code and converts it to tokens.
     *#
-    if !data throw ValueError("String cannot be empty")
+    if !data throw Error("Value", "String cannot be empty")
     this.data = this.data + data
     this.curChar = this.data[this.index]
     while this.index < this.data.length {
         
         # Operators
-        if this.curChar in NotIncluded {
-            for op in Operators {
-                if this.detect(op) {
+        for op in Operators {
+            for i in op {
+                if i in NotIncluded & this.detect(op) {
                     start = this.pos()
                     this.advance(op.length - 1)
                     this.addToken("Operator", start, this.pos(), op)
                     this.advance()
+                    break
                 }
             }
         }

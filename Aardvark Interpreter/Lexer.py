@@ -143,14 +143,14 @@ class Lexer:
         while self.index < len(self.data):
             
             # Operators
-            if self.curChar in NotIncluded:
-                for op in sorted(Operators, key=len, reverse=True):
-                    if self.detect(op):
-                        start = self.index
-                        startcolumn = self.column
-                        self.advance(len(op) - 1)
-                        self.addToken("Operator", start, self.index, self.line, startcolumn, self.column, op)
-                        self.advance()
+            for op in sorted(PureOperators, key=len, reverse=True):
+                if self.detect(op):
+                    start = self.index
+                    startcolumn = self.column
+                    self.advance(len(op) - 1)
+                    self.addToken("Operator", start, self.index, self.line, startcolumn, self.column, op)
+                    self.advance()
+                    if self.AtEnd: break
                     
             # Newlines (\n or ;)
             if self.isNewline():
