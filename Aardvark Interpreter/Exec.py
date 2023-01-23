@@ -407,7 +407,7 @@ class Executor:
                 while bool(self.ExecExpr(expr["condition"], scope)):
                     whilescope = Scope({}, parent=scope, scope_type="loop")
                     ret.append(self.Exec(expr["body"], whilescope))
-                    if whilescope._has_been_broken:
+                    if whilescope._completed:
                         break
                 return ret
             case {"type": "ForLoop"}:
@@ -434,7 +434,7 @@ class Executor:
                                 self.defineVar(d["names"][1], iterable[i], forscope)
 
                     ret.append(self.Exec(expr["body"], forscope))
-                    if forscope._has_been_broken:
+                    if forscope._completed:
                         break
                 return ret
             case {"type": "SPMObject"}:
@@ -618,7 +618,7 @@ class Executor:
                         },
                     )
             case {"type": "ContinueStatement"}:
-                success = scope._completed = True
+                success = scope._has_been_continued = True
                 if not success:
                     self.errorhandler.throw(
                         "ContinueOutside",
@@ -664,14 +664,14 @@ class Executor:
                 notImplemented(self.errorhandler, expr["type"], expr)
 
     def Exec(self, ast, scope: Scope):
-        if scope._completed: return Null
+        if scope._has_returned or scope._has_been_broken or scope._has_been_continued or scope._completed: return Null
         ret_val = Null
         if type(ast).__name__ != "list":
             ast = [ast]
         for item in ast:
             ret_val = self.ExecExpr(item, scope)
 
-            if scope._completed:
+            if scope._has_returned or scope._has_been_broken or scope._has_been_continued or scope._completed:
                 break
         return pyToAdk(ret_val)
 

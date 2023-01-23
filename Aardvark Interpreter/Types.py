@@ -57,13 +57,15 @@ class Object(Type):
         # Just to make it act like a scope
         self._returned_value = Null
         self._has_returned = False
+        self._has_been_broken = False
+        self._has_been_continued = False
+        self._completed = False
         self._is_function_scope = False
         self.returnActions = []
         self.addReturnAction = lambda x: None
         self.set_return_value = lambda x: False
         self._has_been_broken = False
         self._scope_type = "Object"
-        self._completed = False
         # etc... Add later TODO
         self._index = 0
 
@@ -131,6 +133,7 @@ class Scope(Object):
         self._returned_value = Null
         self._has_returned = False
         self._has_been_broken = False
+        self._has_been_continued = False
         self._completed = False
         #print('Scope is', scope_type)
         self._scope_type = scope_type
@@ -498,12 +501,13 @@ class Class(Type):
         # Just to make it act like a scope
         self._returned_value = Null
         self._has_returned = False
+        self._has_been_broken = False
+        self._has_been_continued = False
+        self._completed = False
         self._is_function_scope = False
         self.returnActions = []
         self.addReturnAction = lambda x: None
         self.set_return_value = lambda x: False
-        self._has_been_broken = False
-        self._completed = False
         self._scope_type = "Class"
         if self._as:
             self.vars[self._as] = self
