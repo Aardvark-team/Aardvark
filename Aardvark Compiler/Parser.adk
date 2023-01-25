@@ -38,6 +38,7 @@ class Parser as this {
 
     # Unexpected End Of File Error
     function EOFError(Type, value) {
+        throw Error("EOF", "unexpected EOF")
         #TODO
     }
 
@@ -49,7 +50,7 @@ class Parser as this {
             return curr
         }
         if this.isEOF() return this.eofError(Type, value);
-
+        throw Error("Token", $"Token {Type} expected, but not found.")
         #TODO: Throw an error
     }
 
@@ -64,7 +65,7 @@ class Parser as this {
             this.eat()
             value = tok.value
             if tok.type == "Number"
-                value = float(value) if "." in tok.value else int(value);
+                value = Number(value);
             ast_node = {
                 type: tok.type + 'Literal',
                 value: value,
@@ -109,27 +110,34 @@ class Parser as this {
                     type: 'Index',
                     property: property,
                     value: ast_node,
-                    positions: {
+                    position: {
                         start: ast_node.position.start,
                         end: property.position.end if property else ast_node.position.end
+                    },
+                    tokens: {
+                        property: property.tokens,
+                        value: ast_node.tokens
                     }
                 }
                 continue;
             }
+
             return ast_node
             #TODO
         }
         if require {
+            throw Error("Empty", "Nothing was found.")
             # Throw an error because nothing was found
             #TODO
         }
     }
-    function pExpression(level=OrderOfOps.length-1, require=false, exclude=[]) {
+    function pExpression(level=keys(OrderOfOps).length-1, require=false, exclude=[]) {
         left = this.pPrimary(false) if level < 0 else this.pExpression(level - 1, false, exclude)
         if (this.peek() and this.compare('Operator') and !(this.peek().value == '$') and level in OrderOfOps and this.peek().value in OrderOfOps[level] and !( this.peek().value in exclude)) {
             op = this.eat()
             right = this.pExpression(level, false)
             if !left and !right {
+                throw Error("Operator", "Its just an operator all by itself")
                 # Throw an error because its just an operator all by itself
                 #TODO
             }
@@ -150,7 +158,7 @@ class Parser as this {
     }
     function pStatement(require=false) {
         this.eatLBs()
-        return this.pExpression(require)
+        return this.pExpression(require=require)
     }
     function pProgram() {
         this.statements = []

@@ -209,7 +209,7 @@ class Parser:
     #   [boolean]
     #   FunctionDefinition
     #   FunctionCall
-    def pPrimary(self, require=False):
+    def pPrimary(self, require=False, exclude=[]):
         tok = self.peek()
         ast_node = None
 
@@ -460,12 +460,12 @@ class Parser:
                 ast_node = self.pFunctionCall(ast_node)
                 continue  # Check for others
             # Inline ifs
-            if self.compare(TokenTypes["Keyword"], "if"):
+            if self.compare(TokenTypes["Keyword"], "if") and 'if' not in exclude:
                 if_ast = self.pIfStatement(True)
                 if_ast["body"] = ast_node
                 ast_node = if_ast
             # inline fors
-            if self.compare("Keyword", "for"):
+            if self.compare("Keyword", "for") and 'for' not in exclude:
                 for_ast = self.pForLoop(True)
                 for_ast["body"] = ast_node
                 ast_node = for_ast
@@ -502,9 +502,9 @@ class Parser:
     # if !false & !false {}
     def pExpression(self, level=len(OrderOfOps) - 1, require=False, exclude=[]):
         if level < 0:
-            left = self.pPrimary(require=False)
+            left = self.pPrimary(require=False, exclude=exclude)
         else:
-            left = self.pExpression(level - 1, require=False)
+            left = self.pExpression(level - 1, require=False, exclude=exclude)
         if (
             self.peek()
             and self.compare(TokenTypes["Operator"])
@@ -514,7 +514,7 @@ class Parser:
             and self.peek().value not in exclude
         ):
             op = self.eat(TokenTypes["Operator"])
-            right = self.pExpression(level, require=False)
+            right = self.pExpression(level, require=False, exclude=exclude)
 
             if not left and not right:
                 # print('"'+op.value+'"', len(op.value))
@@ -546,9 +546,9 @@ class Parser:
             }
         if left == None:
             if level < 0:
-                left = self.pPrimary(require=require)
+                left = self.pPrimary(require=require, exclude=exclude)
             else:
-                left = self.pExpression(level - 1, require=require)
+                left = self.pExpression(level - 1, require=require, exclude=exclude)
         return left
 
     # Object:
@@ -896,7 +896,7 @@ class Parser:
                 declarations.append({"type": "variable", "names": [x.value]})
                 break
         self.eat("Operator", "in")
-        iterable = self.pExpression()  # Get the iterable.
+        iterable = self.pExpression(exclude=['for'])  # Get the iterable.
         self.eatLBs()
         body = None
         lasti = iterable["positions"]["end"]

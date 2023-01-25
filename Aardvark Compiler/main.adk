@@ -12,7 +12,7 @@ Multiline
 *#
 `
 testStr2 = `
-"Hello World!".length
+"Hello World!"[0].length
 `
 
 lexer = Lexer()

@@ -1,7 +1,16 @@
-i = 0
-while i < 4 {
-    i++
-    stdout.write(i, '\n')
-    continue
-    stdout.write('passed\n')
+dofirst = false
+didfirst = false
+
+while true {
+    stdout.write(dofirst, 'Loop\n')
+    if dofirst {
+        stdout.write('First\n');
+        didfirst = true
+    } else {
+        stdout.write('second\n');
+        dofirst = true
+        continue;
+    }
+    stdout.write('pasted continue', dofirst, didfirst, '\n')
+    break
 }

@@ -169,9 +169,9 @@ class Scope(Object):
         self.returnActions.append(item)
         return True
 
-    def complete(self, stype="function", ret=None):
+    def complete(self, stype="function", ret=None, action=lambda s:None):
         if self._scope_type != stype:
-            x = self.parent.complete(stype, ret) if self.parent else False
+            x = self.parent.complete(stype, ret, action) if self.parent else False
             if x:
                 self._completed = True
                 return x
@@ -181,6 +181,7 @@ class Scope(Object):
             self._has_been_broken = True
         if self._scope_type == "function":
             self._has_returned = True
+        action(self)
         self._completed = True
         self._triggerReturnAction()
         return True

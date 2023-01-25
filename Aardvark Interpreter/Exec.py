@@ -84,6 +84,7 @@ class Executor:
                 "typeof": lambda obj: obj._class.name
                 if type(obj) == Object and getattr(obj, "_class", False)
                 else type(obj).__name__,
+                "keys": lambda x: list(x.getAll().keys()),
                 "dir": lambda x=None: x.getAll() if x else self.Global.vars,
                 "sort": lambda iterable, reverse=False, key=(lambda x: x): sorted(
                     iterable, reverse=reverse, key=key
@@ -275,6 +276,8 @@ class Executor:
                     if "name" in dir(obj)
                     else Error.getAstText(expr["value"], self.codelines)
                 )
+                # if expr['property'] == 'length':
+                #     print('Here', expr['property'], expr['positions'])
                 return self.getVar(
                     obj,
                     expr["property"],
@@ -314,7 +317,7 @@ class Executor:
                         + "()",
                         "line": expr["positions"]["start"]["line"],
                         "col": expr["positions"]["start"]["col"],
-                        "filename": self.path,
+                        "filename": Path(self.path).name,
                     }
                 )
                 args = []
@@ -372,7 +375,7 @@ class Executor:
                             )
                         )
                     except TypeError as e:
-                        print(e, dir(e), e.__traceback__)
+                        #print(e, dir(e), e.__traceback__)
                         self.errorhandler.throw(
                             "Value",
                             e.args[0],
@@ -407,7 +410,7 @@ class Executor:
                 while bool(self.ExecExpr(expr["condition"], scope)):
                     whilescope = Scope({}, parent=scope, scope_type="loop")
                     ret.append(self.Exec(expr["body"], whilescope))
-                    if whilescope._completed:
+                    if whilescope._completed and not whilescope._has_been_continued:
                         break
                 return ret
             case {"type": "ForLoop"}:
@@ -434,7 +437,7 @@ class Executor:
                                 self.defineVar(d["names"][1], iterable[i], forscope)
 
                     ret.append(self.Exec(expr["body"], forscope))
-                    if forscope._completed:
+                    if forscope._completed and not forscope._has_been_continued:
                         break
                 return ret
             case {"type": "SPMObject"}:
@@ -618,7 +621,8 @@ class Executor:
                         },
                     )
             case {"type": "ContinueStatement"}:
-                success = scope._has_been_continued = True
+                def x(s): s._has_been_continued = True
+                success = scope.complete("loop", action=x)
                 if not success:
                     self.errorhandler.throw(
                         "ContinueOutside",
