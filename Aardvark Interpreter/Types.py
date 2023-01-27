@@ -337,6 +337,12 @@ class Function(Type):
 class Array(Type, list):
     def __init__(self, value):
         value = list(value)
+        list.__init__(self)
+        self.value = []
+        for i in value:
+            i = pyToAdk(i)
+            self.append(i)
+            self.value.append(i)
         self.vars = {
             "contains": lambda x: x in self,
             "add": self._append,
@@ -346,13 +352,6 @@ class Array(Type, list):
             "filter": self._filter
             # methods and attributes here
         }
-        list.__init__(self)
-        self.value = []
-        for i in value:
-            i = pyToAdk(i)
-            self.append(i)
-            self.value.append(i)
-            
     def __sub__(self, other):
         self._remove(other)
         
@@ -384,6 +383,13 @@ class Array(Type, list):
 class Set(Type, list):
     def __init__(self, value):
         value = list(value)
+        list.__init__(self)
+        self.value = []
+        for i in value:
+            i = pyToAdk(i)
+            if i not in self:
+                self.append(i)
+                self.value.append(i)
         self.vars = {
             "contains": lambda x: x in self,
             "add": self._append,
@@ -393,13 +399,6 @@ class Set(Type, list):
             "filter": self._filter
             # methods and attributes here
         }
-        list.__init__(self)
-        self.value = []
-        for i in value:
-            i = pyToAdk(i)
-            if i not in self:
-                self.append(i)
-                self.value.append(i)
     def __sub__(self, other):
         self._remove(other)
         #TODO: make this work.
@@ -641,6 +640,10 @@ def adkToPy(adk):
         return adk
     elif adk == Null:
         return None
+    elif isinstance(adk, Object):
+        return adk.vars
+    elif isinstance(adk, Array):
+        return adk.value
     # TODO: finish later
 
 

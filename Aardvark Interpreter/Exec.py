@@ -25,6 +25,7 @@ from Types import (
 import importlib
 from bitarray import bitarray
 from pathlib import Path
+from Utils import prettify_ast
 import os
 
 
@@ -80,6 +81,7 @@ class Executor:
                     }
                 ),
                 "slice": lambda str, start=0, end=0: str[start:end],
+                "prettify": prettify_ast,
                 "range": lambda *args: list(range(*args)),
                 "typeof": lambda obj: obj._class.name
                 if type(obj) == Object and getattr(obj, "_class", False)

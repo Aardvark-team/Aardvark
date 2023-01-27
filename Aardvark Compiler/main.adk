@@ -11,15 +11,15 @@ stdout.write("Hello World\\"test", '\n')
 Multiline
 *#
 `
-testStr2 = `
-"Hello World!"[0].length
-`
+testStr2 = `x = 1`
 
 lexer = Lexer()
 toks = lexer.tokenize(testStr2)
 for tok in toks {
   stdout.write(tok, '\n')
 }
-
+# stdout.write(prettify(toks), '\n')
 parser = Parser(null, lexer)
-stdout.write(parser.parse())
+data = parser.parse()
+stdout.write(data, '\n')
+# stdout.write(prettify(data), '\n')

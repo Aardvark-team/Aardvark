@@ -3,6 +3,9 @@ include Data
 include Lexer
 
 
+# Do the hardest things first!
+
+
 class Parser as this {
     $constructor(err_handler, lexer) {
         this.code = lexer.data
@@ -16,7 +19,7 @@ class Parser as this {
 
     # Get next tokens
     function peek(n=0)
-        return this.tokens[this.pos + n] if this.pos + n < this.tokens.length else null
+        return (this.tokens[this.pos + n]) if this.pos + n < this.tokens.length else (null);
 
     # Compare the next token with type, value
     function compare(Type, value, n=0) {
@@ -28,7 +31,7 @@ class Parser as this {
     }
 
     # Advance to the next token.
-    function advance() this.pos = this.pos + 1
+    function advance() this.pos += 1
 
     # Eat all consecutive linebreaks
     function eatLBs() while this.compare('LineBreak') this.advance()
@@ -54,6 +57,7 @@ class Parser as this {
         #TODO: Throw an error
     }
 
+    ## Actually parse it
     function pPrimary(require=false) {
         tok = this.peek()
         ast_node = null
@@ -61,11 +65,27 @@ class Parser as this {
         if !tok | this.isEOF() 
             return this.EOFError('Value') if require else null;
 
-        if tok.type in ['String', 'Number'] {
+        else if this.compare('Operator', '$') & this.peek(1) & this.peek(1).type == 'String' & this.peek().end.column == this.peek(1).start.column - 1 {
+            start = this.eat()
+            string = this.eat()
+            # TODO!
+            replacements = []
+            ast_node = {
+                type: "TemplateString",
+                postion: {start:start.start, end:string.end},
+                value: string.value,
+                replacements: replacements
+            }
+            # TODO, template strings
+        }
+
+        else if tok.type in ['String', 'Number', 'Boolean'] {
             this.eat()
             value = tok.value
             if tok.type == "Number"
                 value = Number(value);
+            if tok.type == 'Boolean'
+                value = value == true;
             ast_node = {
                 type: tok.type + 'Literal',
                 value: value,
@@ -73,17 +93,53 @@ class Parser as this {
                 tokens: {value: tok}
             }
         }
-        else if tok.type == "Boolean" {
+
+        else if this.compare('Delimiter', '{')
+            ast_node = this.pObject()
+
+        else if this.compare('Delimiter', '[')
+            ast_node = this.pArray()
+
+        else if tok.type == "Identifier" {
             this.eat()
-            ast_node = {
-                type: "BooleanLiteral",
-                value: tok.value == 'true',
-                position: tok.position,
-                tokens: {value: tok}
-            }
+            if tok.value == "set" and this.compare("Delimiter", "{")
+                ast_node = this.pSet();
+            else 
+                ast_node = {
+                    type: 'VariableAccess',
+                    value: tok.value,
+                    position: tok.position
+                }
         }
+
+        else if this.compare('Delimiter', '(') {
+            this.eat()
+            ast_node = this.pStatement()
+            this.eat('Delimiter', ')')
+        }
+
         #TODO
         while ast_node {
+            if this.compare("Identifier") & this.peek().start.column == ast_node.position.end.column + 1 {
+                var = this.eat()
+                ast_node = {
+                    type: "Multiply",
+                    value: ast_node,
+                    variable: var.value,
+                    position: {
+                        start: ast_node.position.start,
+                        end: var.end
+                    },
+                    tokens: {
+                        "value": ast_node.tokens,
+                        "variable": var
+                    }
+                }
+            }
+            if this.compare("Delimiter", '(') & this.peek().start.column == ast_node.position.end.column + 1 {
+                ast_node = this.pFunctionCall(ast_node)
+                continue
+            }
             if this.compare('Delimiter', '.') {
                 this.eat()
                 property_name = this.eat('Identifier')
@@ -133,7 +189,10 @@ class Parser as this {
     }
     function pExpression(level=keys(OrderOfOps).length-1, require=false, exclude=[]) {
         left = this.pPrimary(false) if level < 0 else this.pExpression(level - 1, false, exclude)
-        if (this.peek() and this.compare('Operator') and !(this.peek().value == '$') and level in OrderOfOps and this.peek().value in OrderOfOps[level] and !( this.peek().value in exclude)) {
+        right = null
+        # if the next token is an operator, and the next token != '$' and level in OrderOfOps, and the value of the next token is in the current precedence level and the value of the next token is not in the exclude list.
+
+        if this.compare('Operator') & this.peek().value != '$' & level in OrderOfOps & this.peek().value in OrderOfOps[level] & !(this.peek().value in exclude) {
             op = this.eat()
             right = this.pExpression(level, false)
             if !left and !right {
@@ -153,8 +212,187 @@ class Parser as this {
             }
         }
         if !left 
-            left = this.pPrimary(require) if level < 0 else this.pExpression(level - 1, require, exclude);
+            left = (this.pPrimary(require)) if level < 0 else (this.pExpression(level - 1, require, exclude));
         return left
+    }
+    function pBlock(parser=this.pStatement) {
+        this.eatLBs()
+        start = this.eat('Delimiter', '{')
+        body = []
+        while this.peek() & !this.compare('Delimiter', '}') {
+            if body.length > 0 & this.peek(-1).type != 'LineBreak' 
+                this.eat('LineBreak');
+            this.eatLBs()
+            if this.compare('Delimiter', '}') break;
+            body.append(parser())
+        }
+        end = this.eat('Delimiter', '}')
+        return [body, end.end]
+    }
+    function pObject() {
+        start = this.eat('Delimiter', '{')
+        obj = []
+
+        while this.peek() & !this.compare('Delimiter', '}') & !(this.compare('Delimiter', ',') & this.peek(1).value == '}') {
+            this.eatLBs()
+            if obj.length > 0 this.eat('Delimter', ',')
+            this.eatLBs()
+        
+            key = null
+            if this.compare('Operator', '...') {
+                this.eat()
+                obj.add({
+                    type: 'Spread',
+                    value: this.pStatement()
+                })
+                continue
+            }
+            else if this.compare('Identifier') {
+                tok = this.eat()
+                key = tok.value
+                if !this.compare('Delimiter', ':') {
+                    obj.add({
+                        type: 'Pair',
+                        key: key,
+                        value: {
+                            type: 'VariableAccess',
+                            value: tok.value,
+                            position: tok.position
+                        }
+                    })
+                    continue
+                }
+            }
+            else if this.compare('Number')
+                key = Number(this.eat().value)
+            else if this.compare('String')
+                key = this.eat().value
+
+            this.eatLBs()
+            this.eat('Delimiter', ':')
+            this.eatLBs()
+            obj.add({
+                type: 'Pair',
+                key: key,
+                value: this.pStatement(true)
+            })
+            this.eatLBs()
+        }
+        if this.compare('Delimiter', ',') this.eat();
+        end = this.eat('Delimiter', '}')
+        return {
+            type: 'Object',
+            object: obj,
+            position: {start: start.start, end: end.end}
+        }
+    }
+    function pArray() {
+        start = this.eat('Delimiter', '[')
+        array = []
+
+        while this.peek() & !this.compare('Delimiter', ']') & !(this.compare('Delimiter', ',') & this.peek(1).value == ']') {
+            this.eatLBs()
+            if array.length > 0 this.eat('Delimter', ',')
+            this.eatLBs()
+        
+            key = null
+            if this.compare('Operator', '...') {
+                this.eat()
+                array.add({
+                    type: 'Spread',
+                    value: this.pStatement()
+                })
+                continue
+            }
+            array.add({
+                type: 'Value',
+                value: this.pStatement(true)
+            })
+            this.eatLBs()
+        }
+        if this.compare('Delimiter', ',') this.eat();
+        end = this.eat('Delimiter', ']')
+        return {
+            type: 'Array',
+            array: array,
+            position: {start: start.start, end: end.end}
+        }
+    }
+    function pSet() {
+        start = this.eat('Delimiter', '{')
+        set = []
+
+        while this.peek() & !this.compare('Delimiter', '}') & !(this.compare('Delimiter', ',') & this.peek(1).value == '}') {
+            this.eatLBs()
+            if set.length > 0 this.eat('Delimter', ',')
+            this.eatLBs()
+        
+            if this.compare('Operator', '...') {
+                this.eat()
+                set.add({
+                    type: 'Spread',
+                    value: this.pStatement()
+                })
+                continue
+            }
+            set.add({
+                type: 'Value',
+                value: this.pStatement(true)
+            })
+            this.eatLBs()
+        }
+        if this.compare('Delimiter', ',') this.eat();
+        end = this.eat('Delimiter', '}')
+        return {
+            type: 'Set',
+            set: set,
+            position: {start: start.start, end: end.end}
+        }
+    }
+    function pFunctionCall(ast_node) {
+        self.eat('Delimiter', '(')
+        arguments = []
+        keywordArguments = {}
+        spreads = []
+
+        while this.peek() & !this.compare('Delimiter', ')') & !(this.compare('Delimiter', ',') & this.peek(1).value == ')') {
+            this.eatLBs()
+            if set.length > 0 this.eat('Delimter', ',')
+            this.eatLBs()
+            value = this.pExpression(require=true)
+
+            if value.type == 'Operator' & value.operator == '=' {
+                if value.left & value.right & value.left.type == "VariableAcces"
+                    keywordArguments[value.left.value] = value.right
+                else if !value.left | !value.right
+                    throw Error('Argument', 'Keyword Arguments must be in the form "key=value".')
+                else 
+                    throw Error("Argument", "Keyword Arguments must be valid identifiers.")
+            } else if value.type == 'Operator' & value.operator == '...' {
+                if value.left & !value.right
+                    throw Error("Operator", "🤦‍♂️ You know the ... goes on the left side of the expression, right?")
+                else if value.left & value.right
+                    throw Error('Operator', '... only needs the right operand.')
+                else spreads.add(value.right)
+            }
+            else {
+                arguments.add(value)
+            }
+        }
+        if this.compare('Delimiter', ',') this.eat();
+        end = this.eat('Delimiter', ')')
+
+        return {
+            type: 'FunctionCall',
+            function: ast_node,
+            arguments: arguments,
+            keywordArguments: keywordArguments,
+            spreads: spreads,
+            position: {
+                start: ast_node.position.start,
+                end: end.end
+            }
+        }
     }
     function pStatement(require=false) {
         this.eatLBs()
@@ -163,7 +401,7 @@ class Parser as this {
     function pProgram() {
         this.statements = []
         while !this.isEOF() {
-            if this.statements.length > 0 and this.peek(-1).type != 'LineBreak' this.eat('LineBreak')
+            if this.statements.length > 0 & this.peek(-1).type != 'LineBreak' this.eat('LineBreak')
             this.eatLBs()
             if this.isEOF() break;
             this.statements.add(this.pStatement(true))

@@ -62,11 +62,10 @@ class Lexer as this {
     char = char ? this.curChar
     return !(this.isWhitespace(char) | this.isDelimiter(char) | this.isNewline(char) | char == '#' | char in Operators)
   }
-
   function detect(text) {
     if this.curChar == text[0] {
-        for i in sequence(0, text.length, 1) {
-            if this.peek(i) != text[i] return false;
+        for i in sequence(1, 1, text.length - 1) {
+            if this.peek(i) != text[i] | i > this.data.length return false;
         }
     } else return false;
     return true
@@ -97,7 +96,13 @@ class Lexer as this {
       Takes code and converts it to tokens.
     *#
     if !data throw Error("Value", "String cannot be empty")
-    this.data = this.data + data
+    this.data = data
+    this.index = 0
+    this.line = 0
+    this.column = 0
+    this.output = []
+    this.empty = true
+    this.AtEnd = false
     this.curChar = this.data[this.index]
     while this.index < this.data.length {
         

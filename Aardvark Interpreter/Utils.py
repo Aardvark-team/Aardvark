@@ -5,6 +5,7 @@ from sty import fg
 import Error
 import Lexer
 import json
+import Types
 
 
 class FunctDict:
@@ -26,20 +27,22 @@ class FunctDict:
 def prettify_ast(ast, level=0, indent="  "):
     styles = Error.styles
     ind = level * indent
+    ast = Types.adkToPy(ast)
 
-    if type(ast) == int or type(ast) == float:
+    
+    if isinstance(ast, int) or isinstance(ast, float):
         return styles["Number"] + str(ast) + fg.rs
 
-    if type(ast) == str:
+    elif isinstance(ast, str):
         return styles["String"] + f'"{ast}"' + fg.rs
 
-    if type(ast) == bool:
+    elif isinstance(ast, bool):
         return styles["Boolean"] + str(ast) + fg.rs
 
-    if ast == None:
+    elif ast == None:
         return styles["Keyword"] + str(ast) + fg.rs
 
-    if type(ast) == list:
+    elif isinstance(ast, list):
         repr = ind + styles["Delimiter"] + "[\n" + fg.rs
         for item in ast:
             for l in prettify_ast(item, level + 1, indent).split("\n"):
@@ -51,7 +54,7 @@ def prettify_ast(ast, level=0, indent="  "):
             else (repr + ind + styles["Delimiter"] + "]" + fg.rs)
         )
 
-    if type(ast) == dict:
+    elif isinstance(ast, dict):
         repr = ind + styles["Delimiter"] + "{\n" + fg.rs
 
         for k, v in ast.items():
@@ -71,10 +74,10 @@ def prettify_ast(ast, level=0, indent="  "):
             if len(ast.keys()) == 0
             else (repr + ind + styles["Delimiter"] + "}" + fg.rs)
         )
-
-    if type(ast) == Lexer.Token:
+    elif type(ast) == Lexer.Token:
         return ind + styles["default"] + str(ast) + fg.rs
-
+    else:
+        return ind + styles["default"] + str(ast) + fg.rs
     raise Exception("Couldn't prettify " + str(ast) + " type " + str(type(ast)))
 
 

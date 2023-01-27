@@ -557,7 +557,7 @@ class Parser:
         self.eat(TokenTypes["Delimiter"], "{")
         obj = {}
 
-        while self.peek() and not self.compare(TokenTypes["Delimiter"], "}"):
+        while self.peek() and not self.compare(TokenTypes["Delimiter"], "}") and not (self.compare('Delimiter', ',') and self.peek(1).value == '}'):
             self.eatLBs()
             if len(obj.keys()) > 0:
                 self.eat(TokenTypes["Delimiter"], ",")
@@ -580,7 +580,8 @@ class Parser:
             value = self.pStatement()
             self.eatLBs()
             obj[name] = value
-
+        if self.compare('Delimiter', ','):
+            self.eat('Delimiter')
         closing_par = self.eat(TokenTypes["Delimiter"], "}")
 
         return {
