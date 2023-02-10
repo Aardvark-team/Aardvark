@@ -1,7 +1,6 @@
 include Lexer from Lexer
 include Parser from Parser
 
-
 testStr1 = `
 y = 2
 x = 54.78y
@@ -11,10 +10,10 @@ stdout.write("Hello World\\"test", '\n')
 Multiline
 *#
 `
-testStr2 = `x = 1`
+testStr2 = `"string"`
 
 lexer = Lexer()
-toks = lexer.tokenize(testStr2)
+toks = lexer.tokenize(testStr1)
 for tok in toks {
   stdout.write(tok, '\n')
 }

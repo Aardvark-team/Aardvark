@@ -1,9 +1,8 @@
 #!/home/runner/Aardvark-py/.adk/bin/adk
+
+
 include english
-#*
-This is a multiline comment
-*#
-# This is a single line comment
+
 stdout.write(english.numWord(1234567890), '\n')
 
 stdout.write('This is a test of the Aardvark programming language!\n')

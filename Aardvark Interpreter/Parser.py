@@ -178,7 +178,7 @@ class Parser:
                     )
                 self.eat(TokenTypes["Delimiter"], delim)
             self.eatLBs()
-            items.append(self.pStatement())
+            items.append(self.pStatement(eatLBs=True))
             self.eatLBs()
         return items
 
@@ -373,7 +373,7 @@ class Parser:
 
         elif tok.type == TokenTypes["Delimiter"] and tok.value == "(":
             self.eat("Delimiter")
-            ast_node = self.pStatement()
+            ast_node = self.pStatement(eatLBs=True)
             self.eat("Delimiter", ")")
 
         # Dynamic include
@@ -438,7 +438,7 @@ class Parser:
             # Indexes
             if self.compare("Delimiter", "["):
                 self.eat("Delimiter")
-                property = self.pExpression()
+                property = self.pExpression(eatLBs=True)
                 self.eat("Delimiter", ']')
                 ast_node = {
                     "type": "Index",
@@ -500,11 +500,13 @@ class Parser:
 
     # Expression:
     # if !false & !false {}
-    def pExpression(self, level=len(OrderOfOps) - 1, require=False, exclude=[]):
+    def pExpression(self, level=len(OrderOfOps) - 1, require=False, exclude=[], eatLBs=False):
         if level < 0:
             left = self.pPrimary(require=False, exclude=exclude)
         else:
-            left = self.pExpression(level - 1, require=False, exclude=exclude)
+            left = self.pExpression(level - 1, require=False, exclude=exclude, eatLBs=eatLBs)
+        if eatLBs:
+            self.eatLBs()
         if (
             self.peek()
             and self.compare(TokenTypes["Operator"])
@@ -514,6 +516,8 @@ class Parser:
             and self.peek().value not in exclude
         ):
             op = self.eat(TokenTypes["Operator"])
+            if eatLBs:
+                self.eatLBs()
             right = self.pExpression(level, require=False, exclude=exclude)
 
             if not left and not right:
@@ -544,7 +548,7 @@ class Parser:
                     .get("end", op.end),  # to handle if there is no right
                 },
             }
-        if left == None:
+        if left == None and require:
             if level < 0:
                 left = self.pPrimary(require=require, exclude=exclude)
             else:
@@ -566,7 +570,7 @@ class Parser:
             name = None
             if self.compare('Operator', '...'):
                 self.eat('Operator')
-                obj[('...',)] = ('...', self.pStatement())
+                obj[('...',)] = ('...', self.pExpression(eatLBs=True))
                 continue
             elif self.compare(TokenTypes["Identifier"]):
                 name = self.eat(TokenTypes["Identifier"]).value
@@ -577,7 +581,7 @@ class Parser:
             self.eatLBs()
             self.eat(TokenTypes["Delimiter"], ":")
             self.eatLBs()
-            value = self.pStatement()
+            value = self.pStatement(eatLBs=True)
             self.eatLBs()
             obj[name] = value
         if self.compare('Delimiter', ','):
@@ -627,9 +631,11 @@ class Parser:
             or (len(arguments) == 0 and len(keywordArguments) == 0)
             and not self.compare("Delimiter", ")")
         ):
+            self.eatLBs()
             if self.compare("Delimiter", ","):
                 self.eat("Delimiter", ",")
-            KorV = self.pExpression()
+            self.eatLBs()
+            KorV = self.pExpression(eatLBs=True)
             if KorV["type"] == "Operator" and KorV["operator"] == "=":
                 if not (KorV["left"] and KorV["left"]["type"] == "VariableAccess"):
                     self.err_handler.throw(
@@ -668,6 +674,7 @@ class Parser:
                 keywordArguments[key] = value
             else:
                 arguments.append(KorV)
+        self.eatLBs()
         closing_par = self.eat(TokenTypes["Delimiter"], ")")
 
         return {
@@ -1241,7 +1248,7 @@ class Parser:
         
     # Statement:
     # 	VariableDefinition
-    def pStatement(self, require=False):
+    def pStatement(self, require=False, eatLBs=False):
         self.eatLBs()
 
         if self.compare("Keyword", "try"):
@@ -1292,7 +1299,7 @@ class Parser:
         if self.compare(TokenTypes["Keyword"], "continue"):
             return self.pContinue()
 
-        return self.pExpression(require=require)
+        return self.pExpression(require=require, eatLBs=eatLBs)
 
     # Program:
     # 	Statement ( [linebreak] Statement )
