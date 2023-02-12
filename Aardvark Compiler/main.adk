@@ -5,6 +5,7 @@ testStr1 = `
 y = 2
 x = 54.78y
 stdout.write("Hello World\\"test", '\n')
+$"Hello"
 #Single line
 #*
 Multiline
@@ -17,8 +18,11 @@ toks = lexer.tokenize(testStr1)
 for tok in toks {
   stdout.write(tok, '\n')
 }
+
 # stdout.write(prettify(toks), '\n')
+
 parser = Parser(null, lexer)
 data = parser.parse()
 stdout.write(data, '\n')
+
 # stdout.write(prettify(data), '\n')

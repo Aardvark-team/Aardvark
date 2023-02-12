@@ -55,6 +55,7 @@ class Parser as this {
         throw Error("Token", $"Token {Type} expected, but not found.")
         #TODO: Throw an error
     }
+    # TODO: allow x, y, z = [1, 2, 3]
 
     ## Actually parse it
     function pPrimary(require=false) {
@@ -63,7 +64,7 @@ class Parser as this {
 
         if !tok | this.isEOF() 
             return this.EOFError('Value') if require else null;
-        #*
+        
         else if this.compare('Operator', '$') & this.peek(1) & this.peek(1).type == 'String' & this.peek().end.column == this.peek(1).start.column - 1 {
             start = this.eat()
             string = this.eat()
@@ -73,9 +74,8 @@ class Parser as this {
             ind = 0
             while ind < template_string.length {
                 if template_string[ind] == "{" & ind + 1 < template_string.length & template_string[ind + 1] == "{" {
-                        ind += 2
-                        text += "{"
-                    }
+                    ind += 2
+                    text += "{"
                 }
                 else if template_string[ind] == "{" {
                     starti = ind
@@ -90,7 +90,7 @@ class Parser as this {
                         ind += 1
                     }
 
-                    if ind == template_string.length {
+                    if openc > 0 {
                         # Throw error, replacement never closed
                         this.EOFError('')
                     }
@@ -116,13 +116,13 @@ class Parser as this {
             replacements = []
             ast_node = {
                 type: "TemplateString",
-                postion: {start:start.start, end:string.end},
+                position: {start:start.start, end:string.end},
                 value: string.value,
                 replacements: replacements
             }
             # TODO, template strings
         }
-        *#
+        
         else if tok.type in ['String', 'Number', 'Boolean'] {
             this.eat()
             value = tok.value
@@ -159,7 +159,7 @@ class Parser as this {
         else if this.compare('Delimiter', '(') {
             this.eat()
             self.eatLBs()
-            ast_node = this.pStatement()
+            ast_node = this.pStatement(eatLBs=true)
             #TODO, allow linebreaks in it.
             self.eatLBs()
             this.eat('Delimiter', ')')
@@ -207,7 +207,7 @@ class Parser as this {
             }
             if this.compare('Delimiter', '[') & this.peek().start.column == ast_node.position.end.column + 1 {
                 this.eat()
-                property = this.pExpression()
+                property = this.pExpression(eatLBs=true)
                 this.eat('Delimiter', ']')
                 ast_node = {
                     type: 'Index',
@@ -292,7 +292,7 @@ class Parser as this {
                 this.eat()
                 obj.add({
                     type: 'Spread',
-                    value: this.pStatement()
+                    value: this.pExpression()
                 })
                 continue
             }
@@ -323,7 +323,7 @@ class Parser as this {
             obj.add({
                 type: 'Pair',
                 key: key,
-                value: this.pStatement(true)
+                value: this.pStatement(true, eatLBs=true)
             })
             this.eatLBs()
         }
@@ -355,7 +355,7 @@ class Parser as this {
             }
             array.add({
                 type: 'Value',
-                value: this.pStatement(true)
+                value: this.pStatement(true, eatLBs=true)
             })
             this.eatLBs()
         }
@@ -386,7 +386,7 @@ class Parser as this {
             }
             set.add({
                 type: 'Value',
-                value: this.pStatement(true)
+                value: this.pStatement(true, eatLBs=true)
             })
             this.eatLBs()
         }
@@ -408,7 +408,7 @@ class Parser as this {
             this.eatLBs()
             if arguments.length > 0 | keys(keywordArguments).length > 0 | spreads.length > 0 this.eat('Delimiter', ',')
             this.eatLBs()
-            value = this.pExpression(require=true)
+            value = this.pExpression(require=true, eatLBs=true)
 
             if value.type == 'Operator' & value.operator == '=' {
                 if value.left & value.right & value.left.type == "VariableAcces"
@@ -478,6 +478,27 @@ class Parser as this {
             position: {start: start.start, end: closing_pos}
         }
     }
+    function pWhile(body=null) {
+        start = this.eat('Keyword', 'while')
+        condition = this.pExpression(require=true)
+        lasti = null
+
+        if !body {
+            if this.compare('Delimiter', '{') {
+                x = this.eatBlockScope()
+                body = x[0]
+                lasti = x[1]
+            }
+            else body = [this.pStatement(true)]
+        }
+        closing = lasti ? body[0].position.end
+        return {
+            type: 'WhileStatement',
+            condition: condition,
+            body: body,
+            position: {start: start.start, end: closing_pos}
+        }
+    }
     function pExtending() {
         start = this.eat('Keyword', 'extending').start
         object = this.pExpression(require=true)
@@ -517,6 +538,9 @@ class Parser as this {
             this.pIf();
         else if this.compare('Keyword', 'extending') 
             this.pExtending();
+        else if this.compare('Keyword', 'while')
+            this.pWhile();
+
         return this.pExpression(require=require, eatLBs=eatLBs)
     }
     function pProgram() {
