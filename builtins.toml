@@ -1,0 +1,268 @@
+[-DOCS_PAGE]
+  -title = "Aardvark Builtins (unfinished)"
+  -category = "Builtins"
+
+[isiterable]
+  -arguments = ['object']
+  -returns = "`true` if `object` is iterable else `false`."
+  -returnType = 'Boolean'
+  -type = "method"
+
+[typeof]
+  -arguments = ['object']
+  -type = "method"
+  -returnType = 'Type'
+  -return = "The type of `object`."
+
+[sizeof]
+  -arguments = ['object']
+  -type = "method"
+  -returnType = 'Integer'
+  -return = "The size of `object` in bits."
+
+[sequence]
+  -arguments = ['start=0', 'increment=1', 'times=1']
+  -type="method"
+  -describe = "Returns a sequence of numbers starting at `start` with `increment` as the increment, and increments `times` times. "
+  -returnType = "Array"
+  -return = "An array of numbers."
+
+[help]
+  -arguments = ['object']
+  -type = "method"
+  -describe = "Provides documentation (if availiable) for `object`, and prints it to stdout."
+  -returnType = 'String'
+  -return = "The documentation for `object`."
+  
+[link]
+  -arguments = ['start', 'link="next"', 'reverse=false']
+  -type = 'method'
+  -describe = 'Starts at `start`, and uses `link` to find the next item, then continues from there. If link is a function, it will be called with the current item to get the next item. If `link` is a string, it will use the value of that attribute of the current item to get the next item.'
+  -returnType = 'Array'
+  -return = 'An array of the linked items'
+  
+[alloc]
+  -arguments = ['size']
+  -type = "method"
+  -describe = "Allocates `size` bits of memory. Automatically frees at the end of the program."
+  -return = 'A Bitarray referencing the bits in memory.'
+  -returnType = 'Bitarray'
+
+[open]
+  -arguments = ['filename', 'mode="w+"']
+  -type = "method"
+  -describe = "Opens `filename` for writing. If `mode` is not specified, it defaults to `w+`. `w+` is for reading and writing. `r` is for reading only."
+  -return = "A File object"
+  -returnType = 'File'
+
+[min]
+  -arguments = ['items...']
+  -type = "method"
+  -returnType = 'Integer'
+  -return = "The smallest of the given items."
+
+[max]
+  -arguments = ['items...']
+  -type = "method"
+  -returnType = 'Integer'
+  -return = "The largest of the given items."
+
+[sort]
+  -type = "method"
+  -arguments = ['iterable', 'reverse=false', 'key=function(x) return x']
+  -describe = "Sorts `iterable` smallest to largest, getting the value via `key`. If `reverse` is `true` then it will sort largest to smallest."
+  -returnType = 'Unspecified'
+  -return = "A sorted copy of `iterable`."
+
+[stdout]
+  -describe = "A stream to stdout."
+  [stdout.write] #stdout.write(...items)
+    -arguments = [ "items..." ]
+    -type = "method"
+    -describe = "Writes all `items` to stdout."
+
+[stdin]
+-describe = "A stream to stdin."
+  [stdin.read] #stdin.read()
+    -arguments = [ "chars" ]
+    -type = "method"
+    -describe = "Waits until `chars` characters have been entered into stdin, then returns them."
+    -returnType = "String"
+    -return = "`chars`characters from stdin."
+  [stdin.readLine] #stdin.readLine()
+    -type = "method"
+    -describe = "Waits until a newline has been entered into stdin, then returns the characters before the newline."
+    -returnType = "String"
+    -return = "Characters entered into stdin before `\\n`."
+  [stdin.prompt] #stdin.prompt(text)
+    -arguments = [ "text" ]
+    -type = "method"
+    -describe = "Writes `text` to stdout. Then waits for stdin and returns once a newline is entered."
+    -returnType = "String"
+    -return = "The text entered before newline."
+    -implementation = "stdout.write(text)\nstdin.readLine()"
+
+[stderr]
+-describe = "A stream to stderr."
+  [stderr.write] #stderr.write(...items)
+    -arguments = [ "items..." ]
+    -type = "method"
+    -describe = "Writes all `items` to stderr."
+
+[Math]
+-describe = "A object containing importain math functions and variables."
+  [Math.abs] #Math.abs(num)
+    -arguments = [ "num" ]
+    -type = "method"
+    -returnType = "Number"
+    -return = "The absolute value of `num`."
+  [Math.round] #Math.round(num)
+    -arguments = [ "num", "places=0" ]
+    -type = "method"
+    -returnType = "Number"
+    -return = "The rounded value of `num`."
+    -example = 'Math.round(12.34) # 12\nMath.round(12.34, 1) # 12.3\nMath.round(1234, -2) # 1200'
+  [Math.pi]
+    -type = "constant"
+    -describe = "The constant π (pi). Alias: `π`"
+  [Math.e]
+    -type = "constant"
+    -describe = "The constant e."
+  [Math.tau]
+    -type = "constant"
+    -describe = "The constant tau, equal to 2π"
+  [Math.ceil]
+    -arguments = [ 'x' ]
+    -type = "method"
+    -return = "Tthe ceiling of x, the smallest integer greater than or equal to x."
+    -returnType = "Number"
+  [Math.floor]
+    -arguments = [ 'x' ]
+    -type = "method"
+    -return = "the floor of x, the largest integer less than or equal to x."
+    -returnType = "Number"
+  [Math.cos]
+    -arguments = [ 'num' ]
+    -type = "method"
+    -return = "The cosine of `num`."
+    -returnType = "Number"
+  [Math.sin]
+    -arguments = [ 'num' ]
+    -type = "method"
+    -return = "The sine of `num`."
+    -returnType = "Number"
+  [Math.tan]
+    -arguments = [ 'num' ]
+    -type = "method"
+    -return = "The tangent of `num`."
+    -returnType = "Number"
+  [Math.log]
+    -arguments = [ 'num=Math.e' ]
+    -type = "method"
+    -return = "The natural logarithm of `num`."
+    -returnType = "Number"
+
+[null]
+  -describe = "Null. A type and a value at the same time."
+  -type = "constant"
+
+[Number]
+  -describe = "Numbers. NOTE, when getting a property in a number literal, use `(number).attr`. Example: `(5).digits[0]`. You don't need the () when its a variable, example `x = 5` `x.digits[0]`"
+  -type="class"
+  [Number.digits]
+    -describe = "An array containing all the digits in the number. `.` and `-` will be represented as strings"
+  [Number.prime]
+    -describe = "A boolean indicating whether the number is prime."
+    -type = "Boolean"
+
+[File]
+  -describe = "A file class. To open a File, use `open`."
+  [File.read]
+    -type = "method"
+    -arguments = ['chars', 'encoding=None']
+    -describe = "`encoding` will be auto-detected if not specified."
+    -returnType = "String or BitArray"
+    -return = "The next `chars` characters from the file."
+  [File.readLine]
+    -type = "method"
+    -arguments = ['encoding=None']
+    -describe = "`encoding` will be auto-detected if not specified."
+    -returnType = "String or BitArray"
+    -return = "The next characters before a `\n` from the file."
+  [File.readAll]
+    -type = "method"
+    -arguments = ['encoding=None']
+    -describe = "`encoding` will be auto-detected if not specified."
+    -returnType = "String or BitArray"
+    -return = "All the text from the file."
+  [File.write]
+    -type = "method"
+    -arguments = ['items...']
+    -describe = "Writes all `items` to the file. Does not reset file contents."
+  [File.writeLines]
+    -type = "method"
+    -arguments = ['lines...']
+    -describe = "Writes all `lines` to the file in lines. Does not reset file contents."
+  [File.erase]
+    -type = "method"
+    -arguments = []
+    -describe = "Erases file contents."
+  [File.move]
+    -type = "method"
+    -arguments = ['destination']
+    -describe = "Moves the file to `destination`."
+  [File.delete]
+    -type = "method"
+    -describe = "Deletes the file."
+
+
+[Stream]
+  -describe = "Like a file, but never ends. `stdin`, `stdout`, and `stderr` are streams"
+
+[String]
+  -describe = "A string literal. An array of chars. To define a string, use `\`Hello World\``, `\"Hello World\"`, or `'Hello World'`"
+  [String.replace]
+    -type = "method"
+    -arguments = ["original", "replacement", "count=∞"]
+    -returnType = "String"
+    -return = "The string with `replacement` replaced `count` times."
+  [String.split]
+    -type = "method"
+    -arguments = ['separator=" "']
+    -returnType = "Array"
+  [String.startsWith]
+    -type = "method"
+    -arguments = ["prefix"]
+    -returnType = "Boolean"
+    -return = "A boolean value indicating whether the string starts with the prefix."
+  [String.endsWith]
+    -type = "method"
+    -arguments = ["suffix"]
+    -returnType = "Boolean"
+    -return = "A boolean value indicating whether the string ends with the suffix."
+  [String.contains]
+    -type = "method"
+    -arguments = ['substring']
+    -returnType = "Boolean"
+    -return = "A boolean value indicating whether the string contains the substring."
+
+[Bitarray]
+  -describe = "An array of bits."
+
+[Function]
+  -describe = "To define a function, use `function x() {}`"
+
+[Type]
+  -describe = "All classes inherit from this. It is the base class for all types."
+
+[Set]
+  -describe = "A set of unique objects. Here's and exmaple of a set: `set{1, 2, 3}`. Sets are iterable and share much in common with other iterables."
+
+[Array]
+  -describe = "An array of objects. Here's an example of how you would create an array: `[1, 2, 3]`."
+
+[Tuple]
+  -describe = "A tuple of objects. Here's an example of how you would create a tuple: `(1, 2, 3)`."
+
+[Object]
+  -describe = "Everything is an object, but this type is only an object. It is an array of key:value pairs. This type is empty and has no default methods or attributes. To create one of these objects use either `{}` or `Object()`. Example: `{x: 1, y: 2}`"

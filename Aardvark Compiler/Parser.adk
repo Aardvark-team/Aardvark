@@ -15,7 +15,7 @@ class Parser as this {
         this.lexer = lexer
     }
     ## Utility
-
+ 
     # Get next tokens
     function peek(n=0)
         return (this.tokens[this.pos + n]) if this.pos + n < this.tokens.length else (null);
@@ -55,7 +55,6 @@ class Parser as this {
         throw Error("Token", $"Token {Type} expected, but not found.")
         #TODO: Throw an error
     }
-    # TODO: allow x, y, z = [1, 2, 3]
 
     ## Actually parse it
     function pPrimary(require=false) {
@@ -65,7 +64,7 @@ class Parser as this {
         if !tok | this.isEOF() 
             return this.EOFError('Value') if require else null;
         
-        else if this.compare('Operator', '$') & this.peek(1) & this.peek(1).type == 'String' & this.peek().end.column == this.peek(1).start.column - 1 {
+        else if this.compare('Operator', '$') & this.peek(1).compare('String', null, tok.end.column + 1) {
             start = this.eat()
             string = this.eat()
 
@@ -158,12 +157,28 @@ class Parser as this {
 
         else if this.compare('Delimiter', '(') {
             this.eat()
-            self.eatLBs()
+            this.eatLBs()
             ast_node = this.pStatement(eatLBs=true)
             #TODO, allow linebreaks in it.
-            self.eatLBs()
+            this.eatLBs()
             this.eat('Delimiter', ')')
         }
+
+        else if (
+            this.compare('Keyword', 'include') &
+            this.peek(1).compare('Delimiter', '(', tok.end.column + 1)
+        )
+            ast_node = this.pFunctionCall({
+                type: 'VariableAccess',
+                value: 'include',
+                position: this.eat().position
+            })
+
+        else if this.compare('Keyword', 'function') 
+            ast_node = this.pFunctionDefinition()
+
+        else if this.compare('Keyword', 'class')
+            ast_node = this.pClassDefinition()
 
         #TODO
         while ast_node {
@@ -222,6 +237,12 @@ class Parser as this {
                         value: ast_node.tokens?
                     }
                 }
+                if this.compare('Keyword', 'if') 
+                    ast_node = this.pIf(ast_node)
+                if this.compare('Keyword', 'while') 
+                    ast_node = this.pWhile(ast_node)   
+                if this.compare('Keyword', 'for') 
+                    ast_node = this.pFor(ast_node)
                 continue;
             }
 
@@ -264,19 +285,24 @@ class Parser as this {
             left = (this.pPrimary(require)) if level < 0 else (this.pExpression(level - 1, require, exclude, eatLBs));
         return left
     }
-    function pBlock(parser=this.pStatement) {
+    function pBlock(parser=this.pStatement, single=true) {
         this.eatLBs()
-        start = this.eat('Delimiter', '{')
-        body = []
-        while this.peek() & !this.compare('Delimiter', '}') {
-            if body.length > 0 & this.peek(-1).type != 'LineBreak' 
-                this.eat('LineBreak');
-            this.eatLBs()
-            if this.compare('Delimiter', '}') break;
-            body.append(parser())
-        }
-        end = this.eat('Delimiter', '}')
-        return [body, end.end]
+        if this.compare('Delimiter', '{') {
+            start = this.eat('Delimiter', '{')
+            body = []
+            while this.peek() & !this.compare('Delimiter', '}') {
+                if body.length > 0 & this.peek(-1).type != 'LineBreak' 
+                    this.eat('LineBreak');
+                this.eatLBs()
+                if this.compare('Delimiter', '}') break;
+                body.append(parser(require=true))
+            }
+            end = this.eat('Delimiter', '}')
+            return [body, end.end]
+        } else if single {
+            x = this.pStatement()
+            return [[x], x.position.end]
+        } else throw Error('Expected block {}.')
     }
     function pObject() {
         start = this.eat('Delimiter', '{')
@@ -307,7 +333,8 @@ class Parser as this {
                             type: 'VariableAccess',
                             value: tok.value,
                             position: tok.position
-                        }
+                        },    
+                        single: true
                     })
                     continue
                 }
@@ -323,7 +350,8 @@ class Parser as this {
             obj.add({
                 type: 'Pair',
                 key: key,
-                value: this.pStatement(true, eatLBs=true)
+                value: this.pStatement(true, eatLBs=true),
+                single: false
             })
             this.eatLBs()
         }
@@ -418,10 +446,10 @@ class Parser as this {
                 else 
                     throw Error("Argument", "Keyword Arguments must be valid identifiers.")
             } else if value.type == 'Operator' & value.operator == '...' {
-                if value.left & !value.right
-                    throw Error("Operator", "🤦‍♂️ You know the ... goes on the left side of the expression, right?")
-                else if value.left & value.right
-                    throw Error('Operator', '... only needs the right operand.')
+                if value.left & value.right
+                    throw Error('Operator', '🤦‍♂️ You know the ... only needs one operand, right?')
+                else if value.left 
+                    spreads.add(value.left)
                 else spreads.add(value.right)
             }
             else {
@@ -446,29 +474,19 @@ class Parser as this {
     function pIf(body=null) {
         start = this.eat('Keyword', 'if')
         condition = this.pExpression(require=true)
-        lasti = null
         else_body = null
 
         if !body {
-            if this.compare('Delimiter', '{') {
-                x = this.eatBlockScope()
-                body = x[0]
-                lasti = x[1]
-            }
-            else body = [this.pStatement(true)]
+            x = thispBlock()
+            body = x[0]
+            closing_pos = x[1]
         }
-        closing = lasti ? body[0].position.end
 
         if this.compare('Keyword', 'else') {
-            lasti = null
             this.eat()
-            if this.compare('Delimiter', '{') {
-                x = this.eatBlockScope()
-                else_body = x[0]
-                lasti = x[1]
-            }
-            else else_body = [this.pStatement(true)]
-            closing_pos = lasti ? else_body[0].position.end
+            x = thispBlock()
+            else_body = x[0]
+            closing_pos = x[1]
         }
         return {
             type: 'IfStatement',
@@ -481,17 +499,12 @@ class Parser as this {
     function pWhile(body=null) {
         start = this.eat('Keyword', 'while')
         condition = this.pExpression(require=true)
-        lasti = null
 
         if !body {
-            if this.compare('Delimiter', '{') {
-                x = this.eatBlockScope()
-                body = x[0]
-                lasti = x[1]
-            }
-            else body = [this.pStatement(true)]
+            x = thispBlock()
+            body = x[0]
+            closing_pos = x[1]
         }
-        closing = lasti ? body[0].position.end
         return {
             type: 'WhileStatement',
             condition: condition,
@@ -514,7 +527,7 @@ class Parser as this {
         } 
         else if this.compare('Delimiter', '{') {
             try {
-                x = this.eatBlockScope()
+                x = this.pBlock(single=false)
                 end = x[1]
                 expansion = x[0]
             }
@@ -530,6 +543,66 @@ class Parser as this {
                 start:start, 
                 end:end
             }
+        }
+    }
+    function pFunctionDefinition(special=false) {
+        name = starter = null
+        parameters = []
+        if !special 
+            starter = this.eat('Keyword', 'function')
+        if this.compare('Identifier')
+            name = this.eat()
+        if this.compare('Delimiter', '(') {
+            openparen = this.eat()
+            while this.peek() & !this.compare('Delimiter', ')') & !(this.compare('Delimiter', ',') & this.compare('Delimiter', ')', 1)) {
+                this.eatLBs()
+                if parameters.length > 0
+                    this.eat('Delimiter', ',')
+                this.eatLBs()
+                value = this.pExpression(require=true, eatLBs=true)
+                default = null
+                if value.type == 'Operator' & value.operator == '=' {
+                    if value.left.type != 'VariableAccess' 
+                        throw Error("Cannot have expression as parameter name.")
+                    default = value.right
+                    name = value.left.value
+                } 
+                if value.type == 'Operator' & value.operator == '...' {
+                    if value.left & value.right
+                        throw Error('Operator', '🤦‍♂️ You know the ... only needs one operand, right?')
+                    else if value.left 
+                        parameters.add({
+                            type: 'spreads',
+                            name: value.left,
+                            default: default,
+                            type: null
+                        })
+                    else parameters.add({
+                        type: 'spreads',
+                        name: value.right,
+                        default: default,
+                        type: null
+                    })
+                } else if value.type == 'VariableAccess' {
+                    parameters.add({
+                        type: 'default',
+                        name: value.value,
+                        default: default,
+                        type: null
+                    })
+                } else 
+                    throw Error("Cannot have expression as parameter name.")
+            }
+            if this.compare('Delimiter', ',') this.eat();    
+            this.eat('Delimiter', ')')
+        }
+        [body, end] = this.pBody()
+        return {
+            type: 'FunctionDefinition',
+            name: name,
+            parameters: parameters,
+            special: special,
+            position: {start: starter, end: end}
         }
     }
     function pStatement(require=false, eatLBs=false) {

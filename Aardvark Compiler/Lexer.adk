@@ -1,6 +1,4 @@
 include TokenTypes, Operators, Keywords, Quotes, Whitespaces, Booleans, Delimiters, NotIncluded from Data
-#include Error
-
 
 class Token as this {
     $constructor(type, 
@@ -23,6 +21,11 @@ class Token as this {
   $string() {
     return $"Token({this.type}, \"{this.value}\", from {this.start.line}:{this.start.column} to {this.end.line}:{this.end.column})"
   }
+    function compare(type, value, startcol) {
+        if (!type | this.type == type) & (!value | this.value == value) & (!startcol | this.start.column == startcol)
+            return true;
+        return false;
+    }
 }
 
 

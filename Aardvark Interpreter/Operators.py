@@ -357,11 +357,24 @@ def assign(x, y, errorhandler, line, expr, scope, exec, predone=False):
     if var["type"] == "PropertyAccess":
         defscope = exec.enterScope(var["value"], scope, scope)
         var = var["property"]
+        exec.defineVar(var, value, defscope)
     elif var["type"] == "Index":
         defscope = exec.enterScope(var["value"], scope, scope)
         var = exec.ExecExpr(var["property"], scope)
+        exec.defineVar(var, value, defscope)
     elif var["type"] == "VariableAccess":
         var = var["value"]
+        exec.defineVar(var, value, defscope)
+    elif var['type'] == 'Array':
+        spread = None
+        for i in range(len(var['items'])):
+            val = var['items'][i]
+            if val['type'] == 'Spread':
+                spread = val['value']
+            else:
+                assign(val, value[i], errorhandler, line, expr, scope, exec, True)
+        if spread: 
+            exec.defineVar(spread, value[i:], defscope) 
     else:
         errorhandler.throw(
             "Assignment",
@@ -380,7 +393,6 @@ def assign(x, y, errorhandler, line, expr, scope, exec, predone=False):
                 "traceback": self.traceback,
             },
         )
-    exec.defineVar(var, value, defscope)
     return value
 
 @operator('+=')

@@ -3,6 +3,7 @@ import Error
 from sty import fg
 from Types import Null
 import random
+import json
 
 type_helper = {}
 
