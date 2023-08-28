@@ -2,6 +2,7 @@
   deps = [
     pkgs.python39Packages.black
     pkgs.python311
+    pkgs.replitPackages.stderred
   ];
   env = {
     LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath [
@@ -14,5 +15,6 @@
     ];
     PYTHONBIN = "${pkgs.python311}/bin/python3.11";
     LANG = "en_US.UTF-8";
+    STDERREDBIN = "${pkgs.replitPackages.stderred}/bin/stderred";
   };
 }

@@ -1,0 +1,41 @@
+Metadata-Version: 2.1
+Name: replit
+Version: 3.3.1
+Summary: A library for interacting with features of repl.it
+Home-page: https://github.com/replit/replit-py
+License: ISC
+Author: Repl.it
+Author-email: contact@repl.it
+Requires-Python: >=3.8,<4.0
+Classifier: License :: OSI Approved
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Requires-Dist: Flask (>=2.0.0,<3.0.0)
+Requires-Dist: Werkzeug (>=2.0.0,<3.0.0)
+Requires-Dist: aiohttp (>=3.6.2,<4.0.0)
+Requires-Dist: aiohttp-retry (>=2.8.3,<3.0.0)
+Requires-Dist: protobuf (>=4.21.8,<5.0.0)
+Requires-Dist: pyseto (>=1.6.11,<2.0.0)
+Requires-Dist: requests (>=2.25.1,<3.0.0)
+Requires-Dist: typing_extensions (>=3.7.4,<4.0.0)
+Project-URL: Documentation, https://replit-py.readthedocs.org/
+Project-URL: Repository, https://github.com/replit/replit-py
+Description-Content-Type: text/markdown
+
+### `>>> import replit`
+
+![compute](https://github.com/kennethreitz42/replit-py/blob/kr-cleanup/ext/readme.gif?raw=true)
+
+This repository is the home for the `replit` Python package, which provides:
+
+- A fully-featured database client for [Replit DB](https://docs.repl.it/misc/database).
+- A Flask–based application framework for accelerating development on the platform.
+- Replit user profile metadata retrieval (more coming here!).
+- A simple audio library that can play tones and audio files!
+
+### Open Source License
+
+This library is licensed under the [ISC License](https://en.wikipedia.org/wiki/ISC_license) and is free for you to use, change, or even profit from!
+

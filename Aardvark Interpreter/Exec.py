@@ -3,6 +3,7 @@ import Error
 import Lexer
 import Parser
 import sys
+import inspect
 from Operators import Operators
 import random
 import math
@@ -127,6 +128,7 @@ class Executor:
                 "open": open,
                 "include": self.include,
                 "link": LinkFunct,
+                "exit": sys.exit
             }
         )  # Define builtins here
         # TODO: implement more builtins.
@@ -246,6 +248,7 @@ class Executor:
                     "traceback": self.traceback,
                 },
             )
+        return Null
 
     def enterScope(self, var, scope, main):
         match var:
@@ -344,9 +347,8 @@ class Executor:
                 return ret
             case {"type": "Operator", "operator": "?"}:
                 left = self.ExecExpr(expr["left"], scope, False)
-                op = Operators[expr["operator"]]
                 right = self.ExecExpr(expr["right"], scope)
-                return op(
+                return Operators['?'](
                     left,
                     right,
                     self.errorhandler,

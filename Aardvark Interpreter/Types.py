@@ -4,6 +4,31 @@ import time
 import os
 import sys
 
+def convert_number(number: str, base: int, charmap: str):
+    value = 0
+    for i, char in enumerate(number):
+        if charmap.index(char) >= base:
+            raise Exception(f"character '{char}' is not in base {base}")
+        value += charmap.index(char) * base ** (len(number) - 1 - i)
+        
+    return value
+    
+def get_number(number: str, base: int, charmap: str):
+    mult = 1
+    
+    while number.startswith("-") or number.startswith("+"):
+        if number.startswith("+"): number = number[1:]
+        else:
+            number = number[1:]
+            mult *= -1
+    
+    parts = number.split(".")
+    
+    num = convert_number(parts[0], base, charmap)
+    if len(parts) > 1:
+        num += convert_number(parts[1], base, charmap) / (base ** len(parts[1]))
+    
+    return num * mult
 
 class Type:
     vars = {}
@@ -28,7 +53,6 @@ class Type:
 
     def __getitem__(self, name):
         return self.get(name)
-
 
 class Object(Type):
     def __init__(
@@ -245,6 +269,7 @@ class String(str, Type):
             "replace": lambda x, y="": self.replace(x, y),
             "contains": lambda x: x in self,
             "join": self.join,
+            "indexOf": self.find
         }
         str.__init__(self)
 
@@ -252,17 +277,16 @@ class String(str, Type):
         return self.removesuffix(other)
 
 
-class Number(Type, float):
-    def __init__(self, value):
-        if type(value) not in [float, int]:
+class Number(Type):
+    def __init__(self, value=0, base=10, map=String("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")):
+        #print(value, type(value))
+        if type(value) in [str, String]:
             try:
-                value = float(value)
-            except:
-                value = float(int(value))
-        if type(value) == float:
-            float.__init__(self)
-        else:
-            int.__init__(self)
+                value = get_number(value, base, map)
+            except Exception as e:
+                value = int(value, base)
+        self.value = value
+        float.__init__(self)
         self.vars = {
             "digits": [int(x) if x in "0123456789" else x for x in str(value)]
             if len(str(value)) > 1
@@ -270,18 +294,14 @@ class Number(Type, float):
             # methods and attributes here
         }
         try:
-            self.vars["prime"] = self >= 1 and all(
-                self % i for i in range(2, int(self**0.5) + 1)
+            self.vars["prime"] = value >= 1 and all(
+                self % i for i in range(2, int(self.value**0.5) + 1)
             )
         except OverflowError:
             self.vars["prime"] = True
-        # TODO: add prime factorization function to math.
 
     def __repr__(self):
-        if self % 1 == 0:
-            return str(int(self))
-        else:
-            return str(float(self))
+        return str(self)
 
     def __str__(self):
         if self % 1 == 0:
@@ -297,6 +317,116 @@ class Number(Type, float):
 
     def __call__(self, x):
         return self * x
+    def __float__(self):
+        return float(self.value)
+    
+    def __int__(self):
+        return int(self.value)
+    
+    def __str__(self):
+        return str(self.value)
+    
+    def __abs__(self):
+        return Number(abs(self.value))
+    
+    def __neg__(self):
+        return Number(-self.value)
+    
+    def __pos__(self):
+        return Number(+self.value)
+    
+    def __invert__(self):
+        return ~int(self.value)
+    
+    def __truediv__(self, other):
+        if isinstance(other, Number):
+            return self.value / other.value
+        else:
+            return self.value / other
+    
+    def __floordiv__(self, other):
+        if isinstance(other, Number):
+            return self.value // other.value
+        else:
+            return self.value // other
+    
+    def __mod__(self, other):
+        if isinstance(other, Number):
+            return self.value % other.value
+        else:
+            return self.value % other
+    
+    def __pow__(self, other, modulo=None):
+        if isinstance(other, Number):
+            return pow(self.value, other.value, modulo)
+        else:
+            return pow(self.value, other, modulo)
+    
+    def __eq__(self, other):
+        if isinstance(other, Number):
+            return self.value == other.value
+        else:
+            return self.value == other
+    
+    def __lt__(self, other):
+        if isinstance(other, Number):
+            return self.value < other.value
+        else:
+            return self.value < other
+    
+    def __le__(self, other):
+        if isinstance(other, Number):
+            return self.value <= other.value
+        else:
+            return self.value <= other
+    
+    def __gt__(self, other):
+        if isinstance(other, Number):
+            return self.value > other.value
+        else:
+            return self.value > other
+    
+    def __ge__(self, other):
+        if isinstance(other, Number):
+            return self.value >= other.value
+        else:
+            return self.value >= other
+    
+    def __invert__(self):
+        return Number(~int(self.value))
+    
+    def __add__(self, other):
+        return Number(self.value + other.value if isinstance(other, Number) else self.value + other)
+    
+    def __radd__(self, other):
+        return Number(other + self.value)
+    
+    def __sub__(self, other):
+        return Number(self.value - other.value if isinstance(other, Number) else self.value - other)
+    
+    def __rsub__(self, other):
+        return Number(other - self.value)
+    
+    def __mul__(self, other):
+        return Number(self.value * other.value if isinstance(other, Number) else self.value * other)
+    
+    def __rmul__(self, other):
+        return Number(other * self.value)
+    
+    # Implement other arithmetic and bitwise operations similarly
+    
+    def __iadd__(self, other):
+        self.value += other.value if isinstance(other, Number) else other
+        return self
+    
+    def __isub__(self, other):
+        self.value -= other.value if isinstance(other, Number) else other
+        return self
+    def __imul__(self, other):
+        self.value *= other.value if isinstance(other, Number) else other
+        return self
+    def __hash__(self):
+        return hash(self.value)
 
 
 class Boolean(int, Type):
@@ -600,6 +730,8 @@ def pyToAdk(py):
     try:
         if type(py) in Types:
             return py
+        if type(py) == type:
+            return py
         elif py == None:
             return Null
         elif isinstance(py, bool):
@@ -620,8 +752,6 @@ def pyToAdk(py):
             return Function(py)
         elif isinstance(py, types.ModuleType):
             return Object(dict_from_other(py))
-        elif callable(py):
-            return Function(py)
         elif (
             isinstance(py, io.TextIOBase)
             or isinstance(py, io.BufferedIOBase)
@@ -629,6 +759,8 @@ def pyToAdk(py):
             or isinstance(py, io.IOBase)
         ):
             return File(py)
+        elif callable(py):
+            return Function(py)
         else:
             return Object(dict_from_other(py))
     except RecursionError:

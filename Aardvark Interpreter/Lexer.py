@@ -11,7 +11,6 @@ from Data import (
 )
 import Error
 
-
 class Token:
     def __init__(
         self,

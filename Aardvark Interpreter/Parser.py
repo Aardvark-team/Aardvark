@@ -33,6 +33,7 @@ class Parser:
         self.pos = 0
         self.err_handler = err_handler
         self.lexer = lexer
+        self.debug = False
 
     ## UTILITY
 
@@ -57,7 +58,7 @@ class Parser:
         self.pos += 1
 
     def eatLBs(self):
-        while self.compare(TokenTypes["LineBreak"]):
+        while self.compare("LineBreak"):
             self.advance()
 
     # Unexpected EOF
@@ -96,6 +97,8 @@ class Parser:
 
     # Consume the current token if the types match, else throw an error
     def eat(self, Type="any", value=None, is_type=False):
+        # if self.peek().start['line'] >= 884:
+        #     self.debug = True
         if type(Type) == str:
             Type = TokenTypes[Type]
 
@@ -473,6 +476,7 @@ class Parser:
             # TODO: add a, b, c
 
             return ast_node
+
         if require:
             # Throw an error
             self.err_handler.throw(
@@ -549,6 +553,7 @@ class Parser:
                     .get("end", op.end),  # to handle if there is no right
                 },
             }
+        #TODO: extends = [] causes it too loop forever.
         if left == None and require:
             if level < 0:
                 left = self.pPrimary(require=require, exclude=exclude)
@@ -1251,55 +1256,55 @@ class Parser:
     # 	VariableDefinition
     def pStatement(self, require=False, eatLBs=False):
         self.eatLBs()
-
+        
         if self.compare("Keyword", "try"):
             return self.pTryCatch()
 
         if self.compare("Keyword", "throw"):
             return self.pThrow()
 
-        if self.compare(TokenTypes["Keyword"], "function"):
+        if self.compare("Keyword", "function"):
             return self.pFunctionDefinition()
 
-        if self.compare(TokenTypes["Keyword"], "return"):
+        if self.compare("Keyword", "return"):
             return self.pReturnStatement()
 
-        if self.compare(TokenTypes["Keyword"], "defer"):
+        if self.compare("Keyword", "defer"):
             return self.pDeferStatement()
 
-        if self.compare(TokenTypes["Keyword"], "if"):
+        if self.compare("Keyword", "if"):
             return self.pIfStatement()
 
-        if self.compare(TokenTypes["Keyword"], "while"):
+        if self.compare("Keyword", "while"):
             return self.pWhileLoop()
 
-        if self.compare(TokenTypes["Keyword"], "delete"):
+        if self.compare("Keyword", "delete"):
             return self.pDelete()
 
-        if self.compare(TokenTypes["Keyword"], "for"):
+        if self.compare("Keyword", "for"):
             return self.pForLoop()
 
-        if self.compare(TokenTypes["Keyword"], "include"):
+        if self.compare("Keyword", "include"):
             return self.pIncludeStatement()
 
-        if self.compare(TokenTypes["Keyword"], "from"):
+        if self.compare("Keyword", "from"):
             return self.pIncludeStatement()
 
-        if self.compare(TokenTypes["Keyword"], "extending"):
+        if self.compare("Keyword", "extending"):
             return self.pExtendingStatement()
 
-        if self.compare(TokenTypes["Keyword"], "class"):
+        if self.compare("Keyword", "class"):
             return self.pClassDefinition()
 
-        if self.compare(TokenTypes["Keyword"], "switch"):
+        if self.compare("Keyword", "switch"):
             return self.pSwitchCase()
 
-        if self.compare(TokenTypes["Keyword"], "break"):
+        if self.compare("Keyword", "break"):
             return self.pBreak()
             
-        if self.compare(TokenTypes["Keyword"], "continue"):
+        if self.compare("Keyword", "continue"):
             return self.pContinue()
-
+            
         return self.pExpression(require=require, eatLBs=eatLBs)
 
     # Program:
@@ -1317,7 +1322,6 @@ class Parser:
                 self.advance()
             if self.isEOF():
                 break
-
             self.statements.append(self.pStatement(True))
 
         return {

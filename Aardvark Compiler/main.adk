@@ -1,6 +1,6 @@
 include Lexer from Lexer
 include Parser from Parser
-
+stdout.write('Loaded.\n')
 testStr1 = `
 y = 2
 x = 54.78y
@@ -10,9 +10,14 @@ $"Hello"
 #*
 Multiline
 *#
+include x
+function x() {
+  return 8
+}
 `
-testStr2 = `"string"`
-
+testStr2 = `stdout.write($"string{hello}\n")`
+testStr3 = `16_fff`
+stdout.write('Lexing...')
 lexer = Lexer()
 toks = lexer.tokenize(testStr1)
 for tok in toks {
@@ -20,9 +25,9 @@ for tok in toks {
 }
 
 # stdout.write(prettify(toks), '\n')
-
+stdout.write('Parsing...')
 parser = Parser(null, lexer)
 data = parser.parse()
 stdout.write(data, '\n')
-
+open('out.txt', 'w').write(String(data))
 # stdout.write(prettify(data), '\n')

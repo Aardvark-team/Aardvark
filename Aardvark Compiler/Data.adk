@@ -114,5 +114,5 @@ Keywords = set{
     'as',
     'from' # other
 }
-
+BaseNumsOrder = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVQXYZ"
 Quotes = set{'"', "'", "`"}

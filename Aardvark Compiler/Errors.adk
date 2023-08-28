@@ -1,6 +1,7 @@
 include Lexer
 #TODO
-ansi = python.import('sty') #Make ansi lib to replace this later.
+ansi = python.import('sty') 
+# TODO: Make ansi lib to replace the python lib.
 fg = ansi.fg
 bg = ansi.bg
 ef = ansi.ef
@@ -36,7 +37,8 @@ class ErrorHandler {
     $constructor() {
         
     }
-    throw(type, message, options={}) {
+    Throw(type, message, options={}) { 
+        # upercase throw to not conflict with throw keyword
         #TODO
     }
 }
