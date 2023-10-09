@@ -3,7 +3,6 @@ from Data import *
 import Lexer
 import sys
 
-
 styles = {
     "String": fg(152, 195, 121) + ef.rs,
     "Function": fg(97, 175, 239) + ef.rs,
@@ -114,7 +113,7 @@ def get_trace_line(index, line):
     return " " * len(header) + line["name"] + fileloc
 
 
-def print_error(type: str, pos, msg, didyoumean, err_trace, code):
+def print_error(type: str, pos, msg, didyoumean, err_trace, code, color=fg(225, 30, 10), symbol="ⓧ", note=None):
     padding = (
         len(str(pos["lineend"])) + 1
     )  # To dynamicly adjust padding based on the larger line num
@@ -172,7 +171,7 @@ def print_error(type: str, pos, msg, didyoumean, err_trace, code):
         )
 
     underline_str = underline_str.rstrip()
-    error_underline = f'{" "*(padding+3)}{ef.bold + fg(225, 30, 10)}{underline_str}―>{ef.rs} {fg(225, 30, 10)}{msg}'
+    error_underline = f'{" "*(padding+3)}{ef.bold + color}{underline_str}―>{ef.rs} {color}{msg}'
     code_lines = code.split("\n")
     code_lines[lineno - 1] = (
         code_lines[lineno - 1] + "\n" + error_underline + styles["default"]
@@ -193,7 +192,10 @@ def print_error(type: str, pos, msg, didyoumean, err_trace, code):
         #    'background': False
         # })
         didyoumean = "\n".join(lines_mean[linestart:lineend])
-
+    if note:
+      note = f"\n{color}NOTE: {note}{fg.rs}"
+    else:
+      note = ""
     code = "\n".join(code_lines[linestart:lineend])
 
     traceback = ""
@@ -210,18 +212,19 @@ def print_error(type: str, pos, msg, didyoumean, err_trace, code):
     else:
         didyoumean = fg.rs
 
-    output = f"""{fg(225, 30, 10)}ⓧ  {type}Error in {pos["filename"]}:{pos["lineno"]}:{marker_pos if marker_pos != None else underline_start}
-{traceback}{styles["default"]}{code}{didyoumean}"""
+    output = f"""{color}{symbol}  {type} in {pos["filename"]}:{pos["lineno"]}:{marker_pos if marker_pos != None else underline_start}
+{traceback}{styles["default"]}{code}{didyoumean}{note}"""
     print(output, file=sys.stderr)
 
 
 class ErrorHandler:
-    def __init__(self, code, filename, py_error=False, silenced=False):
+    def __init__(self, code, filename, py_error=False, silenced=False, mode="Error"):
         self.code = code
         self.codelines = code.split("\n")
         self.filename = filename
         self.py_error = py_error
         self.silenced = silenced
+        self.mode = mode
 
     def throw(self, type, message, options={}):
         if self.silenced:
@@ -231,7 +234,7 @@ class ErrorHandler:
         options["lineend"] = options["lineno"] + 1
 
         print_error(
-            type,
+            type+self.mode,
             options,
             message,
             options.get("did_you_mean", None),
@@ -247,8 +250,7 @@ class ErrorHandler:
 
 
 if __name__ == "__main__":
-    examplecode = '#print Hello World\nstdout|.write("Hello World\\n")\n#after'
-    print(examplecode)
+    examplecode = '# print Hello World\nstdout|.write("Hello World\\n")\n#after'
     code_stack = [
         {"name": "this()", "line": 2, "col": 4, "filename": "main.adk"},
         {"name": "is_an()", "line": 5, "col": 3, "filename": "other.adk"},
@@ -256,7 +258,7 @@ if __name__ == "__main__":
     ]
 
     print_error(
-        "Syntax",  # You can change how this works or make a class for Error or really whatever you think is best, this is still only a proof of concept. Later, I'm going to start writing the compiler.
+        "SyntaxError",  # You can change how this works or make a class for Error or really whatever you think is best, this is still only a proof of concept. Later, I'm going to start writing the compiler.
         {
             # ok
             "linestart": 1,  # Line of the code's start
@@ -264,11 +266,35 @@ if __name__ == "__main__":
             "lineno": 2,  # Line the error is on
             "filename": "main.adk",  # File the error is in.
             # I cleaned up some of the positions so now they are in separate objects
-            "marker": {"start": 8, "length": 6},
+            "marker": {"start": 9, "length": 6},
             "underline": {"start": 1, "end": 30},
         },
         '".write" is invalid. No object to get attribute of.',
         Highlight('stdout.write("Hello World\\n")', {"linenums": False}),
         code_stack,
         examplecode,
+    )
+    print()
+    examplecode = 13*'\n'+'# This is a test for the smart features. \nfunction createEmptyObject() {}\n\nfunction testErrorAutoCorrect() {\n'
+    code_stack = [
+        {"name": "testErrors()", "line": 7, "col": 4, "filename": "main.adk"},
+    ]
+
+    print_error(
+        "InferenceWarning",
+        {
+            "linestart": 14,  # Line of the code's start
+            "lineend": 17,  # Line of the code's end
+            "lineno": 15,  # Line the error is on
+            "filename": "helper.adk",  # File the error is in.
+            "marker": {"start": 31, "length": 2},
+            "underline": {"start": 1, "end": 30},
+        },
+        'Cannot determine return from context.',
+        None,
+        code_stack,
+        examplecode,
+        fg(235, 175, 10),
+        '⚠',
+        'Is that an empty scope or an empty object?\nDefaulting to object because "object" detected in function name.\nTo treat as empty scope, set return type with `-> null`'
     )

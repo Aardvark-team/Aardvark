@@ -182,6 +182,8 @@ class Parser:
                     )
                 self.eat(TokenTypes["Delimiter"], delim)
             self.eatLBs()
+            if self.compare(*closer):
+              return items
             items.append(self.pStatement(eatLBs=True))
             self.eatLBs()
         return items
@@ -960,10 +962,10 @@ class Parser:
 
         if self.compare("Keyword", "extends"):
             self.eat("Keyword", "extends")
-            extends.append(self.eat(TokenTypes["Identifier"]).value)
+            extends.append(self.eat(TokenTypes["Identifier"]))
             while self.compare("Delimiter", ","):
                 self.eat("Delimiter")
-                extends.append(self.eat(TokenTypes["Identifier"]).value)
+                extends.append(self.eat(TokenTypes["Identifier"]))
 
         if self.compare("Keyword", "as"):
             self.eat("Keyword", "as")

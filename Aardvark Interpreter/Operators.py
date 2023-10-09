@@ -310,7 +310,7 @@ def inop(x, y, errorhandler, line, ast, scope, exec):
     # TODO: add if y and x equal none
     try:return x in y
     except:
-        print('vals', x, y)
+        # print('vals', x, y)
         sys.exit()
 
 

@@ -1,5 +1,6 @@
 { pkgs }: {
   deps = [
+    pkgs.llvmPackages_13.bintools-unwrapped
     pkgs.python39Packages.black
     pkgs.python311
     pkgs.replitPackages.stderred

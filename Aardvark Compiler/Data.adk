@@ -44,7 +44,6 @@ Operators = set{
   "xor", # xor
   "in",  # in
   '$', #special functions
-    ','
 }
 
 OrderOfOps = {
@@ -89,7 +88,8 @@ Delimiters = set{
     "}",  # rbrace
     "[",  # lbracket
     "]",  # rbracket
-    "."  # period
+    ".",  # period
+    ','   # comma, for separating values.
 }
 
 Keywords = set{

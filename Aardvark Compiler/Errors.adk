@@ -2,6 +2,7 @@ include Lexer
 #TODO
 ansi = python.import('sty') 
 # TODO: Make ansi lib to replace the python lib.
+# stdout.write(ansi)
 fg = ansi.fg
 bg = ansi.bg
 ef = ansi.ef
@@ -18,27 +19,207 @@ styles = {
     "Comment": fg(92, 99, 112) + ef.italic,
     "Delimiter": fg(245, 245, 255) + ef.rs,
     "default": fg(171, 178, 191) + ef.rs,
-    "suggestion": fg(255, 165, 0),
+    "suggestion": fg(255, 165, 0)
 }
+
 function genLine(linenum, digits)
-    return " " * (digits - len(str(linenum))) + f'{styles["default"]}{linenum} │ ';
+    return " " * (digits - linenum.digits.length) + styles["default"] + String(linenum) + " │ "; # See Types.py line 276
 
 
 
 function Highlight(code, opts={}) {
-    #TODO
+    lexer = Lexer.Lexer(false, true)
+    tokens = lexer.tokenize(code)
+    line = opts["startline"] if opts["startline"] else 1
+    output = styles["background"] if opts["background"] else "" + styles["default"] + genLine(line, opts["leftpadding"] if opts["leftpadding"] else 4) if opts["linenums"] else ""
+
+    toknum = 0
+    last = 0
+
+    for token in tokens {
+        if token.start.index > last + 1
+            output += styles["default"] + code.slice(last + 1, token.start.index)
+
+        if token.type == "String"
+            output += styles[token.type] + token.variation + token.value.replace("\n", "\\n") + token.variation
+
+        else if token.value == "\n" {
+            line += 1
+            output += styles["default"] + "\n" + genLine(line, (opts["leftpadding"] if opts["leftpadding"] else 4) if opts["linenums"] else "")
+        }
+
+        else if token.type == "Identifier" & toknum < lexer.output.length - 1 & lexer.output[toknum + 1].type == "Delimiter" & lexer.output[toknum + 1].value == "("
+            output += styles[token.type] + token.value
+
+        else if styles[token.type]
+            output += styles[token.type] + token.value
+
+        else
+            output += styles["default"] + token.value
+
+        toknum += 1
+        last = token.end.index
+    }
+
+    output += rs.all
+    return output
+}
+
+function getTraceLine(index, line) {
+    header = "    at "
+    fileloc = " ― " + line['filename'] + ":" + line['line'] + ":" + line['col']
+
+    if index == 0
+        return header + line["name"] + fileloc
+
+    return " " * header.length + line["name"] + fileloc
 }
 
 function printError(type, pos, msg, didyoumean, traceback, code) {
-    #TODO
+    padding = (
+        pos["lineend"].digits.length + 1
+    )  # To dynamicly adjust padding based on the larger line num
+    lineno = pos["lineno"]
+    didyoumean_par = didyoumean
+
+    if pos["linestart"] < 0
+        pos["linestart"] = 0
+
+    code = Highlight(
+        code, {"startline": 1, "leftpadding": padding, "background": false}
+    )
+
+    underline_start = (pos["underline"] if pos["underline"] else {})["start"]
+    underline_end = (pos["underline"] if pos["underline"] else {})["end"]
+    marker_pos = (pos["marker"] if pos["marker"] else {})["start"] - 1
+    marker_length = (pos["marker"] if pos["marker"] else {})["length"]
+
+    underline = (underline_start - 1) * " " + "―" * (underline_end - underline_start + 1)
+    marker = (marker_pos - 1) * " " + "^" * (marker_length)
+    underline_str = ""
+
+    i = 0
+    while i < max(underline.length, marker.length) {
+        if i >= underline.length and i < marker.length
+            underline_str += marker[i]
+        else if i >= marker.length
+            underline_str += underline[i]
+        else if i < marker.length and i < underline.length {
+            if marker[i] != " "
+                underline_str += marker[i]
+            else if underline[i] != " "
+                underline_str += underline[i]
+            else
+                underline_str += " "
+        }
+        else break
+    }
+
+    if marker_pos
+        underline_str = underline_str.slice(0, max(marker_pos - 1, 0)) + "^" * marker_length + underline_str.slice(marker_pos - 1 + marker_length, underline_str.length)
+
+    underline_str = underline_str.rstrip()
+    error_underline = " "*(padding+3) + ef.bold + color + underline_str + "―>" + ef.rs + " " + color + msg
+    code_lines = code.split("\n")
+    code_lines[lineno - 1] = code_lines[lineno - 1] + "\n" + error_underline + styles["default"]
+
+    linestart = pos["linestart"] - (1 if pos["linestart"] > 0 else 0)
+    lineend = pos["lineend"] + (1 if pos["lineend"] + 1 < code_lines.length else 0)
+
+    if didyoumean_par {
+        lines_mean = code_lines.copy()
+        lines_mean[lineno - 1] = ' ' * (padding - lineno.length) + styles['default'] + lineno + " │ " + didyoumean
+        
+        # Highlight(didyoumean, {
+        #    'startline': pos["lineno"]+1,
+        #    'leftpadding': padding,
+        #    'background': False
+        # })
+        didyoumean = "\n".join(lines_mean.slice(linestart, lineend))
+    }
+
+    if note
+      note = "\n" + color + "NOTE: " + note + fg.rs
+    else
+      note = ""
+    
+    code = "\n".join(code_lines.slice(linestart, lineend))
+    traceback = ""
+
+    if err_trace {
+        traced = []
+
+        i = 0
+        while i < err_trace.length {
+            traced.add(getTraceLine(i, err_trace[i]))
+            i += 1
+        }
+
+        traceback = "\n".join(traced) + "\n\n"
+    }
+
+    if didyoumean_par
+        didyoumean = "\n" + fg.blue + "ⓘ did you mean:" + styles["default"] + "\n" + didyoumean + fg.rs
+    else
+        didyoumean = fg.rs
+
+    output = color + symbol + "  " + type + " in " + pos["filename"] + ":" + pos["lineno"] + ":" + (marker_pos if marker_pos != None else underline_start) + "\n" + traceback + styles["default"] + code + didyoumean + note
+
+    stderr.write(output + "\n")
 }
 
 class ErrorHandler {
-    $constructor() {
-        
+    $constructor(code, filename, silenced = false, mode = "Error") {
+        this.code = code
+        this.codelines = code.split("\n")
+        this.filename = filename
+        this.silenced = silenced
+        this.mode = mode
     }
-    Throw(type, message, options={}) { 
+
+
+    function Throw(type, message, options = {}) {
         # upercase throw to not conflict with throw keyword
-        #TODO
+        if this.silenced return
+
+        options["filename"] = self.filename
+        options["linestart"] = options["lineno"] - (1 if options["lineno"] > 0 else 0)
+        options["lineend"] = options["lineno"] + 1
+
+        printError(
+            type + self.mode,
+            options,
+            message,
+            options["did_you_mean"] if options["did_you_mean"] else false,
+            options["traceback"] if options["traceback"] else false,
+            this.code
+        )
+
+        exit(1)
     }
 }
+
+
+# type, pos, msg, didyoumean, traceback, code
+printError(
+    "SyntaxError",  # You can change how this works or make a class for Error or really whatever you think is best, this is still only a proof of concept. Later, I'm going to start writing the compiler.
+    {
+        # ok
+        "linestart": 1,  # Line of the code's start
+        "lineend": 3,  # Line of the code's end
+        "lineno": 2,  # Line the error is on
+        "filename": "main.adk",  # File the error is in.
+        # I cleaned up some of the positions so now they are in separate objects
+        "marker": {"start": 9, "length": 6},
+        "underline": {"start": 1, "end": 30}
+    },
+    '".write" is invalid. No object to get attribute of.',
+    'stdout.write("Hello World\\n")',
+    [
+        {"name": "this()", "line": 2, "col": 4, "filename": "main.adk"},
+        {"name": "is_an()", "line": 5, "col": 3, "filename": "other.adk"},
+        {"name": "example()", "line": 8, "col": 8, "filename": "test.adk"},
+    ],
+    '# print Hello World\nstdout|.write("Hello World\\n")\n#after',
+    'stdout.write("Hello World\\n")'
+)

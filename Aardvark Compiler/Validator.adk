@@ -1,0 +1,36 @@
+# This file will validate the AST
+
+class Instruction as this {
+  $constructor(op, operands=[]) {
+    this.op = op
+    this.operands = operands
+  }
+  $string {
+    return $"{this.op} {' '.join()}"
+  }
+}
+class Scope as this {
+  $constructor(initial, parent) {
+    this.parent = parent
+    this.value = initial
+  }
+  $getitem(key) {
+    return this.value[key]
+  }
+  $setitem(key, v) {
+    this.value[key] = v
+  }
+}
+function getVar(scope) {
+  
+}
+function setVar(scope) {
+  #if name in scope.getAll() and name not in list(scope.vars.keys()):
+  #          self.defineVar(name, value, scope.parent)
+  #      else:
+  #          scope.vars[name] = pyToAdk(value)
+}
+function Validate(AST) {
+  va
+  if 
+}

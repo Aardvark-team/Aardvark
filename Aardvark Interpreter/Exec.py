@@ -54,6 +54,11 @@ def get_call_scope(scope):
     return call_scope
 
 
+def sigmoid(x) :
+  return 1 / (1 + math.exp(-x))
+def dsigmoid(x) :
+  return sigmoid(x)*(1-sigmoid(x))
+
 class Executor:
     def __init__(self, path, code, ast, errorhandler):
         self.path = path
@@ -113,6 +118,9 @@ class Executor:
                         "copysign": math.copysign,
                         "lcm": math.lcm,
                         "pow": math.pow,
+                        "tanh": math.tanh,
+                        "sigmoid": sigmoid,
+                        "dsigmoid": dsigmoid 
                     }
                 ),
                 "String": String,
@@ -139,6 +147,10 @@ class Executor:
         path = Path(Path(self.path).parent, name)
         locs.append(str(path))
         locs.append(str(path) + ".adk")
+
+        # allow importing folders that contain an index.adk
+        locs.append(os.path.join(str(path), "index.adk"))
+      
         if "/" not in name and "\\" not in name:
             for dir in searchDirs:
                 locs.append(dir + name)
@@ -181,7 +193,7 @@ class Executor:
         if name in scope.getAll() and name not in list(scope.vars.keys()):
             self.defineVar(name, value, scope.parent)
         else:
-            scope.vars[name] = pyToAdk(value)
+            scope[name] = pyToAdk(value)
 
     def makeFunct(self, expr, parent):
         special = expr["special"]
@@ -221,7 +233,11 @@ class Executor:
         error=True,
         message='Undefined variable "{name}"',
     ):
-        val = scope.get(varname, None)
+        val = None
+        if type(scope) == Array and type(varname) == Number:
+            val = None if varname.value >= len(scope) else scope.value[varname.value]
+        else:
+            val = scope.get(varname, None)
         success = val != None
 
         if success:
@@ -258,6 +274,7 @@ class Executor:
             case {"type": "Index"}:
                 property = self.ExecExpr(var["property"], main)
                 scope = self.enterScope(var["value"], scope, main)
+                print("ENTERTING INDEX", scope, property)
                 return self.getVar(scope, property, var["positions"]["start"])
             case _:
                 return self.ExecExpr(var, main)
@@ -483,7 +500,7 @@ class Executor:
                 classcope = Class(
                     expr["name"],
                     lambda s: self.Exec(expr["body"], s),
-                    expr["extends"],
+                    [ self.getVar(scope, e.value, e.start) for e in expr["extends"] ],
                     expr["as"],
                     scope,
                 )

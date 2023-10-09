@@ -3,6 +3,7 @@ import io
 import time
 import os
 import sys
+import inspect
 
 def convert_number(number: str, base: int, charmap: str):
     value = 0
@@ -94,8 +95,6 @@ class Object(Type):
         self._index = 0
 
     def set(self, name, value):
-        # if self._class and self._class.AS and callable(value):
-        # TODO: make class methods have their this.
         self.vars[name] = value
 
     def __call__(self, *args, **kwargs):
@@ -479,12 +478,16 @@ class Array(Type, list):
             "remove": self._remove,
             "length": len(self),
             "reverse": self._reverse,
-            "filter": self._filter
+            "filter": self._filter,
+            "copy": self.copy
             # methods and attributes here
         }
     def __sub__(self, other):
         self._remove(other)
-        
+    def __str__(self):
+      return f"[{', '.join([str(val) for val in self.value])}]"
+    def __repr__(self):
+      return str(self)
     def _filter(self, key):
         new = []
         for i in self.value:
@@ -508,6 +511,21 @@ class Array(Type, list):
         self.remove(*args, **kwargs)
         self.value.remove(*args, **kwargs)
         self.vars["length"] = len(self)
+      
+    def __setitem__(self, name, value):
+        if type(name) == Number:
+          self.value[int(name)] = value
+          return value
+        if self._setitem:
+            return self._setitem(name, value)
+        return self.set(name, value)
+
+    def __getitem__(self, name):
+        if type(name) == Number:
+          return self.value[int(name)]
+        if self._getitem:
+            return self._getitem(name)
+        return self.get(name, Null)
 
 
 class Set(Type, list):
@@ -626,8 +644,7 @@ class Class(Type):
         self.parent = parent
         self._as = AS
         self.vars = {}
-        for e in extends:
-            self.vars.update(e)
+        self.extends = extends
         # Just to make it act like a scope
         self._returned_value = Null
         self._has_returned = False
@@ -654,6 +671,10 @@ class Class(Type):
 
     def __call__(self, *args, **kwargs):
         obj = Object({}, _class=self)
+        
+        for extends in self.extends:
+            extends.build(obj)
+            
         if self._as:
             obj.vars[self._as] = obj
         obj.parent = self.parent
@@ -759,8 +780,12 @@ def pyToAdk(py):
             or isinstance(py, io.IOBase)
         ):
             return File(py)
+        elif inspect.isclass(py):
+          return Object(dict_from_other(py), call=py)
+        elif inspect.isfunction(py):
+          return Function(py)
         elif callable(py):
-            return Function(py)
+            return Object(dict_from_other(py), call=py)
         else:
             return Object(dict_from_other(py))
     except RecursionError:

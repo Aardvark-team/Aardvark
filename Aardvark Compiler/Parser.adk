@@ -525,6 +525,14 @@ class Parser as this {
         object = this.pExpression(require=true)
         expansion = null
         end = null
+        as_name = null
+        if this.compare('Keyword', 'as') {
+          this.eat()
+          as_name = this.eat('Identifier')
+          x = this.pBlock(single=false)
+          end = x[1]
+          expansion = x[0]
+        }
         if this.compare('Delimiter', '[') {
             expansion = pArray()
             end = expansion.position.end
@@ -547,6 +555,7 @@ class Parser as this {
         return {
             object: object,
             expansion: expansion,
+            as_name: as_name,
             positon: {
                 start:start, 
                 end:end

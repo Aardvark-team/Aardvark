@@ -157,7 +157,7 @@ class Lexer as this {
         seen_dot = false
         seen_underscore = false
         characters = BaseNumsOrder.slice(0, base)
-        stdout.write(characters)
+        #stdout.write(characters)
         while (characters.contains(this.curChar) | '._'.contains(this.curChar)) & !this.AtEnd {
           if seen_dot & this.curChar == '.'
             throw Error('Syntax', 'Already saw the dot!');
@@ -169,7 +169,7 @@ class Lexer as this {
             base = Number(value)
             value = ''
             characters = BaseNumsOrder.slice(0, base)
-            stdout.write(characters)
+            #stdout.write(characters)
             this.curChar = ''
           }
           value = value + this.curChar
