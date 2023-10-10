@@ -350,7 +350,7 @@ def spread(x, y, errorhandler, line, ast, scope, exec):
 
 
 @operator('=')
-def assign(x, y, errorhandler, line, expr, scope, exec, predone=False):
+def assign(x, y, errorhandler, line, expr, scope, exec, predone=False, allowLiteral=False):
     value = exec.ExecExpr(y, scope) if not predone else y
     var = x
     defscope = scope
@@ -375,10 +375,10 @@ def assign(x, y, errorhandler, line, expr, scope, exec, predone=False):
                 assign(val, value[i], errorhandler, line, expr, scope, exec, True)
         if spread: 
             exec.defineVar(spread, value[i:], defscope) 
-    else:
+    elif not allowLiteral:
         errorhandler.throw(
             "Assignment",
-            "Cannot set value of a literal.",
+            "Cannot set value of a literal or expression.",
             {
                 "lineno": var["positions"]["start"]["line"],
                 "underline": {
@@ -390,9 +390,12 @@ def assign(x, y, errorhandler, line, expr, scope, exec, predone=False):
                     "length": var["positions"]["end"]["col"]
                     - var["positions"]["start"]["col"],
                 },
-                "traceback": self.traceback,
+                "traceback": exec.traceback,
             },
         )
+    else:
+        exec.ExecExpr(var, scope)
+        return value
     return value
 
 @operator('+=')
@@ -433,10 +436,20 @@ def moduloequals(x, y, errorhandler, line, expr, scope, exec):
 
 @operator('++')
 def plusplus(x, y, errorhandler, line, expr, scope, exec):
-    left = exec.ExecExpr(x, scope)
-    return assign(x, left + 1, errorhandler, line, expr, scope, exec, True)
+    if x:
+        left = exec.ExecExpr(x, scope)
+        assign(x, left + 1, errorhandler, line, expr, scope, exec, True, True)
+        return left
+    # Otherwise return the new value
+    right = exec.ExecExpr(y, scope)
+    return assign(y, right + 1, errorhandler, line, expr, scope, exec, True)
 
 @operator('--')
 def minusminus(x, y, errorhandler, line, expr, scope, exec):
-    left = exec.ExecExpr(x, scope)
-    return assign(x, left - 1, errorhandler, line, expr, scope, exec, True)
+    if x:
+        left = exec.ExecExpr(x, scope)
+        assign(x, left - 1, errorhandler, line, expr, scope, exec, True, True)
+        return left
+    # Otherwise return the new value
+    right = exec.ExecExpr(y, scope)
+    return assign(y, right - 1, errorhandler, line, expr, scope, exec, True)

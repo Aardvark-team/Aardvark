@@ -262,13 +262,16 @@ class String(str, Type):
         self.vars = {
             "length": len(value),
             "split": lambda sep=" ": self.split(sep),
-            "slice": lambda start, end: self[start:end],
+            "slice": lambda start, end, step=1: String(self[start:end:step]),
             "startsWith": lambda prefix: self.startswith(x),
             "endsWith": lambda suffix: self.endswith(x),
             "replace": lambda x, y="": self.replace(x, y),
             "contains": lambda x: x in self,
             "join": self.join,
-            "indexOf": self.find
+            "indexOf": self.find,
+            'rstrip': self.rstrip,
+            'lstrip': self.lstrip,
+            'strip': self.strip
         }
         str.__init__(self)
 
@@ -479,7 +482,8 @@ class Array(Type, list):
             "length": len(self),
             "reverse": self._reverse,
             "filter": self._filter,
-            "copy": self.copy
+            "copy": self.copy,
+            "slice": lambda start, end, step=1: Array(self.value[start:end:step])
             # methods and attributes here
         }
     def __sub__(self, other):
@@ -516,15 +520,11 @@ class Array(Type, list):
         if type(name) == Number:
           self.value[int(name)] = value
           return value
-        if self._setitem:
-            return self._setitem(name, value)
         return self.set(name, value)
 
     def __getitem__(self, name):
         if type(name) == Number:
           return self.value[int(name)]
-        if self._getitem:
-            return self._getitem(name)
         return self.get(name, Null)
 
 
@@ -544,7 +544,8 @@ class Set(Type, list):
             "remove": self._remove,
             "length": len(self),
             "reverse": self._reverse,
-            "filter": self._filter
+            "filter": self._filter,
+            "slice": lambda start, end, step=1: Set(self.value[start:end:step])
             # methods and attributes here
         }
     def __sub__(self, other):

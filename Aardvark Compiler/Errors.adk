@@ -77,7 +77,7 @@ function getTraceLine(index, line) {
     return " " * header.length + line["name"] + fileloc
 }
 
-function printError(type, pos, msg, didyoumean, traceback, code) {
+function printError(type, pos, msg, didyoumean, traceback, code, color=fg(255, 30, 10), symbol="ⓧ", note=null) {
     padding = (
         pos.lineend.digits.length + 1
     )  # To dynamicly adjust padding based on the larger line num
@@ -101,7 +101,7 @@ function printError(type, pos, msg, didyoumean, traceback, code) {
     underline_str = ""
 
     i = 0
-    while i < Math.max(underline.length, marker.length) {
+    while ++i < Math.max(underline.length, marker.length) {
         if i >= underline.length and i < marker.length
             underline_str += marker[i]
         else if i >= marker.length
@@ -118,10 +118,10 @@ function printError(type, pos, msg, didyoumean, traceback, code) {
     }
 
     if marker_pos
-        underline_str = underline_str.slice(0, max(marker_pos - 1, 0)) + "^" * marker_length + underline_str.slice(marker_pos - 1 + marker_length, underline_str.length)
+        underline_str = underline_str.slice(0, Math.max(marker_pos - 1, 0)) + "^" * marker_length + underline_str.slice(marker_pos - 1 + marker_length, underline_str.length)
 
     underline_str = underline_str.rstrip()
-    error_underline = " "*(padding+3) + ef.bold + color + underline_str + "―>" + ef.rs + " " + color + msg
+    error_underline = " " * (padding + 3) + ef.bold + color + underline_str + "―>" + ef.rs + " " + color + msg
     code_lines = code.split("\n")
     code_lines[lineno - 1] = code_lines[lineno - 1] + "\n" + error_underline + styles["default"]
 
@@ -130,7 +130,7 @@ function printError(type, pos, msg, didyoumean, traceback, code) {
 
     if didyoumean_par {
         lines_mean = code_lines.copy()
-        lines_mean[lineno - 1] = ' ' * (padding - lineno.length) + styles['default'] + lineno + " │ " + didyoumean
+        lines_mean[lineno - 1] = ' ' * (padding - String(lineno).length) + styles['default'] + String(lineno) + " │ " + didyoumean
         
         # Highlight(didyoumean, {
         #    'startline': pos["lineno"]+1,
@@ -148,12 +148,12 @@ function printError(type, pos, msg, didyoumean, traceback, code) {
     code = "\n".join(code_lines.slice(linestart, lineend))
     traceback = ""
 
-    if err_trace {
+    if traceback {
         traced = []
 
         i = 0
-        while i < err_trace.length {
-            traced.add(getTraceLine(i, err_trace[i]))
+        while i < traceback.length {
+            traced.add(getTraceLine(i, traceback[i]))
             i += 1
         }
 
@@ -165,7 +165,7 @@ function printError(type, pos, msg, didyoumean, traceback, code) {
     else
         didyoumean = fg.rs
 
-    output = color + symbol + "  " + type + " in " + pos["filename"] + ":" + pos["lineno"] + ":" + (marker_pos if marker_pos != None else underline_start) + "\n" + traceback + styles["default"] + code + didyoumean + note
+    output = color + symbol + "  " + type + " in " + pos["filename"] + ":" + pos["lineno"] + ":" + (marker_pos if marker_pos != null else underline_start) + "\n" + traceback + styles["default"] + code + didyoumean + note
 
     stderr.write(output + "\n")
 }
