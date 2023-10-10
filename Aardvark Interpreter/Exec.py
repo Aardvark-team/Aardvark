@@ -104,6 +104,8 @@ class Executor:
                 ],
                 "Math": Object(
                     {
+                        'max': max,
+                        'min': min,
                         "pi": math.pi,
                         "π": math.pi,
                         "e": math.e,

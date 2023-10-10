@@ -10,25 +10,29 @@ class Instruction as this {
   }
 }
 class Scope as this {
-  $constructor(initial, parent) {
+  $constructor(initial, parent=null) {
     this.parent = parent
     this.value = initial
   }
-  $getitem(key) {
-    return this.value[key]
-  }
-  $setitem(key, v) {
-    this.value[key] = v
-  }
 }
-function getVar(scope) {
-  
+
+function getVar(scope, name) {
+  if name in scope.value
+    return scope.value[name]
+  else
+    if !scope.parent {
+      # ERROR
+    } else
+      return getVar(scope.parent, name)
 }
-function setVar(scope) {
-  #if name in scope.getAll() and name not in list(scope.vars.keys()):
-  #          self.defineVar(name, value, scope.parent)
-  #      else:
-  #          scope.vars[name] = pyToAdk(value)
+function setVar(scope, name, value) {
+  if name in scope.value
+    return scope.value[name] = value
+  else
+    if !scope.parent {
+      # ERROR
+    } else
+      return setVar(scope.parent, name, value)
 }
 function Validate(AST) {
   va

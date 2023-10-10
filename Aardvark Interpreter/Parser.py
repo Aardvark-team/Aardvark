@@ -1306,6 +1306,18 @@ class Parser:
             
         if self.compare("Keyword", "continue"):
             return self.pContinue()
+
+        if self.compare('Keyword', 'else'):
+            e = self.eat('Keyword', 'else')
+            self.err_handler.throw(
+            "Syntax",
+            "Unexpected else statement.",
+            {
+                "lineno": e.line,
+                "marker": {"start": e.start['col'] + 1, "length": e.value.length},
+                "underline": {"start": 0, "end": e.end['col']+5},
+            },
+        )
             
         return self.pExpression(require=require, eatLBs=eatLBs)
 

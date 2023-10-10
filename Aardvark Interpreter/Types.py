@@ -407,10 +407,10 @@ class Number(Type):
         return Number(other - self.value)
     
     def __mul__(self, other):
-        return Number(self.value * other.value if isinstance(other, Number) else self.value * other)
+        return Number(self.value * other.value)if isinstance(other, Number) else self.value * other
     
     def __rmul__(self, other):
-        return Number(other * self.value)
+        return Number(self.value * other.value)if isinstance(other, Number) else self.value * other
     
     # Implement other arithmetic and bitwise operations similarly
     
