@@ -114,6 +114,8 @@ def get_trace_line(index, line):
 
 
 def print_error(type: str, pos, msg, didyoumean, err_trace, code, color=fg(225, 30, 10), symbol="ⓧ", note=None):
+    sys.stdout.flush()
+    sys.stderr.flush()
     padding = (
         len(str(pos["lineend"])) + 1
     )  # To dynamicly adjust padding based on the larger line num

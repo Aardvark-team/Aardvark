@@ -626,13 +626,29 @@ class Parser as this {
             this.eat()
             return_type = this.pExpression()
         }
-        [body, end] = this.pBlock()
+        inline = false
+        if this.compare('Delimiter', '{') {
+            old = self.pos
+            try {
+                [body, end] = this.pBlock()
+            } catch {
+                body = this.pStatement(require=true)
+                end = body.positions.end
+                inline = true
+                this.pos = old
+            }
+        } else {
+            body = this.pStatement(require=true)
+            end = body.positions.end
+            inline = true
+        }
         return {
             type: 'FunctionDefinition',
             name: name,
             parameters: parameters,
             special: special,
             ref_name: AS,
+            inline: inline,
             return_type: return_type,
             position: {start: starter, end: end}
         }

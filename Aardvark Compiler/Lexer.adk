@@ -45,8 +45,10 @@ class Lexer as this {
     this.curChar = ""
     this.errorHandler = errorHandler
   }
-  function throwError(type, message, options={}, note="", kill=true)
-    false if this.errorHandler == null else this.errorHandler.Throw(type, message, options, note, kill)
+  function throwError(type, message, options={}, note="", kill=true) {
+    if this.errorHandler == null return false
+    else return this.errorHandler.Throw(type, message, options, note, kill)
+  }
 
   function isWhitespace(char)
     (char ? this.curChar) in Whitespaces
@@ -96,8 +98,9 @@ class Lexer as this {
       return this.data[this.index + amt]
     else return null;
   }
-  function pos()
-    return {index: this.index, line: this.line, column: this.column}
+  function pos
+    {index: this.index, line: this.line, column: this.column}
+
   function tokenize(data='') {
     #*
       Takes code and converts it to tokens.

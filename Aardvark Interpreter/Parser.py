@@ -34,6 +34,7 @@ class Parser:
         self.err_handler = err_handler
         self.lexer = lexer
         self.debug = False
+        self.pyError = {}
 
     ## UTILITY
 
@@ -79,21 +80,25 @@ class Parser:
         replacement = " " + value_type
         curr_line = curr_line[:line_len].rstrip()
         line_end = replacement
-        self.err_handler.throw(
-            "Syntax",
-            "Unexpected EOF.",
-            {
-                "lineno": last_tok.line,
-                "marker": {"start": line_len + 1, "length": 1},
-                "underline": {"start": 0, "end": line_len + 1},
-                "did_you_mean": Error.Highlight(
-                    curr_line, {"background": None, "linenums": None}
-                )
-                + Error.styles["suggestion"]
-                + line_end
-                + fg.rs,
-            },
-        )
+        if self.pyError.get('type') == 'Unexpected EOF':
+            self.pyError = {}
+            raise SyntaxError('Unexpected EOF')
+        else:
+            self.err_handler.throw(
+                "Syntax",
+                "Unexpected EOF.",
+                {
+                    "lineno": last_tok.line,
+                    "marker": {"start": line_len + 1, "length": 1},
+                    "underline": {"start": 0, "end": line_len + 1},
+                    "did_you_mean": Error.Highlight(
+                        curr_line, {"background": None, "linenums": None}
+                    )
+                    + Error.styles["suggestion"]
+                    + line_end
+                    + fg.rs,
+                },
+            )
 
     # Consume the current token if the types match, else throw an error
     def eat(self, Type="any", value=None, is_type=False):
@@ -134,6 +139,9 @@ class Parser:
             + replacement
             + curr_line[next_tok.start["col"] - 1 :]
         )
+        if self.pyError.get('type') == 'Unexpected token' and (not self.pyError.get('token_value') or str(next_tok.value) in self.pyError.get('token_value', [])) and (not self.pyError.get('token_type') or str(next_tok.type) in self.pyError.get('token_type', [])):
+            self.pyError = {}
+            raise SyntaxError('Unexpected token')
         self.err_handler.throw(
             "Syntax",
             f'Unexpected {str(next_tok.type)}: "{str(next_tok.value)}"',
@@ -770,11 +778,22 @@ class Parser:
             self.eat(TokenTypes["Operator"], "->")
             return_type = self.pExpression()
         self.eatLBs()
+        inline = None
         if self.compare("Delimiter", "{"):
-            body, lasti = self.eatBlockScope()
+            old = self.pos
+            self.pyError = {'type': 'Unexpected token', 'token_value': [':', '$', ',']}
+            try:
+                body, lasti = self.eatBlockScope()
+                inline = False
+            except:
+                self.pos = old
+                body = self.pStatement(require=True)
+                lasti = body["positions"]["end"]
+                inline = True
         else:
             body = self.pStatement(require=True)
             lasti = body["positions"]["end"]
+            inline = True
 
         return {
             "type": "FunctionDefinition",
@@ -784,6 +803,7 @@ class Parser:
             "special": special,
             "body": body,
             "as": AS,
+            "inline": inline,
             "return_type": return_type,
             "positions": {"start": starter.start, "end": lasti},
         }
@@ -816,7 +836,7 @@ class Parser:
     # 	return Expression
     def pReturnStatement(self):
         starter = self.eat(TokenTypes["Keyword"], "return")
-        return_value = self.pStatement()
+        return_value = self.pStatement(eatLBs=False)
         return {
             "type": "ReturnStatement",
             "value": return_value,
@@ -1225,14 +1245,16 @@ class Parser:
         if self.compare("Keyword", "catch"):
             self.eat("Keyword")
             self.eatLBs()
-            var = self.eat("Identifier")
+            var = None
+            if self.compare('Identifier'):
+                var = self.eat("Identifier").value
             if self.compare("Delimiter", "{"):
                 body, lasti = self.eatBlockScope()
             else:
                 body = self.pStatement(True)
                 lasti = body["positions"]["end"]
             node["positions"]["end"] = lasti
-            node["catchvar"] = var.value
+            node["catchvar"] = var
             node["catchbody"] = body
         return node
 
@@ -1264,8 +1286,8 @@ class Parser:
         
     # Statement:
     # 	VariableDefinition
-    def pStatement(self, require=False, eatLBs=False):
-        self.eatLBs()
+    def pStatement(self, require=False, eatLBs=True):
+        if eatLBs: self.eatLBs()
         
         if self.compare("Keyword", "try"):
             return self.pTryCatch()

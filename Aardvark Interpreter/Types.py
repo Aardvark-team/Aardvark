@@ -609,6 +609,7 @@ class File(Type):
             "delete": self.delete,
             "name": self.name,
             "mode": self.mode,
+            "flush": self.obj.flush
         }
         if self.obj == sys.stdin:
             self.vars["prompt"] = input

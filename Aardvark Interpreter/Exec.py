@@ -227,6 +227,8 @@ class Executor:
                     arg = args[i:]
                 functscope.vars[param["name"]] = arg
             ret = self.Exec(code, functscope)
+            if not functscope._returned_value and expr['inline']:
+                functscope._returned_value = ret
             return functscope._returned_value
 
         if name:
