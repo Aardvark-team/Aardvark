@@ -289,7 +289,8 @@ class Parser:
                                     "end": templ.end["col"],
                                 },
                             },
-                        )
+                        )   
+                        
                     self.lexer.reset()
                     self.lexer.tokenize(inner)
                     inner_toks = self.lexer.output

@@ -46,26 +46,25 @@ class Lexer as this {
     this.errorHandler = errorHandler
   }
   function throwError(type, message, options={}, note="", kill=true)
-    if this.errorHandler == null return false
-    else return this.errorHandler.Throw(type, message, options, note, kill)
+    false if this.errorHandler == null else this.errorHandler.Throw(type, message, options, note, kill)
 
   function isWhitespace(char)
-    return (char ? this.curChar) in Whitespaces
+    (char ? this.curChar) in Whitespaces
 
   function isNewline(char)
-    return (char ? this.curChar) in '\n;'
+    (char ? this.curChar) in '\n;'
 
   function isQuote(char)
-    return (char ? this.curChar) in Quotes
+    (char ? this.curChar) in Quotes
 
   function isDelimiter(char)
-    return (char ? this.curChar) in Delimiters 
+    (char ? this.curChar) in Delimiters 
 
   function isNumber(char)
-    return (char ? this.curChar) in '0123456789'
+    (char ? this.curChar) in '0123456789'
 
   function addToken(type, start, end, value, variation)
-    return this.output.add(Token(type, start, end, value, variation))
+    this.output.add(Token(type, start, end, value, variation))
 
   function otherwise(char) {
     char = char ? this.curChar

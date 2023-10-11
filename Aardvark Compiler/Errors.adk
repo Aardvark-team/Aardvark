@@ -75,7 +75,7 @@ function getTraceLine(index, line) {
 }
 
 function printError(type, pos, msg, didyoumean, traceback, code, color=fg(255, 30, 10), symbol="ⓧ", note="") {
-    stdout.write(color, 'hello\n')
+    #stdout.write(color, 'hello\n')
     padding = pos.lineend.digits.length + 1
     # To dynamically adjust padding based on line num size
     lineno = pos.lineno
@@ -168,7 +168,7 @@ class ErrorHandler as this {
     function Throw(type, message, options = {}, note="", kill=true) {
         # upercase throw to not conflict with throw keyword
         if this.silenced return
-        stdout.write('filename:', this.filename, '\n')
+        #stdout.write('filename:', this.filename, '\n')
         options.filename = this.filename
         options.linestart = options.linestart?(options.lineno?0 - (1 if options.lineno?0 > 0 else 0))
         options.lineend = options.lineend?(options.lineno?0 + 1)
@@ -176,8 +176,8 @@ class ErrorHandler as this {
             type, # Removed mode so that we can use the same Error handler for warnings, suggestions, and errors.
             options,
             message,
-            options["did_you_mean"]?false,
-            options["traceback"]?false,
+            options.did_you_mean?false,
+            options.traceback?false,
             this.code,
             options.color?fg(255, 30, 10),
             options.symbol?'ⓧ'
@@ -186,20 +186,18 @@ class ErrorHandler as this {
         exit(1) if kill
     }
 }
-function ErrorType(t='error') {
-    switch t {
-        case 'error' return {
-            color: fg(255, 30, 10),
-            symbol: "ⓧ"
-        }
-        case 'warning' return {
-            color: fg(235, 175, 10),
-            symbol: '⚠'
-        } 
-        case 'suggestion' return {
-            color: fg(10, 50, 255),
-            symbol: '❖'
-        }
+function ErrorType(t='error') switch t {
+    case 'error' return {
+        color: fg(255, 30, 10),
+        symbol: "ⓧ"
+    }
+    case 'warning' return {
+        color: fg(235, 175, 10),
+        symbol: '⚠'
+    } 
+    case 'suggestion' return {
+        color: fg(10, 50, 255),
+        symbol: '❖'
     }
 }
 
@@ -209,12 +207,12 @@ if is_main {
     printError(
         "SyntaxError",
         {
-            "linestart": 1,  # Line of the code's start
-            "lineend": 3,  # Line of the code's end
-            "lineno": 2,  # Line the error is on
-            "filename": "main.adk",  # File the error is in.
-            "marker": {"start": 9, "length": 6},
-            "underline": {"start": 1, "end": 30}
+            linestart: 1,  # Line of the code's start
+            lineend: 3,  # Line of the code's end
+            lineno: 2,  # Line the error is on
+            filename: "main.adk",  # File the error is in.
+            marker: {start: 9, length: 6},
+            underline: {start: 1, end: 30}
         },
         '".write" is invalid. No object to get attribute of.',
         'stdout.write("Hello World\\n")',
