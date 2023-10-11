@@ -60,13 +60,14 @@ def dsigmoid(x) :
   return sigmoid(x)*(1-sigmoid(x))
 
 class Executor:
-    def __init__(self, path, code, ast, errorhandler):
+    def __init__(self, path, code, ast, errorhandler, filestack={}, is_main=False):
         self.path = path
         self.code = code
         self.codelines = code.split("\n")
         self.ast = ast
         self.traceback = []
         self.switch = None
+        self.filestack = filestack
         self.Global = Scope(
             {
                 "stdout": File(sys.stdout),
@@ -138,7 +139,8 @@ class Executor:
                 "open": open,
                 "include": self.include,
                 "link": LinkFunct,
-                "exit": sys.exit
+                "exit": sys.exit,
+                'is_main': is_main
             }
         )  # Define builtins here
         # TODO: implement more builtins.
@@ -182,13 +184,17 @@ class Executor:
                 #   'traceback': self.traceback
                 # })
             i += 1
+        self.filestack[self.path] = self.Global
+        if file in self.filestack:
+            return self.filestack[file]
         errorhandler = Error.ErrorHandler(text, file, py_error=True)
         lexer = Lexer.Lexer("#", "#*", "*#", errorhandler, False)
         toks = lexer.tokenize(text)
         parser = Parser.Parser(errorhandler, lexer)
         ast = parser.parse()
-        executor = Executor(file, text, ast["body"], errorhandler)
+        executor = Executor(file, text, ast["body"], errorhandler, filestack=self.filestack)
         executor.run()
+        self.filestack[file] = executor.Global
         return executor.Global
 
     def defineVar(self, name, value, scope):
@@ -276,7 +282,7 @@ class Executor:
             case {"type": "Index"}:
                 property = self.ExecExpr(var["property"], main)
                 scope = self.enterScope(var["value"], scope, main)
-                print("ENTERTING INDEX", scope, property)
+                # print("ENTERTING INDEX", scope, property)
                 return self.getVar(scope, property, var["positions"]["start"])
             case _:
                 return self.ExecExpr(var, main)
@@ -294,7 +300,7 @@ class Executor:
                     scope, expr["value"], expr["positions"]["start"], undefinedError
                 )
             case {"type": "PropertyAccess"}:
-                obj = self.ExecExpr(expr["value"], scope, undefinedError)
+                obj = pyToAdk(self.ExecExpr(expr["value"], scope, undefinedError))
                 objname = (
                     obj.name
                     if "name" in dir(obj)

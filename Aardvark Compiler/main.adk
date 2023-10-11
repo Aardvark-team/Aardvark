@@ -1,6 +1,6 @@
 include Lexer from Lexer
 include Parser from Parser
-include Data
+include Errors
 stdout.write('Loaded.\n')
 testStr1 = `
 y = 2
@@ -18,9 +18,13 @@ Multiline
 `
 testStr2 = `stdout.write($"string{hello}\n")`
 testStr3 = `16_fff`
-stdout.write('Lexing....')
-lexer = Lexer()
-toks = lexer.tokenize(testStr2)
+stdout.write('Lexing....\n')
+
+
+code = '12.23.45'#testStr2
+errorHandler = Errors.ErrorHandler(code, '<main>')
+lexer = Lexer(false, false, errorHandler)
+toks = lexer.tokenize(code)
 stdout.write(toks, '\n')
 for tok in toks {
   stdout.write(tok, '\n')

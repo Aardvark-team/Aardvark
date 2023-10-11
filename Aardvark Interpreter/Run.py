@@ -75,7 +75,7 @@ def run(text, file="<main>", printToks=False, printAST=False, Global=None):
         ast = parser.parse()
         if printAST:
             print(prettify_ast(ast))
-        executor = Exec.Executor(file, text, ast["body"], errorhandler)
+        executor = Exec.Executor(file, text, ast["body"], errorhandler, {}, True)
         if Global:
             executor.Global = Global
         ret = executor.run()

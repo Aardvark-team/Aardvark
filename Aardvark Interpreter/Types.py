@@ -779,6 +779,7 @@ def pyToAdk(py):
             or isinstance(py, io.BufferedIOBase)
             or isinstance(py, io.RawIOBase)
             or isinstance(py, io.IOBase)
+            or isinstance(py, io.TextIOWrapper)
         ):
             return File(py)
         elif inspect.isclass(py):

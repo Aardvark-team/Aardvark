@@ -75,7 +75,7 @@ function getTraceLine(index, line) {
 }
 
 function printError(type, pos, msg, didyoumean, traceback, code, color=fg(255, 30, 10), symbol="ⓧ", note="") {
-    stdout.write(color, 'hello')
+    stdout.write(color, 'hello\n')
     padding = pos.lineend.digits.length + 1
     # To dynamically adjust padding based on line num size
     lineno = pos.lineno
@@ -157,57 +157,74 @@ function printError(type, pos, msg, didyoumean, traceback, code, color=fg(255, 3
 }
 
 class ErrorHandler as this {
-    $constructor(code, filename, silenced = false, mode = "Error") {
+    $constructor(code, filename, silenced = false) {
         this.code = code
         this.codelines = code.split("\n")
         this.filename = filename
         this.silenced = silenced
-        this.mode = mode
     }
 
 
-    function Throw(type, message, options = {}) {
+    function Throw(type, message, options = {}, note="", kill=true) {
         # upercase throw to not conflict with throw keyword
-        return if this.silenced
-
+        if this.silenced return
+        stdout.write('filename:', this.filename, '\n')
         options.filename = this.filename
-        options.linestart = options.lineno - (1 if options["lineno"] > 0 else 0)
-        options.lineend = options.lineno + 1
-
+        options.linestart = options.linestart?(options.lineno?0 - (1 if options.lineno?0 > 0 else 0))
+        options.lineend = options.lineend?(options.lineno?0 + 1)
         printError(
-            type + this.mode,
+            type, # Removed mode so that we can use the same Error handler for warnings, suggestions, and errors.
             options,
             message,
             options["did_you_mean"]?false,
             options["traceback"]?false,
-            this.code
+            this.code,
+            options.color?fg(255, 30, 10),
+            options.symbol?'ⓧ'
         )
 
-        exit(1)
+        exit(1) if kill
+    }
+}
+function ErrorType(t='error') {
+    switch t {
+        case 'error' return {
+            color: fg(255, 30, 10),
+            symbol: "ⓧ"
+        }
+        case 'warning' return {
+            color: fg(235, 175, 10),
+            symbol: '⚠'
+        } 
+        case 'suggestion' return {
+            color: fg(10, 50, 255),
+            symbol: '❖'
+        }
     }
 }
 
-
 # type, pos, msg, didyoumean, traceback, code
-printError(
-    "SyntaxError",  # You can change how this works or make a class for Error or really whatever you think is best, this is still only a proof of concept. Later, I'm going to start writing the compiler.
-    {
-        # ok
-        "linestart": 1,  # Line of the code's start
-        "lineend": 3,  # Line of the code's end
-        "lineno": 2,  # Line the error is on
-        "filename": "main.adk",  # File the error is in.
-        # I cleaned up some of the positions so now they are in separate objects
-        "marker": {"start": 9, "length": 6},
-        "underline": {"start": 1, "end": 30}
-    },
-    '".write" is invalid. No object to get attribute of.',
-    'stdout.write("Hello World\\n")',
-    [
-        {"name": "this()", "line": 2, "col": 4, "filename": "main.adk"},
-        {"name": "is_an()", "line": 5, "col": 3, "filename": "other.adk"},
-        {"name": "example()", "line": 8, "col": 8, "filename": "test.adk"},
-    ],
-    '# print Hello World\nstdout|.write("Hello World\\n")\n#after',
-    'stdout.write("Hello World\\n")'
-)
+if is_main {
+    stdout.write('Running...')
+    printError(
+        "SyntaxError",
+        {
+            "linestart": 1,  # Line of the code's start
+            "lineend": 3,  # Line of the code's end
+            "lineno": 2,  # Line the error is on
+            "filename": "main.adk",  # File the error is in.
+            "marker": {"start": 9, "length": 6},
+            "underline": {"start": 1, "end": 30}
+        },
+        '".write" is invalid. No object to get attribute of.',
+        'stdout.write("Hello World\\n")',
+        [
+            {"name": "this()", "line": 2, "col": 4, "filename": "main.adk"},
+            {"name": "is_an()", "line": 5, "col": 3, "filename": "other.adk"},
+            {"name": "example()", "line": 8, "col": 8, "filename": "test.adk"},
+        ],
+        '# print Hello World\nstdout|.write("Hello World\\n")\n#after',
+        'stdout.write("Hello World\\n")',
+        ...ErrorType('error')
+    )
+}
