@@ -22,42 +22,39 @@ styles = {
     "suggestion": fg(255, 165, 0)
 }
 
-function genLine(linenum, digits) {
-    stdout.write(Number(digits), typeof(digits), (Number(digits) - linenum.digits.length))
-    return " " * (Number(digits) - linenum.digits.length) + styles["default"] + String(linenum) + " │ "
-    # See Types.py line 276
-}
+function genLine(linenum, digits)
+    return " " * (Number(digits) - linenum.digits.length) + $"{styles.default}{linenum} │ "
 
 
 
 function Highlight(code, opts={}) {
     lexer = Lexer.Lexer(false, true)
     tokens = lexer.tokenize(code)
-    line = opts["startline"] if opts["startline"] else 1
-    output = styles["background"] if opts["background"] else "" + styles["default"] + genLine(line, opts.leftpadding if opts.leftpadding? else 4) if opts.linenums? else ""
+    line = opts.startline?1
+    output = styles.background if opts.background? else "" + styles.default + genLine(line, opts.leftpadding?4) if opts.linenums? else ""
 
     toknum = 0
     last = 0
 
     for token in tokens {
         if token.start.index > last + 1
-            output += styles["default"] + code.slice(last + 1, token.start.index)
+            output += styles.default + code.slice(last + 1, token.start.index)
 
         if token.type == "String"
             output += styles[token.type] + token.variation + token.value.replace("\n", "\\n") + token.variation
 
         else if token.value == "\n" {
-            line += 1
-            output += styles.default + "\n" + genLine(line, opts.leftpadding if opts.leftpadding? else 4) if opts.linenums? else ""
+            line++
+            output += styles.default + "\n" + genLine(line, opts.leftpadding?4) if opts.linenums? else ""
         }
         else if token.type == "Identifier" & toknum < lexer.output.length - 1 & lexer.output[toknum + 1].type == "Delimiter" & lexer.output[toknum + 1].value == "("
             output += styles.default + token.value
 
-        else if styles[token.type]
+        else if token.type in styles
             output += styles[token.type] + token.value
 
         else
-            output += styles["default"] + token.value
+            output += styles.default + token.value
 
         toknum += 1
         last = token.end.index
@@ -69,32 +66,30 @@ function Highlight(code, opts={}) {
 
 function getTraceLine(index, line) {
     header = "    at "
-    fileloc = " ― " + line['filename'] + ":" + line['line'] + ":" + line['col']
+    fileloc = $" ― {line.filename}:{line.line}:{line.col}"
 
     if index == 0
-        return header + line["name"] + fileloc
+        return header + line.name + fileloc
 
-    return " " * header.length + line["name"] + fileloc
+    return " " * header.length + line.name + fileloc
 }
 
-function printError(type, pos, msg, didyoumean, traceback, code, color=fg(255, 30, 10), symbol="ⓧ", note=null) {
-    padding = (
-        pos.lineend.digits.length + 1
-    )  # To dynamicly adjust padding based on the larger line num
+function printError(type, pos, msg, didyoumean, traceback, code, color=fg(255, 30, 10), symbol="ⓧ", note="") {
+    stdout.write(color, 'hello')
+    padding = pos.lineend.digits.length + 1
+    # To dynamically adjust padding based on line num size
     lineno = pos.lineno
     didyoumean_par = didyoumean
-
-    if pos["linestart"] < 0
-        pos["linestart"] = 0
+    pos.linestart = Math.max(pos.linestart, 0)
 
     code = Highlight(
-        code, {"startline": 1, "leftpadding": padding, "background": false}
+        code, {startline: 1, leftpadding: padding, background: false}
     )
 
-    underline_start = (pos["underline"] if pos["underline"] else {})["start"]
-    underline_end = (pos["underline"] if pos["underline"] else {})["end"]
-    marker_pos = (pos["marker"] if pos["marker"] else {})["start"] - 1
-    marker_length = (pos["marker"] if pos["marker"] else {})["length"]
+    underline_start = (pos.underline?).start?
+    underline_end = (pos.underline?).end?
+    marker_pos = (pos.marker?).start?1 - 1
+    marker_length = (pos.marker?).length?
 
     underline = (underline_start - 1) * " " + "―" * (underline_end - underline_start + 1)
     marker = (marker_pos - 1) * " " + "^" * (marker_length)
@@ -141,21 +136,13 @@ function printError(type, pos, msg, didyoumean, traceback, code, color=fg(255, 3
     }
 
     if note
-      note = "\n" + color + "NOTE: " + note + fg.rs
-    else
-      note = ""
+        note = $"\n{color}NOTE: {note}{fg.rs}"
     
     code = "\n".join(code_lines.slice(linestart, lineend))
-    traceback = ""
 
     if traceback {
-        traced = []
-
         i = 0
-        while i < traceback.length {
-            traced.add(getTraceLine(i, traceback[i]))
-            i += 1
-        }
+        traced = getTraceLine(i, traceback[i]) while i++ < traceback.length - 1
 
         traceback = "\n".join(traced) + "\n\n"
     }
@@ -164,13 +151,12 @@ function printError(type, pos, msg, didyoumean, traceback, code, color=fg(255, 3
         didyoumean = "\n" + fg.blue + "ⓘ did you mean:" + styles["default"] + "\n" + didyoumean + fg.rs
     else
         didyoumean = fg.rs
+    output = $"{color}{symbol}  {type} in {pos.filename}:{pos.lineno}:{marker_pos?underline_start}\n{traceback}{styles.default}{code}{didyoumean}{note}\n"
 
-    output = color + symbol + "  " + type + " in " + pos["filename"] + ":" + pos["lineno"] + ":" + (marker_pos if marker_pos != null else underline_start) + "\n" + traceback + styles["default"] + code + didyoumean + note
-
-    stderr.write(output + "\n")
+    stderr.write(output)
 }
 
-class ErrorHandler {
+class ErrorHandler as this {
     $constructor(code, filename, silenced = false, mode = "Error") {
         this.code = code
         this.codelines = code.split("\n")
@@ -182,18 +168,18 @@ class ErrorHandler {
 
     function Throw(type, message, options = {}) {
         # upercase throw to not conflict with throw keyword
-        if this.silenced return
+        return if this.silenced
 
-        options["filename"] = self.filename
-        options["linestart"] = options["lineno"] - (1 if options["lineno"] > 0 else 0)
-        options["lineend"] = options["lineno"] + 1
+        options.filename = this.filename
+        options.linestart = options.lineno - (1 if options["lineno"] > 0 else 0)
+        options.lineend = options.lineno + 1
 
         printError(
-            type + self.mode,
+            type + this.mode,
             options,
             message,
-            options["did_you_mean"] if options["did_you_mean"] else false,
-            options["traceback"] if options["traceback"] else false,
+            options["did_you_mean"]?false,
+            options["traceback"]?false,
             this.code
         )
 

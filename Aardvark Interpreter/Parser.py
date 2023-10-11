@@ -475,6 +475,10 @@ class Parser:
                 for_ast = self.pForLoop(True)
                 for_ast["body"] = ast_node
                 ast_node = for_ast
+            if self.compare('Keyword', 'while') and 'while' not in exclude:
+                while_ast = self.pWhileLoop(True)
+                while_ast['body'] = ast_node
+                ast_node = while_ast
             # TODO: add a, b, c
 
             return ast_node
@@ -826,15 +830,18 @@ class Parser:
     # WhileLoop:
     # 	while condition BlockScope
     # 	while condition Statement
-    def pWhileLoop(self):
+    def pWhileLoop(self, inline=False):
         starter = self.eat(TokenTypes["Keyword"], "while")
         condition = self.pExpression(require=True)
-        if self.compare(TokenTypes["Delimiter"], "{"):
-            body, lasti = self.eatBlockScope()
-        else:
-            statm = self.pStatement()
-            body = [statm]
-            lasti = statm["positions"]["end"]
+        body = None
+        lasti = condition['positions']['end']
+        if not inline:
+            if self.compare(TokenTypes["Delimiter"], "{"):
+                body, lasti = self.eatBlockScope()
+            else:
+                statm = self.pStatement()
+                body = [statm]
+                lasti = statm["positions"]["end"]
         return {
             "type": "WhileLoop",
             "condition": condition,
