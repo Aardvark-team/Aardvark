@@ -11,17 +11,19 @@ $"Hello"
 #*
 Multiline
 *#
-#include x
-#function x() {
-#  return 8
-#}
+include x
+function x() {
+  return 8
+}
 `
 testStr2 = `stdout.write($"string{hello}\n")`
 testStr3 = `16_fff`
+error_test = 'stdout.write(5 * 32, \'\\n\') # Comment\n     12_12_23\nwhile 5 < 4 stdout.write("bye\\n")\n'
+
+code = testStr1
+
 stdout.write('Lexing....\n')
 
-
-code = 'stdout.write(5 * 32, \'\\n\') # Comment\n     12_12_23\nwhile 5 < 4 stdout.write("bye\\n")\n'
 errorHandler = Errors.ErrorHandler(code, '<main>')
 lexer = Lexer(false, false, errorHandler)
 toks = lexer.tokenize(code)
