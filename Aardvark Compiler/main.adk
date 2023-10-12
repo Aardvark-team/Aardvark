@@ -27,15 +27,17 @@ stdout.write('Lexing....\n')
 errorHandler = Errors.ErrorHandler(code, '<main>')
 lexer = Lexer(false, false, errorHandler)
 toks = lexer.tokenize(code)
-stdout.write(toks, '\n')
-for tok in toks {
-  stdout.write(tok, '\n')
-}
+
+# stdout.write(tok, '\n') for tok in toks
 
 # stdout.write(prettify(toks), '\n')
-stdout.write('Parsing...')
+stdout.write('Parsing...\n')
+
 parser = Parser(null, lexer)
 data = parser.parse()
-stdout.write(data, '\n')
+
+
 open('out.txt', 'w').write(String(data))
+stdout.write(data, '\n')
+
 # stdout.write(prettify(data), '\n')

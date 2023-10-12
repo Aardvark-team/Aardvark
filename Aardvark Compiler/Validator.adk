@@ -1,3 +1,5 @@
+include Errors
+
 # This file will validate the AST
 
 class Instruction as this {
@@ -15,26 +17,43 @@ class Scope as this {
     this.value = initial
   }
 }
-
-function getVar(scope, name) {
-  if name in scope.value
-    return scope.value[name]
-  else
-    if !scope.parent {
-      # ERROR
-    } else
-      return getVar(scope.parent, name)
+class NumberValue as this {
+	$constructor(min=0, max=0) {
+		this.max = max
+    this.min = min
+	}
 }
-function setVar(scope, name, value) {
-  if name in scope.value
-    return scope.value[name] = value
-  else
-    if !scope.parent {
-      # ERROR
-    } else
-      return setVar(scope.parent, name, value)
-}
-function Validate(AST) {
-  va
-  if 
+class Validator as this {
+  $constructor(errorHandler) {
+    this.errorHandler = errorHandler
+  }
+  function throwError(type, message, options={}, note="", kill=true) {
+    if this.errorHandler == null return false
+    else return this.errorHandler.Throw(type, message, options, note, kill)
+  }
+  function getVar(scope, name, position) {
+    if name in scope.value
+      return scope.value[name]
+    else
+      if !scope.parent {
+        this.throwError("ReferenceError", $"Undefined variable {name}.", {
+              lineno: this.pos().line,
+              marker: {start: position.start.column, length: name.length},
+              underline: {start: position.start.column, end: position.end.column}
+        })
+      } else
+    		return getVar(scope.parent, name)
+  }
+  function setVar(scope, name, value) {
+    if name in scope.value
+      return scope.value[name] = value
+    else
+      if !scope.parent {
+        return scope.value[name] = value
+      } else
+    	return setVar(scope.parent, name, value)
+  }
+  function validate(AST) {
+	  
+  }
 }

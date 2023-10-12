@@ -1,14 +1,7 @@
 ESC = ""
-rs = {
-    all: ESC + "[0m"
-}
-
-function fg(r, g, b)
-    $"{ESC}[38;2;{r};{g};{b}m"
-
-function bg(r, g, b)
-    $"{ESC}[48;2;{r};{g};{b}m"
-
+rs = {all: ESC + "[0m"}
+function fg(r, g, b) $"{ESC}[38;2;{r};{g};{b}m"
+function bg(r, g, b) $"{ESC}[48;2;{r};{g};{b}m"
 ef = {
     bold: ESC + "[1m",
     underline: ESC + "[4m",

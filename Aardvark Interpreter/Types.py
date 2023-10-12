@@ -623,8 +623,11 @@ class File(Type):
     def readAll(self):
         return self.obj.read()
 
-    def write(self, *args):
-        return self.obj.write(" ".join([str(a) for a in args]))
+    def write(self, *args, flush="auto"):
+        ret = self.obj.write(" ".join([str(a) for a in args]))
+        if flush == "instant":
+            self.obj.flush()
+        return ret
 
     def writeLines(self, *lines):
         return self.obj.writelines([str(lines) for line in lines])

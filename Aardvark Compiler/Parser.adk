@@ -874,7 +874,6 @@ class Parser as this {
                 AS = null
                 if this.compare('Keyword', 'as')
                     end = AS = this.eat() if this.compare('String') | this.compare('Identifier') else throw Error('Invalid Syntax')
-                stdout.write(AS.value ? name.value)
                 names.add({
                     object: name.value,
                     local: AS.value ? name.value
