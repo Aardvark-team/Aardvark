@@ -1,39 +1,27 @@
-#TODO
-
-ESC = python.eval('"\\033"')
-full_reset = ESC + "[0m"
-function ac(a, b, c, d, e) {
-    x = [a, b, c, d, e]
-    val = ESC + '['
-    stdout.write(val)
-    for i in x {
-        (break) if i == null
-        val = val + String(i)
-        stdout.write(val)
-    }
-    val = val + 'm'
-    stdout.write(val)
-    return val
+ESC = ""
+rs = {
+    all: ESC + "[0m"
 }
-#*
-def sgr(num: int) -> str:
-    return "\033[" + str(num) + "m"
 
+function fg(r, g, b)
+    $"{ESC}[38;2;{r};{g};{b}m"
 
-def eightbit_fg(num: int) -> str:
-    return "\033[38;5;" + str(num) + "m"
+function bg(r, g, b)
+    $"{ESC}[48;2;{r};{g};{b}m"
 
+ef = {
+    bold: ESC + "[1m",
+    underline: ESC + "[4m",
+    italic: ESC + "[3m",
+    blink: ESC + "[5m",
+    strikethrough: ESC + "[9m",
+    hidden: ESC + "[8m",
+    dim: ESC + "[2m",
+    fast_blink: ESC + "[6m",
+    invert: ESC + "[7m"
+}
+fg.rs = bg.rs = ef.rs = rs.all
+clear = ESC + "[2J"
 
-def eightbit_bg(num: int) -> str:
-    return "\033[48;5;" + str(num) + "m"
-
-
-def rgb_fg(r: int, g: int, b: int) -> str:
-    return "\x1b[38;2;" + str(r) + ";" + str(g) + ";" + str(b) + "m"
-
-
-def rgb_bg(r: int, g: int, b: int) -> str:
-    return "\x1b[48;2;" + str(r) + ";" + str(g) + ";" + str(b) + "m"
-*#
-#function 
-ac(1, 2, 3, 4)
+# TODO: Add cursor control, clear screen
+# https://chat.openai.com/share/4cb9d592-2b7e-4d47-b75d-90f798c025b5

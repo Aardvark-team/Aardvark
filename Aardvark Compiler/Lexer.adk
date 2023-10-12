@@ -31,7 +31,7 @@ class Token as this {
 
 
 class Lexer as this {
-  $constructor(useIndents = false, tokenizeComments = false, errorHandler=null) {
+  $constructor(useIndents = false, tokenizeComments = false, errorHandler=null, raw=false) {
     this.useIndents = useIndents
     this.tokenizeComments = tokenizeComments
     this.data = ""
@@ -44,6 +44,7 @@ class Lexer as this {
     this.AtEnd = false
     this.curChar = ""
     this.errorHandler = errorHandler
+    this.raw = raw
   }
   function throwError(type, message, options={}, note="", kill=true) {
     if this.errorHandler == null return false
@@ -174,15 +175,17 @@ class Lexer as this {
             this.throwError('SyntaxError', 'Number base already defined!', {
               lineno: this.pos().line,
               marker: {start: this.pos().column, length: 1},
-              underline: {start: start.column, end: this.pos().column}
-            }, "The value left of the underscore (_) represents the base of the Number. (e.g. 16_abcdef would be a hex value)")
+              underline: {start: start.column, end: this.pos().column+1}
+            }, "The value left of the underscore (_) represents the base of the Number. (e.g. 16_1abf79 would be hex and 2_01011101 would be binary)")
           if this.curChar == '.' seen_dot = true;
           else if this.curChar == '_' {
             seen_underscore = true;
-            base = Number(value)
-            value = ''
-            characters = BaseNumsOrder.slice(0, base)
-            this.curChar = ''
+            if !this.raw {
+              base = Number(value)
+              value = ''
+              characters = BaseNumsOrder.slice(0, base)
+              this.curChar = ''
+            }
           }
           value = value + this.curChar
           this.advance()

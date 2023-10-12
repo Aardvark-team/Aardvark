@@ -21,7 +21,7 @@ testStr3 = `16_fff`
 stdout.write('Lexing....\n')
 
 
-code = '     12.23'#testStr2
+code = 'stdout.write(5 * 32, \'\\n\') # Comment\n     12_12_23\nwhile 5 < 4 stdout.write("bye\\n")\n'
 errorHandler = Errors.ErrorHandler(code, '<main>')
 lexer = Lexer(false, false, errorHandler)
 toks = lexer.tokenize(code)

@@ -1,5 +1,3 @@
-testdir = "/home/runner/Aardvark-py/tests/"
-searchDirs = ["/home/runner/Aardvark-py/.adk/lib/"]
 import Data
 import Lexer
 import Parser
@@ -11,6 +9,9 @@ from Types import Null
 from sty import fg
 import os
 import shutil
+installedLocation = os.getenv("AardvarkInstallLoc", "/home/runner/Aardvark-py/.adk/")
+testdir = "/home/runner/Aardvark-py/tests/"
+searchDirs = [os.path.join(installedLocation, 'lib/')]
 
 # Import module for colouring.
 # Prettifying the ast

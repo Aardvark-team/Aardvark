@@ -1,6 +1,7 @@
 include Lexer
+include ansi
 #TODO
-ansi = python.import('sty') 
+#ansi = python.import('sty') 
 # TODO: Make ansi lib to replace the python lib.
 fg = ansi.fg
 bg = ansi.bg
@@ -8,17 +9,17 @@ ef = ansi.ef
 rs = ansi.rs
 
 styles = {
-    "String": fg(152, 195, 121) + ef.rs,
-    "Function": fg(97, 175, 239) + ef.rs,
-    "Number": fg(229, 192, 123) + ef.rs,
-    "Keyword": fg(224, 108, 117) + ef.rs,
-    "Operator": fg(86, 182, 194) + ef.bold,
-    "Boolean": fg(229, 192, 123) + ef.rs,
-    "background": bg(36, 39, 55) + ef.rs,
-    "Comment": fg(92, 99, 112) + ef.italic,
-    "Delimiter": fg(245, 245, 255) + ef.rs,
-    "default": fg(171, 178, 191) + ef.rs,
-    "suggestion": fg(255, 165, 0)
+    "String": rs.all + fg(152, 195, 121),
+    "Function": rs.all + fg(97, 175, 239),
+    "Number": rs.all + fg(229, 192, 123),
+    "Keyword": rs.all + fg(224, 108, 117),
+    "Operator": rs.all + fg(86, 182, 194) + ef.bold,
+    "Boolean": rs.all + fg(229, 192, 123),
+    "background": rs.all + bg(36, 39, 55),
+    "Comment": rs.all + fg(92, 99, 112) + ef.italic,
+    "Delimiter": rs.all + fg(245, 245, 255),
+    "default": rs.all + fg(171, 178, 191),
+    "suggestion": rs.all + fg(255, 165, 0)
 }
 
 function genLine(linenum, digits)
@@ -27,7 +28,7 @@ function genLine(linenum, digits)
 
 
 function Highlight(code, opts={}) {
-    lexer = Lexer.Lexer(false, true)
+    lexer = Lexer.Lexer(false, true, null, true)
     tokens = lexer.tokenize(code)
     line = opts.startline?1
     output = (styles.background if opts.background? else "") + styles.default
@@ -38,7 +39,7 @@ function Highlight(code, opts={}) {
 
     for token in tokens {
         if token.start.index > last + 1
-            output += styles.default + code.slice(last, token.start.index)
+            output += styles.default + code.slice(last+1, token.start.index)
 
         if token.type == "String"
             output += styles[token.type] + token.variation + token.value.replace("\n", "\\n") + token.variation
@@ -49,7 +50,7 @@ function Highlight(code, opts={}) {
                 output += styles.default + "\n" + genLine(line, opts.leftpadding?4)
         }
         else if token.type == "Identifier" & toknum < lexer.output.length - 1 & lexer.output[toknum + 1].type == "Delimiter" & lexer.output[toknum + 1].value == "("
-            output += styles.default + token.value
+            output += styles.Function + token.value
 
         else if token.type in styles
             output += styles[token.type] + token.value
@@ -85,7 +86,7 @@ function printError(type, pos, msg, didyoumean, traceback, code, color=fg(255, 3
     pos.linestart = Math.max(pos.linestart, 0)
 
     code = Highlight(
-        code, {startline: pos.linestart, leftpadding: padding, background: false}
+        code, {startline: pos.linestart, leftpadding: padding, background: opts.background?false}
     )
 
     underline_start = (pos.underline?).start?0
@@ -95,8 +96,8 @@ function printError(type, pos, msg, didyoumean, traceback, code, color=fg(255, 3
     marker_symbol = '^'
     underline_symbol = "―"
     space_symbol = ' '
-    underline = (underline_start - 1) * space_symbol + underline_symbol * (underline_end - underline_start + 1)
-    marker = (marker_pos - 1) * space_symbol + marker_symbol * marker_length
+    underline = (underline_start - 2) * space_symbol + underline_symbol * (underline_end - underline_start + 1)
+    marker = (marker_pos - 2) * space_symbol + marker_symbol * marker_length
     underline_str = ""
     i = 0
     while i < Math.max(underline.length, marker.length) {
@@ -130,7 +131,6 @@ function printError(type, pos, msg, didyoumean, traceback, code, color=fg(255, 3
         # })
         didyoumean = "\n".join(lines_mean.slice(linestart, lineend))
     }
-
     if note
         note = $"\n{color}NOTE: {note}{fg.rs}"
     
@@ -177,7 +177,8 @@ class ErrorHandler as this {
             options.traceback?false,
             this.code,
             options.color?fg(255, 30, 10),
-            options.symbol?'ⓧ'
+            options.symbol?'ⓧ',
+            note
         )
         exit(1) if kill
     }
