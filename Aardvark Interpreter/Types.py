@@ -5,6 +5,7 @@ import os
 import sys
 import inspect
 
+
 def convert_number(number: str, base: int, charmap: str):
     value = 0
     for i, char in enumerate(number):
@@ -271,7 +272,8 @@ class String(str, Type):
             "indexOf": self.find,
             'rstrip': self.rstrip,
             'lstrip': self.lstrip,
-            'strip': self.strip
+            'strip': self.strip,
+            'copy': lambda: String(value)
         }
         str.__init__(self)
 
@@ -481,6 +483,7 @@ class Array(Type, list):
             "remove": self._remove,
             "length": len(self),
             "reverse": self._reverse,
+            "backwards": self._backwards,
             "filter": self._filter,
             "copy": self.copy,
             "slice": lambda start, end, step=1: Array(self.value[start:end:step])
@@ -501,7 +504,10 @@ class Array(Type, list):
     def _reverse(self):
         self.reverse()
         self.value.reverse()
-
+      
+    def _backwards(self):
+        return reversed(self.value)
+  
     def __getitem__(self, *args, **kwargs):
         # print('\n', self.value, *self.value)
         return self.value.__getitem__(*args, **kwargs)

@@ -1,8 +1,6 @@
 include Lexer
 include ansi
-#TODO
-#ansi = python.import('sty') 
-# TODO: Make ansi lib to replace the python lib.
+
 fg = ansi.fg
 bg = ansi.bg
 ef = ansi.ef
@@ -82,9 +80,7 @@ function printError(type, pos, msg, didyoumean, traceback, code, color=fg(255, 3
     padding = pos.lineend.digits.length + 1
     # To dynamically adjust padding based on line num size
     lineno = pos.lineno
-    didyoumean_par = didyoumean
     pos.linestart = Math.max(pos.linestart, 0)
-
     code = Highlight(
         code, {startline: pos.linestart, leftpadding: padding, background: opts.background?false}
     )
@@ -113,39 +109,33 @@ function printError(type, pos, msg, didyoumean, traceback, code, color=fg(255, 3
     }
 
     underline_str = underline_str.rstrip()
-    error_underline = " " * (padding + 3) + ef.bold + color + underline_str + "―>" + ef.rs + " " + color + msg
+    error_underline = " " * (padding + 3) + ef.bold + color + underline_str + underline_symbol + ">" + ef.rs + " " + color + msg
     code_lines = code.split("\n")
-    code_lines[lineno - 1] = code_lines[lineno - 1] + "\n" + error_underline + styles["default"]
+    code_lines[lineno - 1] = code_lines[lineno - 1] + "\n" + error_underline + styles.default
 
-    linestart = pos["linestart"] - (1 if pos["linestart"] > 0 else 0)
-    lineend = pos["lineend"] + (1 if pos["lineend"] + 1 < code_lines.length else 0)
+    linestart = pos.linestart - (1 if pos.linestart > 0 else 0)
+    lineend = pos.lineend + (1 if pos.lineend + 1 < code_lines.length else 0)
 
-    if didyoumean_par {
+    if didyoumean {
         lines_mean = code_lines.copy()
-        lines_mean[lineno - 1] = ' ' * (padding - String(lineno).length) + styles['default'] + String(lineno) + " │ " + didyoumean
+        lines_mean[lineno - 1] = ' ' * (padding - String(lineno).length) + styles.default + String(lineno) + " │ " + Highlight(didyoumean, {linenums: false})
         
-        # Highlight(didyoumean, {
-        #    'startline': pos["lineno"]+1,
-        #    'leftpadding': padding,
-        #    'background': False
-        # })
         didyoumean = "\n".join(lines_mean.slice(linestart, lineend))
     }
     if note
         note = $"\n{color}NOTE: {note}{fg.rs}"
-    
     code = "\n".join(code_lines.slice(linestart, lineend))
 
     if traceback {
         i = 0
-        traced = getTraceLine(i, traceback[i]) while i++ < traceback.length - 1
+        traced = getTraceLine(i-1, traceback[i-1]) while i++ < traceback.length
 
         traceback = "\n".join(traced) + "\n\n"
     } else
         traceback = ""
 
-    if didyoumean_par
-        didyoumean = "\n" + fg.blue + "ⓘ did you mean:" + styles["default"] + "\n" + didyoumean + fg.rs
+    if didyoumean
+        didyoumean = "\n" + fg(2, 85, 255) + "ⓘ  Did you mean:" + styles.default + "\n" + didyoumean + fg.rs
     else
         didyoumean = fg.rs
     output = $"{color}{symbol}  {type} in {pos.filename}:{pos.lineno}:{marker_pos?underline_start}\n{traceback}{styles.default}{code}{didyoumean}{note}\n"
@@ -200,7 +190,7 @@ function ErrorType(t='error') switch t {
 
 # type, pos, msg, didyoumean, traceback, code
 if is_main {
-    stdout.write('Running...')
+    stdout.write('Running...\n')
     printError(
         "SyntaxError",
         {
@@ -219,7 +209,7 @@ if is_main {
             {"name": "example()", "line": 8, "col": 8, "filename": "test.adk"},
         ],
         '# print Hello World\nstdout|.write("Hello World\\n")\n#after',
-        'stdout.write("Hello World\\n")',
+        note="Was this a typo?",
         ...ErrorType('error')
     )
 }

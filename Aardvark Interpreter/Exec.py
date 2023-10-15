@@ -100,7 +100,7 @@ class Executor:
                 ),
                 "null": Null,
                 "help": help,
-                "sequence": lambda start, step, times: [
+                "sequence": lambda start=0, step=1, times=1: [
                     (start + x * step) for x in range(times)
                 ],
                 "Math": Object(
@@ -216,15 +216,18 @@ class Executor:
                 functscope[AS] = x
             for i in range(len(params)):
                 param = params[i]
-                arg = (
-                    args[i]
-                    if i < len(args)
-                    else self.ExecExpr(param.get("default"), parent)
-                )
+                if i > len(args) - 1 and kwargs.get(param['name'], False):
+                    arg = kwargs[param['name']]
+                elif kwargs.get(param['name'], False):
+                    raise ValueError('Cannot recieve positional argument and keyword argument for the same parameter!!')
+                elif i < len(args):
+                    arg = args[i]
+                    if param["absorb"]:
+                        arg = args[i:]
+                else:
+                    arg = self.ExecExpr(param.get("default"), parent)
                 if param["value_type"] != None:
                     notImplemented(self.errorhandler, "Type Checking", param)
-                if param["absorb"]:
-                    arg = args[i:]
                 functscope.vars[param["name"]] = arg
             ret = self.Exec(code, functscope)
             if not functscope._returned_value and expr['inline']:

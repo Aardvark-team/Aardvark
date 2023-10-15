@@ -18,9 +18,9 @@ function x() {
 `
 testStr2 = `stdout.write($"string{hello}\n")`
 testStr3 = `16_fff`
-error_test = 'stdout.write(5 * 32, \'\\n\') # Comment\n     12_12_23\nwhile 5 < 4 stdout.write("bye\\n")\n'
+error_test = 'stdout.write(5 * 32, \'\\n\') # Comment\nstdout.writeLines(12_12_23)\nwhile 5 < 4 stdout.write("bye\\n")\n'
 
-code = testStr1
+code = error_test#testStr1
 
 stdout.write('Lexing....\n')
 

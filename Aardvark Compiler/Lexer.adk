@@ -176,7 +176,7 @@ class Lexer as this {
               lineno: this.pos().line,
               marker: {start: this.pos().column, length: 1},
               underline: {start: start.column, end: this.pos().column+1}
-            }, "The value left of the underscore (_) represents the base of the Number. (e.g. 16_1abf79 would be hex and 2_01011101 would be binary)")
+            }, "The value left of the underscore (_) represents the base of the Number. (e.g. 16_1ab would be hex and 2_0101 would be binary)")
           if this.curChar == '.' seen_dot = true;
           else if this.curChar == '_' {
             seen_underscore = true;
