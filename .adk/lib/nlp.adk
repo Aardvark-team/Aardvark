@@ -36,7 +36,7 @@ function editDistance(word1, word2) {
 function findClosest(items, item) {
   lowest_dist = 99
   lowest_item = null
-  for i of items {
+  for i in items {
     dist = editDistance(i, item)
     if dist < lowest_dist {
       lowest_dist = dist

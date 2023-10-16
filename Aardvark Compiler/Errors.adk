@@ -172,6 +172,13 @@ class ErrorHandler as this {
         )
         exit(1) if kill
     }
+    function getLine(linenum) {
+        return this.codelines[linenum-1]
+    }
+    function replace(linenum, start, end, new) {
+        line = this.getLine(linenum)
+        return line.slice(0, start) + new + line.slice(end+1, 0)
+    }
 }
 function ErrorType(t='error') switch t {
     case 'error' return {

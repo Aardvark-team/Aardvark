@@ -1,4 +1,5 @@
 include Errors
+from nlp include findClosest
 
 # This file will validate the AST
 
@@ -12,9 +13,15 @@ class Instruction as this {
   }
 }
 class Scope as this {
-  $constructor(initial, parent=null) {
+  $constructor(initial={}, parent=null) {
     this.parent = parent
     this.value = initial
+  }
+  function getAll() {
+    if this.parent
+      return mergeObjects(this.value, this.parent.getAll())
+    else
+      return this.value
   }
 }
 class NumberValue as this {
@@ -26,20 +33,25 @@ class NumberValue as this {
 class Validator as this {
   $constructor(errorHandler) {
     this.errorHandler = errorHandler
+    this.scope = Scope({
+      'test': 'test'
+    })
   }
   function throwError(type, message, options={}, note="", kill=true) {
     if this.errorHandler == null return false
     else return this.errorHandler.Throw(type, message, options, note, kill)
   }
-  function getVar(scope, name, position) {
+  function getVar(scope, name, position) {  
     if name in scope.value
       return scope.value[name]
     else
       if !scope.parent {
-        this.throwError("ReferenceError", $"Undefined variable {name}.", {
-              lineno: this.pos().line,
-              marker: {start: position.start.column, length: name.length},
-              underline: {start: position.start.column, end: position.end.column}
+        if !this.errorHandler return null
+        this.throwError("ReferenceError", $"Undefined variable \"{name}\".", {
+              lineno: position.start.line,
+              marker: {start: position.start.column+1, length: name.length},
+              underline: {start: position.start.column+1, end: position.end.column},
+              did_you_mean: this.errorHandler.replace(position.start.line, position.start.column-1, position.end.column-1, findClosest(keys(scope.value), name))
         })
       } else
     		return getVar(scope.parent, name)
@@ -54,6 +66,12 @@ class Validator as this {
     	return setVar(scope.parent, name, value)
   }
   function validate(AST) {
-	  
+	  this.getVar(this.scope, 'tes', {
+      start: {column: 5, line: 1},
+      end: {column: 7}
+    })
   }
 }
+error = Errors.ErrorHandler('+++ tes +-=', '<main>')
+val = Validator(error)
+val.validate()

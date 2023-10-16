@@ -717,13 +717,15 @@ class Parser:
         name = None
         parameters = []
         if not special:
-            starter = self.eat(TokenTypes["Keyword"], "function")
+            starter = self.eat(TokenTypes["Keyword"], "function").start
         if self.compare("Identifier"):
             name = self.eat(TokenTypes["Identifier"])
+        if not starter:
+            starter = name.start
         if self.compare("Delimiter", "("):
             openparen = self.eat(TokenTypes["Delimiter"], "(")
-            if special:
-                starter = name if name else openparen
+            if special and not starter:
+                starter = openparen.start
             while self.peek() and not self.compare(TokenTypes["Delimiter"], ")"):
                 var_type = None
                 absorb = False
@@ -771,12 +773,17 @@ class Parser:
         AS = None
         if self.compare(TokenTypes["Keyword"], "as"):
             self.eat(TokenTypes["Keyword"], "as")
-            AS = self.eat(TokenTypes["Identifier"]).value
+            tok = self.eat(TokenTypes["Identifier"])
+            AS = tok.value
+            if not starter:
+                starter = tok.start
 
         return_type = None
         if self.compare("Operator"):
             self.eat(TokenTypes["Operator"], "->")
             return_type = self.pExpression()
+            if not starter:
+                starter = return_type['positions']['start']
         self.eatLBs()
         inline = None
         if self.compare("Delimiter", "{"):
@@ -805,7 +812,7 @@ class Parser:
             "as": AS,
             "inline": inline,
             "return_type": return_type,
-            "positions": {"start": starter.start, "end": lasti},
+            "positions": {"start": starter, "end": lasti},
         }
 
     # ExtendingStatement:

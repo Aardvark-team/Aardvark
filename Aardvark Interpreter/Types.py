@@ -263,7 +263,7 @@ class String(str, Type):
         self.vars = {
             "length": len(value),
             "split": lambda sep=" ": self.split(sep),
-            "slice": lambda start, end, step=1: String(self[start:end:step]),
+            "slice": lambda start, end, step=1: String(self[start:(end if end > 0 else len(value) + end):step]),
             "startsWith": lambda prefix: self.startswith(x),
             "endsWith": lambda suffix: self.endswith(x),
             "replace": lambda x, y="": self.replace(x, y),

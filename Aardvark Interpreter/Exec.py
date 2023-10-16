@@ -29,6 +29,11 @@ from pathlib import Path
 from Utils import prettify_ast
 import os
 
+def mergeObjects(*args):
+    vars = args[0].vars.copy()
+    for arg in args[1:]:
+        vars.update(arg.vars.copy())
+    return Object(vars)
 
 def LinkFunct(start, link="next", reverse=False):
     curr = start
@@ -140,7 +145,10 @@ class Executor:
                 "include": self.include,
                 "link": LinkFunct,
                 "exit": sys.exit,
-                'is_main': is_main
+                'is_main': is_main,
+                'keys': lambda x: Array(x.vars.keys()),
+                'values': lambda x: Array(x.values()),
+                'mergeObjects': mergeObjects
             }
         )  # Define builtins here
         # TODO: implement more builtins.
