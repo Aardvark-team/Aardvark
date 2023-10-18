@@ -12,25 +12,28 @@ def convert_number(number: str, base: int, charmap: str):
         if charmap.index(char) >= base:
             raise Exception(f"character '{char}' is not in base {base}")
         value += charmap.index(char) * base ** (len(number) - 1 - i)
-        
+
     return value
-    
+
+
 def get_number(number: str, base: int, charmap: str):
     mult = 1
-    
+
     while number.startswith("-") or number.startswith("+"):
-        if number.startswith("+"): number = number[1:]
+        if number.startswith("+"):
+            number = number[1:]
         else:
             number = number[1:]
             mult *= -1
-    
+
     parts = number.split(".")
-    
+
     num = convert_number(parts[0], base, charmap)
     if len(parts) > 1:
         num += convert_number(parts[1], base, charmap) / (base ** len(parts[1]))
-    
+
     return num * mult
+
 
 class Type:
     vars = {}
@@ -56,6 +59,7 @@ class Type:
     def __getitem__(self, name):
         return self.get(name)
 
+
 class Object(Type):
     def __init__(
         self,
@@ -67,7 +71,7 @@ class Object(Type):
         getitem=None,
         deleteitem=None,
         delete=None,
-        string=None,
+        string=None
     ):
         self._class = _class
         self.name = name
@@ -98,6 +102,9 @@ class Object(Type):
     def set(self, name, value):
         self.vars[name] = value
 
+    def get(self, name, default=None):
+        return self.vars.get(name, default)
+
     def __call__(self, *args, **kwargs):
         if self._call:
             return self._call(*args, **kwargs)
@@ -118,9 +125,7 @@ class Object(Type):
 
     def delete(self, name):
         del self.vars[name]
-
-    def __delattr__(self, name):
-        return self.delete(name)
+        
 
     def __delitem__(self, name):
         if self._deleteitem:
@@ -159,7 +164,7 @@ class Scope(Object):
         self._has_been_broken = False
         self._has_been_continued = False
         self._completed = False
-        #print('Scope is', scope_type)
+        # print('Scope is', scope_type)
         self._scope_type = scope_type
         self.returnActions = []
 
@@ -193,7 +198,7 @@ class Scope(Object):
         self.returnActions.append(item)
         return True
 
-    def complete(self, stype="function", ret=None, action=lambda s:None):
+    def complete(self, stype="function", ret=None, action=lambda s: None):
         if self._scope_type != stype:
             x = self.parent.complete(stype, ret, action) if self.parent else False
             if x:
@@ -263,17 +268,19 @@ class String(str, Type):
         self.vars = {
             "length": len(value),
             "split": lambda sep=" ": self.split(sep),
-            "slice": lambda start, end, step=1: String(self[start:(end if end > 0 else len(value) + end):step]),
+            "slice": lambda start, end, step=1: String(
+                self[start : (end if end > 0 else len(value) + end) : step]
+            ),
             "startsWith": lambda prefix: self.startswith(x),
             "endsWith": lambda suffix: self.endswith(x),
             "replace": lambda x, y="": self.replace(x, y),
             "contains": lambda x: x in self,
             "join": self.join,
             "indexOf": self.find,
-            'rstrip': self.rstrip,
-            'lstrip': self.lstrip,
-            'strip': self.strip,
-            'copy': lambda: String(value)
+            "rstrip": self.rstrip,
+            "lstrip": self.lstrip,
+            "strip": self.strip,
+            "copy": lambda: String(value),
         }
         str.__init__(self)
 
@@ -282,8 +289,13 @@ class String(str, Type):
 
 
 class Number(Type):
-    def __init__(self, value=0, base=10, map=String("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")):
-        #print(value, type(value))
+    def __init__(
+        self,
+        value=0,
+        base=10,
+        map=String("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"),
+    ):
+        # print(value, type(value))
         if type(value) in [str, String]:
             try:
                 value = get_number(value, base, map)
@@ -321,114 +333,133 @@ class Number(Type):
 
     def __call__(self, x):
         return self * x
+
     def __float__(self):
         return float(self.value)
-    
+
     def __int__(self):
         return int(self.value)
-    
+
     def __str__(self):
         return str(self.value)
-    
+
     def __abs__(self):
         return Number(abs(self.value))
-    
+
     def __neg__(self):
         return Number(-self.value)
-    
+
     def __pos__(self):
         return Number(+self.value)
-    
+
     def __invert__(self):
         return ~int(self.value)
-    
+
     def __truediv__(self, other):
         if isinstance(other, Number):
             return self.value / other.value
         else:
             return self.value / other
-    
+
     def __floordiv__(self, other):
         if isinstance(other, Number):
             return self.value // other.value
         else:
             return self.value // other
-    
+
     def __mod__(self, other):
         if isinstance(other, Number):
             return self.value % other.value
         else:
             return self.value % other
-    
+
     def __pow__(self, other, modulo=None):
         if isinstance(other, Number):
             return pow(self.value, other.value, modulo)
         else:
             return pow(self.value, other, modulo)
-    
+
     def __eq__(self, other):
         if isinstance(other, Number):
             return self.value == other.value
         else:
             return self.value == other
-    
+
     def __lt__(self, other):
         if isinstance(other, Number):
             return self.value < other.value
         else:
             return self.value < other
-    
+
     def __le__(self, other):
         if isinstance(other, Number):
             return self.value <= other.value
         else:
             return self.value <= other
-    
+
     def __gt__(self, other):
         if isinstance(other, Number):
             return self.value > other.value
         else:
             return self.value > other
-    
+
     def __ge__(self, other):
         if isinstance(other, Number):
             return self.value >= other.value
         else:
             return self.value >= other
-    
+
     def __invert__(self):
         return Number(~int(self.value))
-    
+
     def __add__(self, other):
-        return Number(self.value + other.value if isinstance(other, Number) else self.value + other)
-    
+        return Number(
+            self.value + other.value
+            if isinstance(other, Number)
+            else self.value + other
+        )
+
     def __radd__(self, other):
         return Number(other + self.value)
-    
+
     def __sub__(self, other):
-        return Number(self.value - other.value if isinstance(other, Number) else self.value - other)
-    
+        return Number(
+            self.value - other.value
+            if isinstance(other, Number)
+            else self.value - other
+        )
+
     def __rsub__(self, other):
         return Number(other - self.value)
-    
+
     def __mul__(self, other):
-        return Number(self.value * other.value)if isinstance(other, Number) else self.value * other
-    
+        return (
+            Number(self.value * other.value)
+            if isinstance(other, Number)
+            else self.value * other
+        )
+
     def __rmul__(self, other):
-        return Number(self.value * other.value)if isinstance(other, Number) else self.value * other
-    
+        return (
+            Number(self.value * other.value)
+            if isinstance(other, Number)
+            else self.value * other
+        )
+
     # Implement other arithmetic and bitwise operations similarly
-    
+
     def __iadd__(self, other):
         self.value += other.value if isinstance(other, Number) else other
         return self
-    
+
     def __isub__(self, other):
         self.value -= other.value if isinstance(other, Number) else other
         return self
+
     def __imul__(self, other):
         self.value *= other.value if isinstance(other, Number) else other
         return self
+
     def __hash__(self):
         return hash(self.value)
 
@@ -489,25 +520,30 @@ class Array(Type, list):
             "slice": lambda start, end, step=1: Array(self.value[start:end:step])
             # methods and attributes here
         }
+
     def __sub__(self, other):
         self._remove(other)
+
     def __str__(self):
-      return f"[{', '.join([str(val) for val in self.value])}]"
+        return f"[{', '.join([str(val) for val in self.value])}]"
+
     def __repr__(self):
-      return str(self)
+        return str(self)
+
     def _filter(self, key):
         new = []
         for i in self.value:
             if key(i):
                 new.append(i)
         return new
+
     def _reverse(self):
         self.reverse()
         self.value.reverse()
-      
+
     def _backwards(self):
         return reversed(self.value)
-  
+
     def __getitem__(self, *args, **kwargs):
         # print('\n', self.value, *self.value)
         return self.value.__getitem__(*args, **kwargs)
@@ -521,16 +557,16 @@ class Array(Type, list):
         self.remove(*args, **kwargs)
         self.value.remove(*args, **kwargs)
         self.vars["length"] = len(self)
-      
+
     def __setitem__(self, name, value):
         if type(name) == Number:
-          self.value[int(name)] = value
-          return value
+            self.value[int(name)] = value
+            return value
         return self.set(name, value)
 
     def __getitem__(self, name):
         if type(name) == Number:
-          return self.value[int(name)]
+            return self.value[int(name)]
         return self.get(name, Null)
 
 
@@ -554,16 +590,19 @@ class Set(Type, list):
             "slice": lambda start, end, step=1: Set(self.value[start:end:step])
             # methods and attributes here
         }
+
     def __sub__(self, other):
         self._remove(other)
-        #TODO: make this work.
+        # TODO: make this work.
         return self
+
     def _filter(self, key):
         new = []
         for i in self.value:
             if key(i):
                 new.append(i)
         return new
+
     def _reverse(self):
         self.reverse()
         self.value.reverse()
@@ -615,7 +654,7 @@ class File(Type):
             "delete": self.delete,
             "name": self.name,
             "mode": self.mode,
-            "flush": self.obj.flush
+            "flush": self.obj.flush,
         }
         if self.obj == sys.stdin:
             self.vars["prompt"] = input
@@ -682,14 +721,18 @@ class Class(Type):
 
     def __call__(self, *args, **kwargs):
         obj = Object({}, _class=self)
-        
+
         for extends in self.extends:
             extends.build(obj)
-            
+
         if self._as:
             obj.vars[self._as] = obj
-        obj.parent = self.parent
-        self.build(obj)
+        # obj.parent = self.parent
+        scope = Scope({}, self.parent)
+        if self._as:
+            scope[self._as] = scope
+        self.build(scope)
+        obj.vars = scope.vars
         obj._call = obj.vars.get("$call")
         obj._setitem = obj.vars.get("$setitem")
         obj._getitem = obj.vars.get("$getitem")
@@ -793,9 +836,9 @@ def pyToAdk(py):
         ):
             return File(py)
         elif inspect.isclass(py):
-          return Object(dict_from_other(py), call=py)
+            return Object(dict_from_other(py), call=py)
         elif inspect.isfunction(py):
-          return Function(py)
+            return Function(py)
         elif callable(py):
             return Object(dict_from_other(py), call=py)
         else:

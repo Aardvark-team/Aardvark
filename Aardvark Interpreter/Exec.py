@@ -29,11 +29,13 @@ from pathlib import Path
 from Utils import prettify_ast
 import os
 
+
 def mergeObjects(*args):
     vars = args[0].vars.copy()
     for arg in args[1:]:
         vars.update(arg.vars.copy())
     return Object(vars)
+
 
 def LinkFunct(start, link="next", reverse=False):
     curr = start
@@ -59,10 +61,13 @@ def get_call_scope(scope):
     return call_scope
 
 
-def sigmoid(x) :
-  return 1 / (1 + math.exp(-x))
-def dsigmoid(x) :
-  return sigmoid(x)*(1-sigmoid(x))
+def sigmoid(x):
+    return 1 / (1 + math.exp(-x))
+
+
+def dsigmoid(x):
+    return sigmoid(x) * (1 - sigmoid(x))
+
 
 class Executor:
     def __init__(self, path, code, ast, errorhandler, filestack={}, is_main=False):
@@ -110,8 +115,8 @@ class Executor:
                 ],
                 "Math": Object(
                     {
-                        'max': max,
-                        'min': min,
+                        "max": max,
+                        "min": min,
                         "pi": math.pi,
                         "π": math.pi,
                         "e": math.e,
@@ -128,7 +133,7 @@ class Executor:
                         "pow": math.pow,
                         "tanh": math.tanh,
                         "sigmoid": sigmoid,
-                        "dsigmoid": dsigmoid 
+                        "dsigmoid": dsigmoid,
                     }
                 ),
                 "String": String,
@@ -145,10 +150,10 @@ class Executor:
                 "include": self.include,
                 "link": LinkFunct,
                 "exit": sys.exit,
-                'is_main': is_main,
-                'keys': lambda x: Array(x.vars.keys()),
-                'values': lambda x: Array(x.values()),
-                'mergeObjects': mergeObjects
+                "is_main": is_main,
+                "keys": lambda x: Array(x.vars.keys()),
+                "values": lambda x: Array(x.values()),
+                "mergeObjects": mergeObjects,
             }
         )  # Define builtins here
         # TODO: implement more builtins.
@@ -162,7 +167,7 @@ class Executor:
 
         # allow importing folders that contain an index.adk
         locs.append(os.path.join(str(path), "index.adk"))
-      
+
         if "/" not in name and "\\" not in name:
             for dir in searchDirs:
                 locs.append(dir + name)
@@ -200,7 +205,9 @@ class Executor:
         toks = lexer.tokenize(text)
         parser = Parser.Parser(errorhandler, lexer)
         ast = parser.parse()
-        executor = Executor(file, text, ast["body"], errorhandler, filestack=self.filestack)
+        executor = Executor(
+            file, text, ast["body"], errorhandler, filestack=self.filestack
+        )
         executor.run()
         self.filestack[file] = executor.Global
         return executor.Global
@@ -217,17 +224,18 @@ class Executor:
         params = expr["parameters"]
         code = expr["body"]
         AS = expr["as"]
-
         def x(*args, **kwargs):
             functscope = Scope({}, parent=parent, scope_type="function")
             if AS:
                 functscope[AS] = x
             for i in range(len(params)):
                 param = params[i]
-                if i > len(args) - 1 and kwargs.get(param['name'], False):
-                    arg = kwargs[param['name']]
-                elif kwargs.get(param['name'], False):
-                    raise ValueError('Cannot recieve positional argument and keyword argument for the same parameter!!')
+                if i > len(args) - 1 and kwargs.get(param["name"], False):
+                    arg = kwargs[param["name"]]
+                elif kwargs.get(param["name"], False):
+                    raise ValueError(
+                        "Cannot recieve positional argument and keyword argument for the same parameter!!"
+                    )
                 elif i < len(args):
                     arg = args[i]
                     if param["absorb"]:
@@ -238,12 +246,12 @@ class Executor:
                     notImplemented(self.errorhandler, "Type Checking", param)
                 functscope.vars[param["name"]] = arg
             ret = self.Exec(code, functscope)
-            if not functscope._returned_value and expr['inline']:
+            if not functscope._returned_value and expr["inline"]:
                 functscope._returned_value = ret
             return functscope._returned_value
 
         if name:
-            parent[name] = Function(x)
+            parent.set(name, Function(x))
         return Function(x)
 
     def getVar(
@@ -254,13 +262,8 @@ class Executor:
         error=True,
         message='Undefined variable "{name}"',
     ):
-        val = None
-        if type(scope) == Array and type(varname) == Number:
-            val = None if varname.value >= len(scope) else scope.value[varname.value]
-        else:
-            val = scope.get(varname, None)
+        val = scope.get(varname, None)
         success = val != None
-
         if success:
             return pyToAdk(val)
         elif error:
@@ -331,7 +334,7 @@ class Executor:
             case {"type": "Object"}:
                 obj = Object()
                 for k, v in expr["pairs"].items():
-                    if k == ('...',) and v[0] == '...':
+                    if k == ("...",) and v[0] == "...":
                         obj.vars.update(self.ExecExpr(v[1], scope).vars)
                     else:
                         obj[k] = self.ExecExpr(v, scope)
@@ -340,9 +343,11 @@ class Executor:
                 return Set({self.ExecExpr(item, scope) for item in expr["items"]})
             case {"type": "Array"}:
                 items = []
-                for item in expr['items']:
-                    if item.get('type') == 'Operator' and item.get('operator') == '...':
-                        item = self.ExecExpr(item['left'] if item['left'] else item['right'], scope)
+                for item in expr["items"]:
+                    if item.get("type") == "Operator" and item.get("operator") == "...":
+                        item = self.ExecExpr(
+                            item["left"] if item["left"] else item["right"], scope
+                        )
                         items = [*items, *item]
                     else:
                         items.append(self.ExecExpr(item, scope))
@@ -365,12 +370,14 @@ class Executor:
                 )
                 args = []
                 kwargs = {
-                        k: self.ExecExpr(v, scope)
-                        for k, v in list(expr["keywordArguments"].items())
+                    k: self.ExecExpr(v, scope)
+                    for k, v in list(expr["keywordArguments"].items())
                 }
-                for arg in expr['arguments']:
-                    if arg.get('type') == 'Operator' and arg.get('operator') == '...':
-                        arg = self.ExecExpr(arg['left'] if arg['left'] else arg['right'], scope)
+                for arg in expr["arguments"]:
+                    if arg.get("type") == "Operator" and arg.get("operator") == "...":
+                        arg = self.ExecExpr(
+                            arg["left"] if arg["left"] else arg["right"], scope
+                        )
                         if type(arg) == Object:
                             kwargs.update(arg.vars)
                         else:
@@ -386,21 +393,35 @@ class Executor:
             case {"type": "Operator", "operator": "?"}:
                 left = self.ExecExpr(expr["left"], scope, False)
                 right = self.ExecExpr(expr["right"], scope)
-                return Operators['?'](
+                return Operators["?"](
                     left,
                     right,
                     self.errorhandler,
                     self.codelines[expr["positions"]["start"]["line"] - 1],
                     expr,
                     scope,
-                    self
+                    self,
                 )
             case {"type": "Operator", "operator": operator}:
                 if operator in Operators:
                     op = Operators[operator]
-                    if operator in ['=', '+=', '-=', '*=', '/=', '^=', '%=', '++', '--', '|', '&', 'or', 'and']:
-                        left = expr['left']
-                        right = expr['right']
+                    if operator in [
+                        "=",
+                        "+=",
+                        "-=",
+                        "*=",
+                        "/=",
+                        "^=",
+                        "%=",
+                        "++",
+                        "--",
+                        "|",
+                        "&",
+                        "or",
+                        "and",
+                    ]:
+                        left = expr["left"]
+                        right = expr["right"]
                     else:
                         left = self.ExecExpr(expr["left"], scope)
                         right = self.ExecExpr(expr["right"], scope)
@@ -413,11 +434,11 @@ class Executor:
                                 self.codelines[expr["positions"]["start"]["line"] - 1],
                                 expr,
                                 scope,
-                                self
+                                self,
                             )
                         )
                     except TypeError as e:
-                        #print(e, dir(e), e.__traceback__)
+                        # print(e, dir(e), e.__traceback__)
                         self.errorhandler.throw(
                             "Value",
                             e.args[0],
@@ -442,7 +463,7 @@ class Executor:
                         expr,
                     )
             case {"type": "IfStatement"}:
-                ifscope = Scope({}, parent=scope, scope_type='conditional')
+                ifscope = Scope({}, parent=scope, scope_type="conditional")
                 if bool(self.ExecExpr(expr["condition"], scope)):
                     return self.Exec(expr["body"], ifscope)
                 elif expr["else_body"]:
@@ -521,7 +542,7 @@ class Executor:
                 classcope = Class(
                     expr["name"],
                     lambda s: self.Exec(expr["body"], s),
-                    [ self.getVar(scope, e.value, e.start) for e in expr["extends"] ],
+                    [self.getVar(scope, e.value, e.start) for e in expr["extends"]],
                     expr["as"],
                     scope,
                 )
@@ -632,7 +653,7 @@ class Executor:
                 except Exception as e:
                     sys.stderr = stderr
                     if expr["catchbody"]:
-                        #print(e, dir(e), e.__note__, e.args)
+                        # print(e, dir(e), e.__note__, e.args)
                         notes = e.args
                         error = Types.Error(notes[1], notes[2])
                         catchscope = Scope({}, parent=scope)
@@ -663,7 +684,10 @@ class Executor:
                         },
                     )
             case {"type": "ContinueStatement"}:
-                def x(s): s._has_been_continued = True
+
+                def x(s):
+                    s._has_been_continued = True
+
                 success = scope.complete("loop", action=x)
                 if not success:
                     self.errorhandler.throw(
@@ -710,14 +734,25 @@ class Executor:
                 notImplemented(self.errorhandler, expr["type"], expr)
 
     def Exec(self, ast, scope: Scope):
-        if scope._has_returned or scope._has_been_broken or scope._has_been_continued or scope._completed: return Null
+        if (
+            scope._has_returned
+            or scope._has_been_broken
+            or scope._has_been_continued
+            or scope._completed
+        ):
+            return Null
         ret_val = Null
         if type(ast).__name__ != "list":
             ast = [ast]
         for item in ast:
             ret_val = self.ExecExpr(item, scope)
 
-            if scope._has_returned or scope._has_been_broken or scope._has_been_continued or scope._completed:
+            if (
+                scope._has_returned
+                or scope._has_been_broken
+                or scope._has_been_continued
+                or scope._completed
+            ):
                 break
         return pyToAdk(ret_val)
 
