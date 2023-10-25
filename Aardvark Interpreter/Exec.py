@@ -257,7 +257,7 @@ class Executor:
     def getVar(
         self,
         scope,
-        varname: str,
+        varname,
         start,
         error=True,
         message='Undefined variable "{name}"',

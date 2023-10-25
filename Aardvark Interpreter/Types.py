@@ -544,10 +544,6 @@ class Array(Type, list):
     def _backwards(self):
         return reversed(self.value)
 
-    def __getitem__(self, *args, **kwargs):
-        # print('\n', self.value, *self.value)
-        return self.value.__getitem__(*args, **kwargs)
-
     def _append(self, *args, **kwargs):
         self.append(*args, **kwargs)
         self.value.append(*args, **kwargs)
@@ -563,7 +559,10 @@ class Array(Type, list):
             self.value[int(name)] = value
             return value
         return self.set(name, value)
-
+    def get(self, name, default=None):
+        if type(name) == Number:
+            return self.value[int(name)]
+        return self.vars.get(name, default)
     def __getitem__(self, name):
         if type(name) == Number:
             return self.value[int(name)]
@@ -675,7 +674,7 @@ class File(Type):
         return ret
 
     def writeLines(self, *lines):
-        return self.obj.writelines([str(lines) for line in lines])
+        return self.obj.writelines(*[str(lines) for line in lines])
 
     def delete(self):
         os.remove(self.name)
