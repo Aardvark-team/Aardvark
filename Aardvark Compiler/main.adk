@@ -1,6 +1,7 @@
 include Lexer from Lexer
 include Parser from Parser
 include Errors
+include Validator
 stdout.write('Loaded.\n')
 testStr1 = `
 y = 2
@@ -16,11 +17,14 @@ function x() {
   return 8
 }
 `
+# First line
 testStr2 = `stdout.write($"string{hello}\n")`
 testStr3 = `16_fff`
-error_test = 'stdout.write(5 * 32, \'\\n\') # Comment\nstdout.writeLines(12_12_23)\nwhile 5 < 4 stdout.write("bye\\n")\n'
+error_test = 'stdout.write(5 * 32, \'\\n\') # Comment\nstdout.writeLines(12_12_23)
+while 5 < 4 stdout.write("bye\\n")
+# Last line here.'
 
-code = error_test#testStr1
+code = testStr1
 
 stdout.write('Lexing....\n')
 
@@ -38,6 +42,8 @@ data = parser.parse()
 
 
 open('out.txt', 'w').write(String(data))
-stdout.write(data, '\n')
+# stdout.write(data, '\n')
 
+validator = Validator.Validator(errorHandler)
+validator.validate(data)
 # stdout.write(prettify(data), '\n')

@@ -522,7 +522,8 @@ class Executor:
                         if self.switch[c] != compare[c]:
                             return
                     for d in define:
-                        value = self.switch
+                        value = self.switch 
+                        #TODO: fix: nested switch does not work.
                         for i in define[d]:
                             value = value[i]
                         self.defineVar(d, value, casescope)

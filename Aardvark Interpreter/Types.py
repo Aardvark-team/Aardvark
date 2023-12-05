@@ -106,7 +106,7 @@ class Object(Type):
         return self.vars.get(name, default)
 
     def __call__(self, *args, **kwargs):
-        if self._call:
+        if '_call' in dir(self) and self._call:
             return self._call(*args, **kwargs)
 
     def __setitem__(self, name, value):
@@ -152,6 +152,8 @@ class Object(Type):
         if self._class:
             return self._class.childstr()
         return self.vars.__str__()
+    def __add__(self, other):
+        return Object(self.vars | other.vars)
 
 
 class Scope(Object):

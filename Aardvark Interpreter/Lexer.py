@@ -7,9 +7,10 @@ from Data import (
     PureOperators,
     Booleans,
     Delimiters,
-    NotIncluded
+    NotIncluded,
 )
 import Error
+
 
 class Token:
     def __init__(
@@ -54,6 +55,7 @@ class Lexer:
         errorhandler: Error.ErrorHandler,
         useIndents=False,
         tokenizeComments=False,
+        strict=True,
     ):
         self.errorhandler = errorhandler
         self.useIndents = useIndents
@@ -69,6 +71,7 @@ class Lexer:
         self.empty = True
         self.AtEnd = False
         self.curChar = ""
+        self.strict = strict
 
     def isWhitespace(self, char=None):
         char = char or self.curChar
@@ -140,17 +143,26 @@ class Lexer:
         self.data += data
         self.curChar = self.data[self.index]
         while self.index < len(self.data):
-            
+
             # Operators
             for op in sorted(PureOperators, key=len, reverse=True):
                 if self.detect(op):
                     start = self.index
                     startcolumn = self.column
                     self.advance(len(op) - 1)
-                    self.addToken("Operator", start, self.index, self.line, startcolumn, self.column, op)
+                    self.addToken(
+                        "Operator",
+                        start,
+                        self.index,
+                        self.line,
+                        startcolumn,
+                        self.column,
+                        op,
+                    )
                     self.advance()
-                    if self.AtEnd: break
-                    
+                    if self.AtEnd:
+                        break
+
             # Newlines (\n or ;)
             if self.isNewline():
                 self.addToken(
@@ -212,31 +224,39 @@ class Lexer:
                     if (
                         seen_dot and self.curChar == "." and self.errorhandler
                     ):  # TODO: replace with native errors
-                        raise Exception("invalid syntax, floats can only have one '.'")
+                        if self.strict:
+                            raise Exception(
+                                "invalid syntax, floats can only have one '.'"
+                            )
+                        else:
+                            value += self.curChar
                     if self.curChar == ".":
                         seen_dot = True
                     value += self.curChar
                     self.advance()
                 self.advance(-1)
                 if value[-1] == "." and self.errorhandler:
-                    didyoumean = (
-                        self.data.split("\n")[self.line - 1][: self.column - len(value)]
-                        + value[:-1]
-                        + self.data.split("\n")[self.line - 1][self.column :]
-                    )
-                    self.errorhandler.throw(
-                        "Syntax",
-                        "Numbers cannot end with a .",
-                        {
-                            "lineno": self.line,
-                            "marker": {"start": self.column, "length": 1},
-                            "underline": {
-                                "start": self.column - len(value),
-                                "end": self.column + 1,
+                    if self.strict:
+                        didyoumean = (
+                            self.data.split("\n")[self.line - 1][
+                                : self.column - len(value)
+                            ]
+                            + value[:-1]
+                            + self.data.split("\n")[self.line - 1][self.column :]
+                        )
+                        self.errorhandler.throw(
+                            "Syntax",
+                            "Numbers cannot end with a .",
+                            {
+                                "lineno": self.line,
+                                "marker": {"start": self.column, "length": 1},
+                                "underline": {
+                                    "start": self.column - len(value),
+                                    "end": self.column + 1,
+                                },
+                                "did_you_mean": didyoumean,
                             },
-                            "did_you_mean": didyoumean,
-                        },
-                    )
+                        )
                 self.addToken(
                     "Number",
                     start,
@@ -300,7 +320,12 @@ class Lexer:
                 while True:
                     self.advance()
                     if self.AtEnd:
-                        raise Exception("Error: Unexpected EOF")
+                        if self.strict:
+                            raise Exception("Error: Unexpected EOF")
+                        else:
+                            self.advance(-1)
+                            break
+
                     if backslash:
                         if self.curChar == "\\":
                             value += "\\"

@@ -115,7 +115,6 @@ class Lexer as this {
     this.AtEnd = false
     this.curChar = this.data[this.index]
     while this.index < this.data.length {
-        
         # Operators
         for op in Operators {
             for i in op {

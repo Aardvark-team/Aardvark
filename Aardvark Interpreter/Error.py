@@ -41,7 +41,7 @@ def getAstText(expr, codelines):
 
 
 def Highlight(code: str, opts={}):
-    lexer = Lexer.Lexer("#", "</", "/>", None, True, True)
+    lexer = Lexer.Lexer("#", "</", "/>", None, True, True, strict=False)
     lexer.tokenize(code)
     line = opts.get("startline", 1)
     output = (
@@ -61,12 +61,19 @@ def Highlight(code: str, opts={}):
         # To restore things the lexer left out.
 
         if str(token.type) == "String":
-            output += (
-                styles[str(token.type)]
-                + token.variation
-                + str(token.value).replace("\n", "\\n")
-                + token.variation
-            )
+            if token.end_index - token.start_index < len(token.value) + 1:
+                output += (
+                    styles[str(token.type)]
+                    + token.variation
+                    + str(token.value).replace("\n", "\\n")
+                )
+            else:
+                output += (
+                    styles[str(token.type)]
+                    + token.variation
+                    + str(token.value).replace("\n", "\\n")
+                    + token.variation
+                )
         # To give strings their quotes back.
 
         elif token.value == "\n":
@@ -100,7 +107,7 @@ def Highlight(code: str, opts={}):
         # The random stuff that uses a default color
         toknum += 1
         last = token.end_index
-    output += rs.all
+    output += styles["default"] + code[last + 1 :] + rs.all
     return output
 
 
@@ -113,7 +120,17 @@ def get_trace_line(index, line):
     return " " * len(header) + line["name"] + fileloc
 
 
-def print_error(type: str, pos, msg, didyoumean, err_trace, code, color=fg(225, 30, 10), symbol="ⓧ", note=None):
+def print_error(
+    type: str,
+    pos,
+    msg,
+    didyoumean,
+    err_trace,
+    code,
+    color=fg(225, 30, 10),
+    symbol="ⓧ",
+    note=None,
+):
     sys.stdout.flush()
     sys.stderr.flush()
     padding = (
@@ -173,7 +190,9 @@ def print_error(type: str, pos, msg, didyoumean, err_trace, code, color=fg(225, 
         )
 
     underline_str = underline_str.rstrip()
-    error_underline = f'{" "*(padding+3)}{ef.bold + color}{underline_str}―>{ef.rs} {color}{msg}'
+    error_underline = (
+        f'{" "*(padding+3)}{ef.bold + color}{underline_str}―>{ef.rs} {color}{msg}'
+    )
     code_lines = code.split("\n")
     code_lines[lineno - 1] = (
         code_lines[lineno - 1] + "\n" + error_underline + styles["default"]
@@ -195,9 +214,9 @@ def print_error(type: str, pos, msg, didyoumean, err_trace, code, color=fg(225, 
         # })
         didyoumean = "\n".join(lines_mean[linestart:lineend])
     if note:
-      note = f"\n{color}NOTE: {note}{fg.rs}"
+        note = f"\n{color}NOTE: {note}{fg.rs}"
     else:
-      note = ""
+        note = ""
     code = "\n".join(code_lines[linestart:lineend])
 
     traceback = ""
@@ -236,7 +255,7 @@ class ErrorHandler:
         options["lineend"] = options["lineno"] + 1
 
         print_error(
-            type+self.mode,
+            type + self.mode,
             options,
             message,
             options.get("did_you_mean", None),
@@ -277,7 +296,10 @@ if __name__ == "__main__":
         examplecode,
     )
     print()
-    examplecode = 13*'\n'+'# This is a test for the smart features. \nfunction createEmptyObject() {}\n\nfunction testErrorAutoCorrect() {\n'
+    examplecode = (
+        13 * "\n"
+        + "# This is a test for the smart features. \nfunction createEmptyObject() {}\n\nfunction testErrorAutoCorrect() {\n"
+    )
     code_stack = [
         {"name": "testErrors()", "line": 7, "col": 4, "filename": "main.adk"},
     ]
@@ -292,11 +314,11 @@ if __name__ == "__main__":
             "marker": {"start": 31, "length": 2},
             "underline": {"start": 1, "end": 30},
         },
-        'Cannot determine return from context.',
+        "Cannot determine return from context.",
         None,
         code_stack,
         examplecode,
         fg(235, 175, 10),
-        '⚠',
-        'Is that an empty scope or an empty object?\nDefaulting to object because "object" detected in function name.\nTo treat as empty scope, set return type with `-> null`'
+        "⚠",
+        'Is that an empty scope or an empty object?\nDefaulting to object because "object" detected in function name.\nTo treat as empty scope, set return type with `-> null`',
     )

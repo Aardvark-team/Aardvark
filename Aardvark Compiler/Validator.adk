@@ -17,18 +17,53 @@ class Scope as this {
     this.parent = parent
     this.value = initial
   }
-  function getAll() {
+  function getAll()
     if this.parent
       return mergeObjects(this.value, this.parent.getAll())
     else
       return this.value
-  }
+
+  function set(k, v)
+    this.value[k] = v
 }
 class NumberValue as this {
-	$constructor(min=0, max=0) {
+	$constructor(value=0, min=99999999, max=-9999999) { #TODO: make min Infinity and max -Infinity
+    this.value = value
 		this.max = max
     this.min = min
+    if this.value > this.max
+      this.max = this.value
+    if this.value < this.min
+      this.min = this.value
 	}
+  function handleSet(value) {
+    # Adjust min and max and other data based on the value it is now being set to.
+  }
+}
+class StringValue as this {
+  $constructor(value, minlen=99999999, maxlen=0, charset=[]) { #TODO: make minlen Infinity
+    this.value = value
+    this.minlen = minlen
+    this.maxlen = maxlen
+    this.charset = charset
+    for v in this.value if !(v in charset)
+      charset.add(v)
+    if this.value.length < this.minlen
+      this.minlen = this.value.length
+    if this.value.length > maxlen
+      this.maxlen = this.value.length
+  }
+  function handleSet(value) {
+    # Adjust min and max and other data based on the value it is now being set to.
+  }
+}
+class Variable as this {
+  $constructor(name, scope, types=[], references=0) {
+    this.name = name
+    this.scope = scope
+    this.types = types
+    this.references = references
+  }
 }
 class Validator as this {
   $constructor(errorHandler) {
@@ -41,12 +76,12 @@ class Validator as this {
     if this.errorHandler == null return false
     else return this.errorHandler.Throw(type, message, options, note, kill)
   }
-  function getVar(scope, name, position) {  
+  function getVar(scope, name, position, error=true) {  
     if name in scope.value
       return scope.value[name]
     else
       if !scope.parent {
-        if !this.errorHandler return null
+        if (!this.errorHandler | !error) return null
         this.throwError("ReferenceError", $"Undefined variable \"{name}\".", {
               lineno: position.start.line,
               marker: {start: position.start.column+1, length: name.length},
@@ -54,7 +89,7 @@ class Validator as this {
               did_you_mean: this.errorHandler.replace(position.start.line, position.start.column-1, position.end.column-1, findClosest(keys(scope.value), name))
         })
       } else
-    		return getVar(scope.parent, name)
+        return getVar(scope.parent, name)
   }
   function setVar(scope, name, value) {
     if name in scope.value
@@ -65,13 +100,59 @@ class Validator as this {
       } else
     	return setVar(scope.parent, name, value)
   }
-  function validate(AST) {
-	  this.getVar(this.scope, 'tes', {
-      start: {column: 5, line: 1},
-      end: {column: 7}
-    })
+  function validate(expr, scope=this.scope) {
+   # stdout.write(expr, '\n')
+	  switch expr {
+      case {type: 'VariableAccess', $value, $position} {
+        var = this.getVar(scope, value, position)
+        if var != null
+          var.references++
+        return {
+          dataType: 'variable',
+          name: value,
+          variable: var,
+          types: var.types,
+          position: position,
+          expression: expr
+        }
+      }
+      case {type: 'Operator', operator: '=', $left, $right} {
+        left = this.validate(left, scope)
+        right = this.validate(right, scope)
+        stdout.write('Assignment!\n', left, right)
+        if left.variable == null {
+          left = Variable(left.name, scope, right.types)
+          scope.set(left.name, left)
+        
+        return {
+          dataType: 'data',
+          value: right
+        }
+      }
+      case {type: 'StringLiteral', $value}
+        return {
+          dataTye: 'value',
+          types: ['String'],  
+          value: StringValue(value)
+        }
+      case {type: 'NumberLiteral', $value}
+        return {
+          dataTye: 'value',
+          types: ['Number'],  
+          value: NumberValue(value)
+        }
+      case {type: 'Program', $body} for item in body
+        this.validate(item)
+      case null return
+    }
   }
 }
-error = Errors.ErrorHandler('+++ tes +-=', '<main>')
-val = Validator(error)
-val.validate()
+if is_main {
+  error = Errors.ErrorHandler('+++ tes +-=', '<main>')
+  val = Validator(error)
+  val.getVar(val.scope, 'tes', {
+    start: {column: 5, line: 1},
+    end: {column: 7}
+  });
+  val.validate()
+}
