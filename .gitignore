@@ -1,0 +1,4 @@
+**/*.pyc
+*.pyc
+.adk/bin/*
+venv/bin/*
