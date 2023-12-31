@@ -1,4 +1,4 @@
-searchDirs = ["/home/runner/Aardvark-py/.adk/lib/"]
+searchDirs = ["/home/runner/Aardvark/.adk/lib/"]
 import Error
 import Lexer
 import Parser
@@ -174,6 +174,7 @@ class Executor:
                 locs.append(dir + name + ".adk")
         i = 0
         text = None
+        # print(locs)
         while True:
             file = Path(locs[i])
             if file.is_dir():
