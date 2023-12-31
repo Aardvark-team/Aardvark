@@ -280,7 +280,7 @@ def highlighted_input(
     return buff, input_history + [buff]
 
 
-def runLive(debugmode=False, noret=False, printToks=False, printAST=False):
+def runLive(debugmode=False, noret=False, printToks=False, printAST=False, experimental=False):
     print(f"Aardvark {version} \n[Python {python}]\n{sys.platform.upper()}")
     saved_scope = None
     input_history = []
@@ -289,12 +289,14 @@ def runLive(debugmode=False, noret=False, printToks=False, printAST=False):
         file = "<main>"
         # text = input(">>> ")
         # Executor().Global hacky way to get a new scope that has builtins
-        text, input_history = highlighted_input(
-            ">>> ",
-            saved_scope if saved_scope else Executor("", "", None, None).Global,
-            input_history,
-        )
-        # text = input(">>> ")
+        if experimental:
+            text, input_history = highlighted_input(
+                ">>> ",
+                saved_scope if saved_scope else Executor("", "", None, None).Global,
+                input_history,
+            )
+        else:
+            text = input(">>> ")
         if debugmode:
             if text == "$clear":
                 print("\033[2J\033[H")

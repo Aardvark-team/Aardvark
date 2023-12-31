@@ -22,6 +22,7 @@ if __name__ == "__main__":
                 ctx.getSwitch("no-ret"),
                 ctx.getSwitch("toks"),
                 ctx.getSwitch("ast"),
+                ctx.getSwitch("e"),
             )
 
     @argp.command("run [file]", "Compile a file.")
