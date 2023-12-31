@@ -2,16 +2,24 @@ import Data
 import Lexer
 import Parser
 import traceback
-from Error import ErrorHandler
+from Error import ErrorHandler, Highlight
 import Exec
 import sys
-from Types import Null
+from Exec import Executor
+from Types import Null, Scope
+from Getch import getch
 from sty import fg
 import os
 import shutil
+import time
+
+color_prompt = fg(255, 189, 122)
+color_error = fg(229, 34, 34)
+color_gray = fg(157, 162, 166)
+
 installedLocation = os.getenv("AardvarkInstallLoc", "/home/runner/Aardvark-py/.adk/")
 testdir = "/home/runner/Aardvark-py/tests/"
-searchDirs = [os.path.join(installedLocation, 'lib/')]
+searchDirs = [os.path.join(installedLocation, "lib/")]
 
 # Import module for colouring.
 # Prettifying the ast
@@ -40,7 +48,7 @@ class Version:
         return str(self)
 
 
-version = Version(1, 0, 0, "test")
+version = Version(1, 0, 0, "test", 2)
 python = sys.version_info
 python = Version(
     python.major, python.minor, python.micro, python.releaselevel, python.serial
@@ -105,12 +113,190 @@ def runFile(file, *args, **kwargs):
         return run(text, file, *args, **kwargs)
 
 
-def runLive(debugmode=False, noret=False, printToks=False, printAST=False):
+def highlighted_input(
+    prompt: str, scope: Scope, input_history: list[str], eval_mode: bool = False
+) -> (str, list[str]):
+    buff = ""
+
+    buff = ""
+    picked_completion = 0
+    last_completions = []
+
+    escape_code = []
+    auto_complete_scope = scope
+
+    while True:
+        valid_completions = []
+
+        if buff != "":
+            for line in input_history:
+                if line.startswith(buff) and line != buff:
+                    added = line[len(buff) :]
+                    valid_completions.append(
+                        (added, color_gray + added + fg.rs + f"\33[{len(added)}D")
+                    )
+
+        errorhandler = ErrorHandler(buff, "<main>", py_error=True)
+        lexer = Lexer.Lexer("#", "</", "/>", errorhandler, True, True, False)
+        tokens = lexer.tokenize(buff)
+
+        attribTokens = tokens
+        attributeStack = []
+        currentCycle = 0
+        cycleArray = input_history
+        while (
+            len(attribTokens) > 2
+            and attribTokens[-1].type == Data.TokenTypes["Identifier"]
+            and attribTokens[-2].value == "."
+            and attribTokens[-2].type == Data.TokenTypes["Delimiter"]
+        ):
+            attributeStack.append(attribTokens[-1])
+            attribTokens = attribTokens[:-2]
+            if (
+                len(attribTokens) >= 1
+                and attribTokens[-1].type == Data.TokenTypes["Identifier"]
+                and (len(attribTokens) < 2 or 
+                    attribTokens[-2].value != "."
+                    or attribTokens[-2].type != Data.TokenTypes["Delimiter"]
+                )
+            ):
+                attributeStack.append(attribTokens[-1])
+                break
+
+        if len(attributeStack) >= 1:
+            current = scope
+            attributeStack.reverse()
+            for id in attributeStack[:-1]:
+                val = current.get(id.value)
+                if val:
+                    current = val
+            auto_complete_scope = current
+            
+        
+        if len(tokens) >= 1 and tokens[-1].type == Data.TokenTypes["Identifier"]:
+            for vname in auto_complete_scope.vars:
+                if vname.startswith(tokens[-1].value) and vname != tokens[-1].value:
+                    added = vname[len(tokens[-1].value) :]
+                    valid_completions.insert(
+                        0,
+                        (added, color_gray + added + fg.rs + f"\33[{len(added)}D"),
+                    )
+                    
+        if len(last_completions) != len(valid_completions):
+            picked_completion = 0
+        else:
+            for lc, rc in zip(last_completions, valid_completions, strict=True):
+                if lc[0] != rc[0]:
+                    picked_completion = 0
+                    break
+        valid_completions.sort(key=lambda x: len(x[0]))
+        last_completions = valid_completions
+        if picked_completion >= len(valid_completions):
+            picked_completion = 0
+        elif picked_completion < 0:
+            picked_completion = len(valid_completions) - 1
+
+        current_completion = ""
+        if len(valid_completions) != 0:
+            current_completion = valid_completions[picked_completion][1]
+
+        print(
+            "\33[2K\r"
+            + prompt
+            + Highlight(buff, {"linenums": False})
+            + current_completion,
+            end="",
+            flush=True,
+        )
+        key = getch()
+        time.sleep(0.02) # Why?
+        key_code = ord(key)
+        if key_code == 27:
+            escape_code = [27]
+        elif key_code == 13:
+            escape_code = []
+            break
+        elif key_code == 127 and len(buff) > 0:
+            escape_code = []
+            buff = buff[:-1]
+        elif key_code == 3:
+            raise KeyboardInterrupt()
+        elif key_code == 9:
+            escape_code = []
+            if len(valid_completions) != 0:
+                buff += valid_completions[picked_completion][0]
+
+        # ARROW KEYS NOT TRIGGERING
+        # It registers as [A and [B
+        elif key_code == 38:
+            print('\n\nHere\n\n')
+            currentCycle += 1
+            buff = cycleArray[len(cycleArray) - (currentCycle - 1)]
+            if buff != "":
+                cycleArray.append(buff)
+                currentCycle += 1
+        elif key_code == 40 and currentCycle > 0:
+            currentCycle -= 1
+            if currentCycle == 0:
+                buff = ""
+            else:
+                buff = cycleArray[len(cycleArray) - (currentCycle - 1)]
+
+        
+        elif key.isprintable() and key_code not in [91, 65, 66]:
+            # Doesn't allow me to print [, A, or B
+            buff += key
+        else:
+            escape_code.append(key_code)
+
+            if escape_code == [27, 91, 65]:
+                picked_completion -= 1
+            elif escape_code == [27, 91, 66]:
+                picked_completion += 1
+
+        if eval_mode:
+            print()
+            message = None
+
+            custom_builtins = {}
+            for name in dir(builtins):
+                custom_builtins[name] = getattr(builtins, name)
+            custom_builtins["print"] = fake_print
+            custom_builtins["exit"] = fake_exit
+            custom_builtins["quit"] = fake_exit
+
+            try:
+                res = eval(buff, {"__builtins__": custom_builtins}, eval_locals)
+                message = color_gray + str(res)
+            except Exception as e:
+                message = color_gray + str(e).replace("\n", "")
+
+            print("\33[2K\r" + str(message).replace("\n", "") + fg.rs, end="\33[1A")
+
+    print("\33[2K\r" + prompt + Highlight(buff, {"linenums": False}))
+
+    input_history.append(buff)
+
+    return buff, input_history + [buff]
+
+
+def runLive(debugmode=False, noret=False, printToks=False, printAST=False, experimental=False):
     print(f"Aardvark {version} \n[Python {python}]\n{sys.platform.upper()}")
     saved_scope = None
+    input_history = []
+
     while True:
         file = "<main>"
-        text = input(">>> ")
+        # text = input(">>> ")
+        # Executor().Global hacky way to get a new scope that has builtins
+        if experimental:
+            text, input_history = highlighted_input(
+                ">>> ",
+                saved_scope if saved_scope else Executor("", "", None, None).Global,
+                input_history,
+            )
+        else:
+            text = input(">>> ")
         if debugmode:
             if text == "$clear":
                 print("\033[2J\033[H")
@@ -125,7 +311,11 @@ def runLive(debugmode=False, noret=False, printToks=False, printAST=False):
         # multiline support
         openc = text.count("{") - text.count("}")
         while openc > 0:
-            newl = input("... ")
+            newl, input_history = highlighted_input(
+                "... " + " " * openc * 2,
+                saved_scope if saved_scope else Executor("", "", None, None).Global,
+                input_history,
+            )
             openc += newl.count("{") - newl.count("}")
             text += "\n" + newl
 
