@@ -5,7 +5,7 @@ import traceback
 from Error import ErrorHandler, Highlight
 import Exec
 import sys
-from Exec import Executor
+from Exec import Executor, createGlobals
 from Types import Null, Scope
 from Getch import getch
 from sty import fg
@@ -287,12 +287,10 @@ def runLive(debugmode=False, noret=False, printToks=False, printAST=False, exper
 
     while True:
         file = "<main>"
-        # text = input(">>> ")
-        # Executor().Global hacky way to get a new scope that has builtins
         if experimental:
             text, input_history = highlighted_input(
                 ">>> ",
-                saved_scope if saved_scope else Executor("", "", None, None, {}, False, safe).Global,
+                saved_scope if saved_scope else createGlobals(safe),
                 input_history,
             )
         else:
@@ -313,7 +311,7 @@ def runLive(debugmode=False, noret=False, printToks=False, printAST=False, exper
         while openc > 0:
             newl, input_history = highlighted_input(
                 "... " + " " * openc * 2,
-                saved_scope if saved_scope else Executor("", "", None, None, safe).Global,
+                saved_scope if saved_scope else createGlobals(safe),
                 input_history,
             )
             openc += newl.count("{") - newl.count("}")

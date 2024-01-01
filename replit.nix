@@ -4,6 +4,7 @@
     pkgs.python39Packages.black
     pkgs.python311
     pkgs.replitPackages.stderred
+    pkgs.nodejs-18_x
   ];
   env = {
     LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath [

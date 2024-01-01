@@ -30,7 +30,7 @@ if __name__ == "__main__":
 
     @argp.command("run [file]", "Compile a file.")
     def Run(ctx):
-        runFile(ctx.positional[1], ctx.getSwitch("toks"), ctx.getSwitch("ast"), ctx.getSwitch("safe"))
+        runFile(ctx.positional[1], ctx.getSwitch("toks"), ctx.getSwitch("ast"), safe=ctx.getSwitch("safe"))
 
     @argp.command(
         "live", "Start an interactable language shell."

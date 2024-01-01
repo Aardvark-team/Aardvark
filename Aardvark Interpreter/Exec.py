@@ -74,6 +74,83 @@ def sigmoid(x):
 def dsigmoid(x):
     return sigmoid(x) * (1 - sigmoid(x))
 
+def createGlobals(safe=False):
+    Globals = Scope({
+            "stdout": File(sys.stdout),
+            "stdin": File(sys.stdin),
+            "stderr": File(sys.stderr),
+            "slice": lambda str, start=0, end=0: str[start:end],
+            "prettify": prettify_ast,
+            "range": lambda *args: list(range(*args)),
+            "typeof": lambda obj: obj._class.name
+            if type(obj) == Object and getattr(obj, "_class", False)
+            else type(obj).__name__,
+            "keys": lambda x: list(x.getAll().keys()),
+            "dir": lambda x=None: x.getAll() if x else Globals.vars,
+            "sort": lambda iterable, reverse=False, key=(lambda x: x): sorted(
+                iterable, reverse=reverse, key=key
+            ),
+            "null": Null,
+            "help": help,
+            "sequence": lambda start=0, step=1, times=1: [
+                (start + x * step) for x in range(times)
+            ],
+            "Math": Object(
+                {
+                    "max": max,
+                    "min": min,
+                    "pi": math.pi,
+                    "π": math.pi,
+                    "e": math.e,
+                    "tau": math.tau,
+                    "round": round,
+                    "abs": abs,
+                    "factorial": math.factorial,
+                    "floor": math.floor,
+                    "ceil": math.ceil,
+                    "log": math.log,
+                    "comb": math.comb,
+                    "copysign": math.copysign,
+                    "lcm": math.lcm,
+                    "pow": math.pow,
+                    "tanh": math.tanh,
+                    "sigmoid": sigmoid,
+                    "dsigmoid": dsigmoid,
+                }
+            ),
+            "String": String,
+            "Number": Number,
+            "Array": Array,
+            "Set": Set,
+            "Function": Function,
+            "Boolean": Boolean,
+            "File": File,
+            "Object": Object,
+            "Error": Types.Error,
+            #'BitArray': bitarray,
+            "link": LinkFunct,
+            "exit": sys.exit,
+            "keys": lambda x: Array(x.vars.keys()),
+            "values": lambda x: Array(x.values()),
+            "mergeObjects": mergeObjects,
+        }
+    )  # Define builtins here
+    if not safe:
+        Globals.set("open", open)
+        Globals.set("python", {
+           "import": lambda mod: importlib.import_module(mod),
+           "eval": lambda code: eval(
+               code,
+               {
+                   "importlib": importlib,
+                   "math": math,
+                   "random": random,
+                   "sys": sys,
+               },
+           ),
+        })
+    return Globals
+
 
 class Executor:
     def __init__(self, path, code, ast, errorhandler, filestack={}, is_main=False, safe=False):
@@ -84,87 +161,9 @@ class Executor:
         self.traceback = []
         self.switch = None
         self.filestack = filestack
-        self.Global = Scope(
-            {
-                "stdout": File(sys.stdout),
-                "stdin": File(sys.stdin),
-                "stderr": File(sys.stderr),
-                "slice": lambda str, start=0, end=0: str[start:end],
-                "prettify": prettify_ast,
-                "range": lambda *args: list(range(*args)),
-                "typeof": lambda obj: obj._class.name
-                if type(obj) == Object and getattr(obj, "_class", False)
-                else type(obj).__name__,
-                "keys": lambda x: list(x.getAll().keys()),
-                "dir": lambda x=None: x.getAll() if x else self.Global.vars,
-                "sort": lambda iterable, reverse=False, key=(lambda x: x): sorted(
-                    iterable, reverse=reverse, key=key
-                ),
-                "null": Null,
-                "help": help,
-                "sequence": lambda start=0, step=1, times=1: [
-                    (start + x * step) for x in range(times)
-                ],
-                "Math": Object(
-                    {
-                        "max": max,
-                        "min": min,
-                        "pi": math.pi,
-                        "π": math.pi,
-                        "e": math.e,
-                        "tau": math.tau,
-                        "round": round,
-                        "abs": abs,
-                        "factorial": math.factorial,
-                        "floor": math.floor,
-                        "ceil": math.ceil,
-                        "log": math.log,
-                        "comb": math.comb,
-                        "copysign": math.copysign,
-                        "lcm": math.lcm,
-                        "pow": math.pow,
-                        "tanh": math.tanh,
-                        "sigmoid": sigmoid,
-                        "dsigmoid": dsigmoid,
-                    }
-                ),
-                "String": String,
-                "Number": Number,
-                "Array": Array,
-                "Set": Set,
-                "Function": Function,
-                "Boolean": Boolean,
-                "File": File,
-                "Object": Object,
-                "Error": Types.Error,
-                #'BitArray': bitarray,
-                "include": self.include,
-                "link": LinkFunct,
-                "exit": sys.exit,
-                "is_main": is_main,
-                "keys": lambda x: Array(x.vars.keys()),
-                "values": lambda x: Array(x.values()),
-                "mergeObjects": mergeObjects,
-            }
-        )  # Define builtins here
-        if not safe:
-            self.Global.vars.update({
-                "open": open,
-                "python": Object(
-                    {
-                        "import": lambda mod: importlib.import_module(mod),
-                        "eval": lambda code: eval(
-                            code,
-                            {
-                                "importlib": importlib,
-                                "math": math,
-                                "random": random,
-                                "sys": sys,
-                            },
-                        ),
-                    }
-                )
-            })
+        self.Global = createGlobals(safe)
+        self.Global['include'] = self.include
+        self.Global['is_main'] = is_main
         # TODO: implement more builtins.
         self.errorhandler = errorhandler
 
@@ -185,7 +184,6 @@ class Executor:
                 locs.append(dir + name + ".adk")
         i = 0
         text = None
-        # print(locs)
         while True:
             file = Path(locs[i])
             if file.is_dir():
@@ -281,7 +279,6 @@ class Executor:
             return pyToAdk(val)
         elif error:
             line = self.codelines[start["line"] - 1]
-            # print('Availiable vars in current scope:', ', '.join(scope.getAll()))
             did_you_mean = (
                 line[: start["col"] - 1]
                 + findClosest(varname, scope)
@@ -311,7 +308,6 @@ class Executor:
             case {"type": "Index"}:
                 property = self.ExecExpr(var["property"], main)
                 scope = self.enterScope(var["value"], scope, main)
-                # print("ENTERTING INDEX", scope, property)
                 return self.getVar(scope, property, var["positions"]["start"])
             case _:
                 return self.ExecExpr(var, main)
@@ -335,8 +331,6 @@ class Executor:
                     if "name" in dir(obj)
                     else Error.getAstText(expr["value"], self.codelines)
                 )
-                # if expr['property'] == 'length':
-                #     print('Here', expr['property'], expr['positions'])
                 return self.getVar(
                     obj,
                     expr["property"],
