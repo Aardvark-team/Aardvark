@@ -71,7 +71,7 @@ def runTest(code, values={}, ret=None, testfunct=None):
     return True
 
 
-def run(text, file="<main>", printToks=False, printAST=False, Global=None):
+def run(text, file="<main>", printToks=False, printAST=False, Global=None, safe=False):
     errorhandler = ErrorHandler(text, file, py_error=True)
     ret = Null
     error = False
@@ -84,7 +84,7 @@ def run(text, file="<main>", printToks=False, printAST=False, Global=None):
         ast = parser.parse()
         if printAST:
             print(prettify_ast(ast))
-        executor = Exec.Executor(file, text, ast["body"], errorhandler, {}, True)
+        executor = Exec.Executor(file, text, ast["body"], errorhandler, {}, True, safe)
         if Global:
             executor.Global = Global
         ret = executor.run()
@@ -280,7 +280,7 @@ def highlighted_input(
     return buff, input_history + [buff]
 
 
-def runLive(debugmode=False, noret=False, printToks=False, printAST=False, experimental=False):
+def runLive(debugmode=False, noret=False, printToks=False, printAST=False, experimental=False, safe=False):
     print(f"Aardvark {version} \n[Python {python}]\n{sys.platform.upper()}")
     saved_scope = None
     input_history = []
@@ -292,7 +292,7 @@ def runLive(debugmode=False, noret=False, printToks=False, printAST=False, exper
         if experimental:
             text, input_history = highlighted_input(
                 ">>> ",
-                saved_scope if saved_scope else Executor("", "", None, None).Global,
+                saved_scope if saved_scope else Executor("", "", None, None, {}, False, safe).Global,
                 input_history,
             )
         else:
@@ -313,7 +313,7 @@ def runLive(debugmode=False, noret=False, printToks=False, printAST=False, exper
         while openc > 0:
             newl, input_history = highlighted_input(
                 "... " + " " * openc * 2,
-                saved_scope if saved_scope else Executor("", "", None, None).Global,
+                saved_scope if saved_scope else Executor("", "", None, None, safe).Global,
                 input_history,
             )
             openc += newl.count("{") - newl.count("}")
@@ -327,6 +327,7 @@ def runLive(debugmode=False, noret=False, printToks=False, printAST=False, exper
             printToks,
             printAST,
             Global=saved_scope if saved_scope else None,
+            safe=safe
         )
         if not noret:
             print(x["return"])

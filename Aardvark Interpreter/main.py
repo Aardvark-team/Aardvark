@@ -11,6 +11,8 @@ if __name__ == "__main__":
     argp.switch("ast", "Print AST. If not present, ast is not printed.")
     argp.switch("debug", "Allow $test and $clear commands.")
     argp.switch("no-ret", "if set, return values are not printed in live mode.")
+    argp.switch("e", "Use experimental repl.")
+    argp.switch("safe", "Use safe mode.")
 
     @argp.command()
     def main(ctx):
@@ -23,11 +25,12 @@ if __name__ == "__main__":
                 ctx.getSwitch("toks"),
                 ctx.getSwitch("ast"),
                 ctx.getSwitch("e"),
+                ctx.getSwitch("safe"),
             )
 
     @argp.command("run [file]", "Compile a file.")
     def Run(ctx):
-        runFile(ctx.positional[1], ctx.getSwitch("toks"), ctx.getSwitch("ast"))
+        runFile(ctx.positional[1], ctx.getSwitch("toks"), ctx.getSwitch("ast"), ctx.getSwitch("safe"))
 
     @argp.command(
         "live", "Start an interactable language shell."

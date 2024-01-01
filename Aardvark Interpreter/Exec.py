@@ -76,7 +76,7 @@ def dsigmoid(x):
 
 
 class Executor:
-    def __init__(self, path, code, ast, errorhandler, filestack={}, is_main=False):
+    def __init__(self, path, code, ast, errorhandler, filestack={}, is_main=False, safe=False):
         self.path = path
         self.code = code
         self.codelines = code.split("\n")
@@ -89,20 +89,6 @@ class Executor:
                 "stdout": File(sys.stdout),
                 "stdin": File(sys.stdin),
                 "stderr": File(sys.stderr),
-                "python": Object(
-                    {
-                        "import": lambda mod: importlib.import_module(mod),
-                        "eval": lambda code: eval(
-                            code,
-                            {
-                                "importlib": importlib,
-                                "math": math,
-                                "random": random,
-                                "sys": sys,
-                            },
-                        ),
-                    }
-                ),
                 "slice": lambda str, start=0, end=0: str[start:end],
                 "prettify": prettify_ast,
                 "range": lambda *args: list(range(*args)),
@@ -152,7 +138,6 @@ class Executor:
                 "Object": Object,
                 "Error": Types.Error,
                 #'BitArray': bitarray,
-                "open": open,
                 "include": self.include,
                 "link": LinkFunct,
                 "exit": sys.exit,
@@ -162,6 +147,24 @@ class Executor:
                 "mergeObjects": mergeObjects,
             }
         )  # Define builtins here
+        if not safe:
+            self.Global.vars.update({
+                "open": open,
+                "python": Object(
+                    {
+                        "import": lambda mod: importlib.import_module(mod),
+                        "eval": lambda code: eval(
+                            code,
+                            {
+                                "importlib": importlib,
+                                "math": math,
+                                "random": random,
+                                "sys": sys,
+                            },
+                        ),
+                    }
+                )
+            })
         # TODO: implement more builtins.
         self.errorhandler = errorhandler
 
