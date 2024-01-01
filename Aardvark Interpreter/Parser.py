@@ -25,6 +25,10 @@ def shift_ast_columns(ast, amount):
             shift_ast_columns(v, amount)
 
 
+eats = 0
+compares = 0
+
+
 class Parser:
     def __init__(self, err_handler, lexer):
         self.code = lexer.data
@@ -40,10 +44,15 @@ class Parser:
 
     # Get the next token
     def peek(self, n=0):
-        return self.tokens[self.pos + n] if self.pos + n < len(self.tokens) else None
+        tok = self.tokens[self.pos + n] if self.pos + n < len(self.tokens) else None
+        # print("PEEK", tok)
+        return tok
 
     # Compare the next token with type, value
     def compare(self, Type, value=None):
+        # global compares
+        # compares += 1
+        # print("COMPARE", compares, Type, value)
         if self.isEOF():
             return False
 
@@ -102,6 +111,9 @@ class Parser:
 
     # Consume the current token if the types match, else throw an error
     def eat(self, Type="any", value=None, is_type=False):
+        # global eats
+        # eats += 1
+        # print("EAT", eats)
         # if self.peek().start['line'] >= 884:
         #     self.debug = True
         if type(Type) == str:
@@ -152,6 +164,8 @@ class Parser:
         ):
             self.pyError = {}
             raise SyntaxError("Unexpected token")
+
+        # print(Type, value, is_type, next_tok)
         self.err_handler.throw(
             "Syntax",
             f'Unexpected {str(next_tok.type)}: "{str(next_tok.value)}"',
@@ -378,7 +392,7 @@ class Parser:
             }
 
         elif tok.type == TokenTypes["Delimiter"] and tok.value == "{":
-            ast_node = self.pObject(tok)
+            ast_node = self.pObject()
 
         elif tok.type == TokenTypes["Delimiter"] and tok.value == "[":
             ast_node = self.pArray(tok)
@@ -592,10 +606,9 @@ class Parser:
 
     # Object:
     # 	{ [string] : Expression (, [string] : Expression ) }
-    def pObject(self, starter):
-        self.eat(TokenTypes["Delimiter"], "{")
+    def pObject(self, no_error=False):
+        starter = self.eat(TokenTypes["Delimiter"], "{")
         obj = {}
-
         while (
             self.peek()
             and not self.compare(TokenTypes["Delimiter"], "}")
@@ -603,10 +616,15 @@ class Parser:
         ):
             self.eatLBs()
             if len(obj.keys()) > 0:
-                self.eat(TokenTypes["Delimiter"], ",")
+                if no_error and not self.compare("Delimiter", ","):
+                    return False
+                else:
+                    self.eat(TokenTypes["Delimiter"], ",")
+
             self.eatLBs()
 
             name = None
+
             if self.compare("Operator", "..."):
                 self.eat("Operator")
                 obj[("...",)] = ("...", self.pExpression(eatLBs=True))
@@ -617,11 +635,33 @@ class Parser:
                 name = float(self.eat("Number").value)
             elif self.compare("String"):
                 name = self.eat("String").value
+            elif no_error:
+                return False
+            else:
+                self.err_handler.throw(
+                    "Syntax",
+                    "Expected Object key.",
+                    {
+                        "lineno": self.peek().start["line"],
+                        "underline": {
+                            "start": self.peek().start["col"],
+                            "end": self.peek().end["col"],
+                        },
+                        "marker": {
+                            "start": self.peek().start["col"],
+                            "length": len(self.peek().value),
+                        },
+                    },
+                )
+
             self.eatLBs()
-            self.eat(TokenTypes["Delimiter"], ":")
-            self.eatLBs()
-            value = self.pStatement(eatLBs=True)
-            self.eatLBs()
+            if self.compare("Delimiter", ":"):
+                self.eat(TokenTypes["Delimiter"], ":")
+                self.eatLBs()
+                value = self.pStatement(eatLBs=True)
+                self.eatLBs()
+            else:
+                value = name
             obj[name] = value
         if self.compare("Delimiter", ","):
             self.eat("Delimiter")
@@ -806,19 +846,28 @@ class Parser:
         inline = None
         if self.compare("Delimiter", "{"):
             old = self.pos
-            self.pyError = {"type": "Unexpected token", "token_value": [":", "$", ","]}
-            try:
+            inline = True
+            body = self.pObject(True)
+            if body == False:
+                self.pos = old
                 body, lasti = self.eatBlockScope()
                 inline = False
-            except:
-                self.pos = old
-                body = self.pStatement(require=True)
+            else:
                 lasti = body["positions"]["end"]
-                inline = True
         else:
             body = self.pStatement(require=True)
             lasti = body["positions"]["end"]
             inline = True
+
+            # self.pyError = {"type": "Unexpected token", "token_value": [":", "$", ","]}
+            # try:
+            #     body, lasti = self.eatBlockScope()
+            #     inline = False
+            # except:
+            #     self.pos = old
+            #     body = self.pStatement(require=True)
+            #     lasti = body["positions"]["end"]
+            #     inline = True
 
         return {
             "type": "FunctionDefinition",
@@ -840,7 +889,7 @@ class Parser:
         obj_name = self.eat("Identifier")
 
         if self.compare("Delimiter", "{"):
-            obj = self.pObject(self.peek())
+            obj = self.pObject()
         elif self.compare("Delimiter", "["):
             obj = self.pArray(self.peek())
         elif self.compare("Identifier", "set"):
@@ -1169,7 +1218,7 @@ class Parser:
                 and self.peek(1).type == TokenTypes["Identifier"]
                 and self.peek(1).start["col"] == self.peek().start["col"] + 1
             ):
-                self.eat('Operator')
+                self.eat("Operator")
                 name = self.eat("Identifier").value
                 obj[name] = ("Define", name)
                 self.eatLBs()
@@ -1232,7 +1281,6 @@ class Parser:
             self.eatLBs()
             body.append(self.pCaseStatement())
             self.eatLBs()
-
         close = self.eat("Delimiter", "}")
 
         return {
@@ -1377,10 +1425,21 @@ class Parser:
             e = self.eat("Keyword", "else")
             self.err_handler.throw(
                 "Syntax",
-                "Unexpected else statement.",
+                "Unexpected else statement. Else statements are only valid after if statements.",
                 {
                     "lineno": e.line,
-                    "marker": {"start": e.start["col"] + 1, "length": e.value.length},
+                    "marker": {"start": e.start["col"] + 1, "length": len(e.value)},
+                    "underline": {"start": 0, "end": e.end["col"] + 5},
+                },
+            )
+        if self.compare("Keyword", "case"):
+            e = self.eat("Keyword", "case")
+            self.err_handler.throw(
+                "Syntax",
+                "Unexpected case statement. Case statements are only valid within switch statements.",
+                {
+                    "lineno": e.line,
+                    "marker": {"start": e.start["col"] + 1, "length": len(e.value)},
                     "underline": {"start": 0, "end": e.end["col"] + 5},
                 },
             )

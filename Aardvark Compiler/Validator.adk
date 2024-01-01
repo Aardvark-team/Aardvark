@@ -100,8 +100,35 @@ class Validator as this {
       } else
     	return setVar(scope.parent, name, value)
   }
+  function traverseAssignment(expr, scope=this.scope) {
+    switch expr {
+      case {type: 'VariableAccess', $value, $position} {
+        var = getVar(scope, value, position, false)
+        if var != null {
+          var.references++
+          return {
+            dataType: 'variable',
+            name: value,
+            variable: var,
+            types: var.types,
+            position: position,
+            expression: expr
+          }
+        }
+        else return null
+      }
+      case {type: 'Index', $property, $value, $position} {
+        var = getVar(scope, value, position, false)
+        return traverseAssignment(property, var)
+      }
+      case {type: 'PropertyAccess', $property, $value, $position} {
+        var = getVar(scope, value, position, false)
+        return traverseAssignment(property, var)
+      }
+    }
+  }
   function validate(expr, scope=this.scope) {
-   # stdout.write(expr, '\n')
+    # stdout.write(expr, '\n')
 	  switch expr {
       case {type: 'VariableAccess', $value, $position} {
         var = this.getVar(scope, value, position)
@@ -123,7 +150,7 @@ class Validator as this {
         if left.variable == null {
           left = Variable(left.name, scope, right.types)
           scope.set(left.name, left)
-        
+        }
         return {
           dataType: 'data',
           value: right
@@ -131,7 +158,7 @@ class Validator as this {
       }
       case {type: 'StringLiteral', $value}
         return {
-          dataTye: 'value',
+          dataType: 'value',
           types: ['String'],  
           value: StringValue(value)
         }

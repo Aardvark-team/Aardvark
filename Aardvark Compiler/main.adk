@@ -1,3 +1,4 @@
+stdout.write('Line 1.\n')
 include Lexer from Lexer
 include Parser from Parser
 include Errors
@@ -42,7 +43,7 @@ data = parser.parse()
 
 
 open('out.txt', 'w').write(String(data))
-# stdout.write(data, '\n')
+stdout.write(data, '\n')
 
 validator = Validator.Validator(errorHandler)
 validator.validate(data)

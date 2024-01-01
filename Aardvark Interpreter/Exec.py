@@ -1,4 +1,8 @@
-searchDirs = ["/home/runner/Aardvark/.adk/lib/"]
+searchDirs = [
+    "/home/runner/Aardvark-py/.adk/lib/",
+    "/home/runner/Aardvark/.adk/lib/",
+    "../.adk/lib/",
+]
 import Error
 import Lexer
 import Parser
@@ -28,6 +32,8 @@ from bitarray import bitarray
 from pathlib import Path
 from Utils import prettify_ast
 import os
+
+current_dir = os.getcwd()
 
 
 def mergeObjects(*args):
@@ -170,6 +176,8 @@ class Executor:
 
         if "/" not in name and "\\" not in name:
             for dir in searchDirs:
+                locs.append(os.path.join(current_dir, dir, name))
+                locs.append(os.path.join(current_dir, dir, name) + ".adk")
                 locs.append(dir + name)
                 locs.append(dir + name + ".adk")
         i = 0
@@ -225,6 +233,7 @@ class Executor:
         params = expr["parameters"]
         code = expr["body"]
         AS = expr["as"]
+
         def x(*args, **kwargs):
             functscope = Scope({}, parent=parent, scope_type="function")
             if AS:
@@ -523,8 +532,8 @@ class Executor:
                         if self.switch[c] != compare[c]:
                             return
                     for d in define:
-                        value = self.switch 
-                        #TODO: fix: nested switch does not work.
+                        value = self.switch
+                        # TODO: fix: nested switch does not work.
                         for i in define[d]:
                             value = value[i]
                         self.defineVar(d, value, casescope)
