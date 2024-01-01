@@ -48,7 +48,7 @@ class Version:
         return str(self)
 
 
-version = Version(1, 0, 0, "test", 2)
+version = Version(1, 0, 0, "Interpretter (Python version)", 5)
 python = sys.version_info
 python = Version(
     python.major, python.minor, python.micro, python.releaselevel, python.serial
