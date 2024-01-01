@@ -29,7 +29,6 @@ def prettify_ast(ast, level=0, indent="  "):
     ind = level * indent
     ast = Types.adkToPy(ast)
 
-    
     if isinstance(ast, int) or isinstance(ast, float):
         return styles["Number"] + str(ast) + fg.rs
 

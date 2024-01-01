@@ -2,5 +2,5 @@ name = stdin.prompt("What is your name? ")
 stdout.write("Hello, ", name, '\n')
 
 
-function f(n)return n if n<=1else f(n-1)+f(n-2)
-stdout.write(f(4), '\n')
+function f(n)return n if n<2else f(n-1)+f(n-2)
+stdout.write(f(8), '\n')

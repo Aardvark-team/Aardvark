@@ -1,0 +1,209 @@
+include Errors
+from nlp include findClosest
+
+# This file will validate the AST
+
+class Instruction as this {
+  $constructor(op, operands=[]) {
+    this.op = op
+    this.operands = operands
+  }
+  $string {
+    return $"{this.op} {' '.join()}"
+  }
+}
+class Scope as this {
+  $constructor(initial={}, parent=null) {
+    this.parent = parent
+    this.value = initial
+  }
+  function getAll()
+    if this.parent
+      return mergeObjects(this.value, this.parent.getAll())
+    else
+      return this.value
+
+  function set(k, v)
+    this.value[k] = v
+}
+class NumberValue as this {
+	$constructor(value=0, min=99999999, max=-9999999) { #TODO: make min Infinity and max -Infinity
+    this.value = value
+		this.max = max
+    this.min = min
+    if this.value > this.max
+      this.max = this.value
+    if this.value < this.min
+      this.min = this.value
+	}
+  function handleSet(value) {
+    # Adjust min and max and other data based on the value it is now being set to.
+  }
+  function multiplySelf(other) {
+    if this.value
+      this.value *= other.value
+    if this.min
+      this.min *= other.min
+    if this.max
+      this.max *= other.max
+    return this
+  }
+  function multiply(other) {
+    return this.clone().multiplySelf(other)
+  }
+  function clone() {
+    return NumberValue(this.value, this.min, this.max)
+  }
+}
+class StringValue as this {
+  $constructor(value, minlen=99999999, maxlen=0, charset=[]) { #TODO: make minlen Infinity
+    this.value = value
+    this.minlen = minlen
+    this.maxlen = maxlen
+    this.charset = charset
+    for v in this.value if !(v in charset)
+      charset.add(v)
+    if this.value.length < this.minlen
+      this.minlen = this.value.length
+    if this.value.length > maxlen
+      this.maxlen = this.value.length
+  }
+  function handleSet(value) {
+    # Adjust min and max and other data based on the value it is now being set to.
+  }
+}
+class Variable as this {
+  $constructor(name, scope, types=[], references=0) {
+    this.name = name
+    this.scope = scope
+    this.types = types
+    this.references = references
+  }
+}
+class Validator as this {
+  $constructor(errorHandler) {
+    this.errorHandler = errorHandler
+    this.scope = Scope({
+      'test': 'test'
+    })
+  }
+  function throwError(type, message, options={}, note="", kill=true) {
+    if this.errorHandler == null return false
+    else return this.errorHandler.Throw(type, message, options, note, kill)
+  }
+  function getVar(scope, name, position, error=true) {  
+    if name in scope.value
+      return scope.value[name]
+    else
+      if !scope.parent {
+        if (!this.errorHandler | !error) return null
+        this.throwError("ReferenceError", $"Undefined variable \"{name}\".", {
+              lineno: position.start.line,
+              marker: {start: position.start.column+1, length: name.length},
+              underline: {start: position.start.column+1, end: position.end.column},
+              did_you_mean: this.errorHandler.replace(position.start.line, position.start.column-1, position.end.column-1, findClosest(keys(scope.value), name))
+        })
+      } else
+        return getVar(scope.parent, name)
+  }
+  function setVar(scope, name, value) {
+    if name in scope.value
+      return scope.value[name] = value
+    else
+      if !scope.parent {
+        return scope.value[name] = value
+      } else
+    	return setVar(scope.parent, name, value)
+  }
+  function traverseAssignment(expr, scope=this.scope) {
+    switch expr {
+      case {type: 'VariableAccess', $value, $position} {
+        var = getVar(scope, value, position, false)
+        if var != null
+          var.references++
+        return {
+          dataType: 'variable',
+          name: value,
+          variable: var,
+          types: var.types?,
+          position: position,
+          expression: expr
+        }
+      }
+      case {type: 'Index', $property, $value, $position} {
+        var = getVar(scope, value, position, false)
+        return traverseAssignment(property, var)
+      }
+      case {type: 'PropertyAccess', $property, $value, $position} {
+        var = getVar(scope, value, position, false)
+        return traverseAssignment(property, var)
+      }
+    }
+  }
+  function validate(expr, scope=this.scope) {
+    # stdout.write(expr, '\n')
+	  switch expr {
+      case {type: 'VariableAccess', $value, $position} {
+        var = this.getVar(scope, value, position)
+        if var != null
+          var.references++
+        return {
+          dataType: 'variable',
+          name: value,
+          variable: var,
+          types: var.types,
+          position: position,
+          expression: expr
+        }
+      }
+      case {type: 'Operator', operator: '=', $left, $right} {
+        stdout.write(right, '\n\n')
+        left = this.traverseAssignment(left, scope)
+        right = this.validate(right, scope)
+        stdout.write('Assignment!', right, '\n')
+        if left.variable == null {
+          leftVar = Variable(left.name, scope, right.types)
+          scope.set(left.name, leftVar)
+        }
+        return {
+          dataType: 'data',
+          value: right
+        }
+      }
+      case {type: 'Multiply', $value, $variable} {
+        value = this.validate(value, scope)
+        variable = this.validate(variable, scope)
+        new = value.multiply(variable)
+        return {
+          value: new,
+          types: new.types,
+          dataType: 'value'
+        }
+      }
+      case {type: 'StringLiteral', $value}
+        return {
+          dataType: 'value',
+          types: ['String'],  
+          value: StringValue(value)
+        }
+      case {type: 'NumberLiteral', $value}
+        return {
+          dataType: 'value',
+          types: ['Number'],  
+          value: NumberValue(value)
+        }
+      case {type: 'Program', $body} for item in body
+        this.validate(item)
+      case null return
+    }
+  }
+}
+if is_main {
+  error = Errors.ErrorHandler('+++ tes +-=', '<main>')
+  val = Validator(error)
+  val.getVar(val.scope, 'tes', {
+    start: {column: 5, line: 1},
+    end: {column: 7}
+  });
+  val.validate()
+}

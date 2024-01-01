@@ -1,4 +1,5 @@
 include TokenTypes, Operators, Keywords, Quotes, Whitespaces, Booleans, Delimiters, NotIncluded, BaseNumsOrder from Data
+include Errors
 
 class Token as this {
     $constructor(type, 
@@ -30,7 +31,7 @@ class Token as this {
 
 
 class Lexer as this {
-  $constructor(useIndents = false, tokenizeComments = false) {
+  $constructor(useIndents = false, tokenizeComments = false, errorHandler=null, raw=false) {
     this.useIndents = useIndents
     this.tokenizeComments = tokenizeComments
     this.data = ""
@@ -42,24 +43,31 @@ class Lexer as this {
     this.empty = true
     this.AtEnd = false
     this.curChar = ""
+    this.errorHandler = errorHandler
+    this.raw = raw
   }
+  function throwError(type, message, options={}, note="", kill=true) {
+    if this.errorHandler == null return false
+    else return this.errorHandler.Throw(type, message, options, note, kill)
+  }
+
   function isWhitespace(char)
-    return (char ? this.curChar) in Whitespaces
+    (char ? this.curChar) in Whitespaces
 
   function isNewline(char)
-    return (char ? this.curChar) in '\n;'
+    (char ? this.curChar) in '\n;'
 
   function isQuote(char)
-    return (char ? this.curChar) in Quotes
+    (char ? this.curChar) in Quotes
 
   function isDelimiter(char)
-    return (char ? this.curChar) in Delimiters 
+    (char ? this.curChar) in Delimiters 
 
   function isNumber(char)
-    return (char ? this.curChar) in '0123456789'
+    (char ? this.curChar) in '0123456789'
 
   function addToken(type, start, end, value, variation)
-    return this.output.add(Token(type, start, end, value, variation))
+    this.output.add(Token(type, start, end, value, variation))
 
   function otherwise(char) {
     char = char ? this.curChar
@@ -75,8 +83,8 @@ class Lexer as this {
   }
   function newline() {
     this.empty = true
-    this.line = this.line + 1
-    this.column = 0
+    this.line += 1
+    this.column = 1
   }
   function advance(amt = 1) {
     this.index = this.index + amt
@@ -91,24 +99,22 @@ class Lexer as this {
       return this.data[this.index + amt]
     else return null;
   }
-  function pos() {
-    return {index: this.index, line: this.line, column: this.column}
-  }
+  function pos
+    {index: this.index, line: this.line, column: this.column}
+
   function tokenize(data='') {
     #*
       Takes code and converts it to tokens.
     *#
-    if !data throw Error("Value", "String cannot be empty")
     this.data = data
     this.index = 0
-    this.line = 0
-    this.column = 0
+    this.line = 1
+    this.column = 1
     this.output = []
     this.empty = true
     this.AtEnd = false
     this.curChar = this.data[this.index]
     while this.index < this.data.length {
-        
         # Operators
         for op in Operators {
             for i in op {
@@ -157,20 +163,28 @@ class Lexer as this {
         seen_dot = false
         seen_underscore = false
         characters = BaseNumsOrder.slice(0, base)
-        stdout.write(characters)
         while (characters.contains(this.curChar) | '._'.contains(this.curChar)) & !this.AtEnd {
           if seen_dot & this.curChar == '.'
-            throw Error('Syntax', 'Already saw the dot!');
+            this.throwError('SyntaxError', 'A Number may not have two decimal points!', {
+              lineno: this.pos().line,
+              marker: {start: this.pos().column, length: 1},
+              underline: {start: start.column, end: this.pos().column+1}
+            })
           else if seen_underscore & this.curChar == '_'
-            throw Error('Syntax', 'Already saw the underscore!');
+            this.throwError('SyntaxError', 'Number base already defined!', {
+              lineno: this.pos().line,
+              marker: {start: this.pos().column, length: 1},
+              underline: {start: start.column, end: this.pos().column+1}
+            }, "The value left of the underscore (_) represents the base of the Number. (e.g. 16_1ab would be hex and 2_0101 would be binary)")
           if this.curChar == '.' seen_dot = true;
           else if this.curChar == '_' {
             seen_underscore = true;
-            base = Number(value)
-            value = ''
-            characters = BaseNumsOrder.slice(0, base)
-            stdout.write(characters)
-            this.curChar = ''
+            if !this.raw {
+              base = Number(value)
+              value = ''
+              characters = BaseNumsOrder.slice(0, base)
+              this.curChar = ''
+            }
           }
           value = value + this.curChar
           this.advance()
@@ -212,7 +226,13 @@ class Lexer as this {
         backslash = false
         while !this.AtEnd {
           this.advance()
-          if this.AtEnd throw "Error: Unexpected EOF";
+          if this.AtEnd this.throwError('UnexpectedEOF', 'String was not terminated', {
+              lineno: start.line,
+              linestart: start.line,
+              lineend: start.line + 5,
+              marker: {start: start.column, length: value.split('\n')[0].length},
+              underline: {start: start.column, end: start.column + value.split('\n')[0].length}
+            })
           if backslash {
             if this.curChar == '\\' value = value + '\\'
             else if this.curChar == 'n' value = value + '\n'
@@ -233,9 +253,8 @@ class Lexer as this {
         value = ''
         start = this.pos()
         while (this.otherwise() or this.isNumber()) & !this.AtEnd {
-          value = value + this.curChar
+          value += this.curChar
           this.advance()
-          #stdout.write(this.AtEnd, '\n')
         }
         this.advance(-1)
         type = 'Identifier'

@@ -25,3 +25,7 @@ venv/bin/*
 **/.adk/bin/*
 **/replit.nix
 **/.replit
+**/*.pyc
+*.pyc
+.adk/bin/*
+venv/bin/*

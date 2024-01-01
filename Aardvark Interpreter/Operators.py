@@ -261,7 +261,8 @@ def logicaland(x, y, errorhandler, line, ast, scope, exec):
         )
     # TODO: add if y and x equal none
     x = exec.ExecExpr(x, scope)
-    if not x: return False
+    if not x:
+        return False
     y = exec.ExecExpr(y, scope)
     return x and y
 
@@ -278,7 +279,8 @@ def logicalor(x, y, errorhandler, line, ast, scope, exec):
         )
     # TODO: add if y and x equal none
     x = exec.ExecExpr(x, scope)
-    if x: return True
+    if x:
+        return True
     y = exec.ExecExpr(y, scope)
     return x or y
 
@@ -308,9 +310,9 @@ def inop(x, y, errorhandler, line, ast, scope, exec):
             False, errorhandler, line, ast, f"<{str(type(x or 0).__name__)}>"
         )
     # TODO: add if y and x equal none
-    try:return x in y
+    try:
+        return x in y
     except:
-        print('vals', x, y)
         sys.exit()
 
 
@@ -336,21 +338,26 @@ def aboutequal(x, y, errorhandler, line, ast, scope, exec):
 
 @operator("...")
 def spread(x, y, errorhandler, line, ast, scope, exec):
-    start = ast['positions']['start']
-    end = ast['positions']['end']
-    errorhandler.throw('Operator', 'Spread operator not available in this context.',
+    start = ast["positions"]["start"]
+    end = ast["positions"]["end"]
+    errorhandler.throw(
+        "Operator",
+        "Spread operator not available in this context.",
         {
             "lineno": start["line"],
-            "marker": {"start": start["col"], "length": end['col'] - start['col'] + 1},
+            "marker": {"start": start["col"], "length": end["col"] - start["col"] + 1},
             "underline": {
                 "start": start["col"],
                 "end": end["col"],
-            }
-    })
+            },
+        },
+    )
 
 
-@operator('=')
-def assign(x, y, errorhandler, line, expr, scope, exec, predone=False):
+@operator("=")
+def assign(
+    x, y, errorhandler, line, expr, scope, exec, predone=False, allowLiteral=False
+):
     value = exec.ExecExpr(y, scope) if not predone else y
     var = x
     defscope = scope
@@ -365,20 +372,20 @@ def assign(x, y, errorhandler, line, expr, scope, exec, predone=False):
     elif var["type"] == "VariableAccess":
         var = var["value"]
         exec.defineVar(var, value, defscope)
-    elif var['type'] == 'Array':
+    elif var["type"] == "Array":
         spread = None
-        for i in range(len(var['items'])):
-            val = var['items'][i]
-            if val['type'] == 'Spread':
-                spread = val['value']
+        for i in range(len(var["items"])):
+            val = var["items"][i]
+            if val["type"] == "Spread":
+                spread = val["value"]
             else:
                 assign(val, value[i], errorhandler, line, expr, scope, exec, True)
-        if spread: 
-            exec.defineVar(spread, value[i:], defscope) 
-    else:
+        if spread:
+            exec.defineVar(spread, value[i:], defscope)
+    elif not allowLiteral:
         errorhandler.throw(
             "Assignment",
-            "Cannot set value of a literal.",
+            "Cannot set value of a literal or expression.",
             {
                 "lineno": var["positions"]["start"]["line"],
                 "underline": {
@@ -390,53 +397,74 @@ def assign(x, y, errorhandler, line, expr, scope, exec, predone=False):
                     "length": var["positions"]["end"]["col"]
                     - var["positions"]["start"]["col"],
                 },
-                "traceback": self.traceback,
+                "traceback": exec.traceback,
             },
         )
+    else:
+        exec.ExecExpr(var, scope)
+        return value
     return value
 
-@operator('+=')
+
+@operator("+=")
 def plusequals(x, y, errorhandler, line, expr, scope, exec):
     left = exec.ExecExpr(x, scope)
     right = exec.ExecExpr(y, scope)
     return assign(x, left + right, errorhandler, line, expr, scope, exec, True)
 
-@operator('-=')
+
+@operator("-=")
 def minusequals(x, y, errorhandler, line, expr, scope, exec):
     left = exec.ExecExpr(x, scope)
     right = exec.ExecExpr(y, scope)
     return assign(x, left - right, errorhandler, line, expr, scope, exec, True)
 
-@operator('*=')
+
+@operator("*=")
 def multequals(x, y, errorhandler, line, expr, scope, exec):
     left = exec.ExecExpr(x, scope)
     right = exec.ExecExpr(y, scope)
     return assign(x, left * right, errorhandler, line, expr, scope, exec, True)
 
-@operator('/=')
+
+@operator("/=")
 def divideequals(x, y, errorhandler, line, expr, scope, exec):
     left = exec.ExecExpr(x, scope)
     right = exec.ExecExpr(y, scope)
     return assign(x, left / right, errorhandler, line, expr, scope, exec, True)
 
-@operator('^=')
+
+@operator("^=")
 def exponetequals(x, y, errorhandler, line, expr, scope, exec):
     left = exec.ExecExpr(x, scope)
     right = exec.ExecExpr(y, scope)
-    return assign(x, left ** right, errorhandler, line, expr, scope, exec, True)
+    return assign(x, left**right, errorhandler, line, expr, scope, exec, True)
 
-@operator('%=')
+
+@operator("%=")
 def moduloequals(x, y, errorhandler, line, expr, scope, exec):
     left = exec.ExecExpr(x, scope)
     right = exec.ExecExpr(y, scope)
     return assign(x, left % right, errorhandler, line, expr, scope, exec, True)
 
-@operator('++')
-def plusplus(x, y, errorhandler, line, expr, scope, exec):
-    left = exec.ExecExpr(x, scope)
-    return assign(x, left + 1, errorhandler, line, expr, scope, exec, True)
 
-@operator('--')
+@operator("++")
+def plusplus(x, y, errorhandler, line, expr, scope, exec):
+    if x:
+        left = exec.ExecExpr(x, scope)
+        assign(x, left + 1, errorhandler, line, expr, scope, exec, True, True)
+        return left
+    # Otherwise return the new value
+    right = exec.ExecExpr(y, scope)
+    return assign(y, right + 1, errorhandler, line, expr, scope, exec, True)
+
+
+@operator("--")
 def minusminus(x, y, errorhandler, line, expr, scope, exec):
-    left = exec.ExecExpr(x, scope)
-    return assign(x, left - 1, errorhandler, line, expr, scope, exec, True)
+    if x:
+        left = exec.ExecExpr(x, scope)
+        assign(x, left - 1, errorhandler, line, expr, scope, exec, True, True)
+        return left
+    # Otherwise return the new value
+    right = exec.ExecExpr(y, scope)
+    return assign(y, right - 1, errorhandler, line, expr, scope, exec, True)

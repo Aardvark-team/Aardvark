@@ -3,16 +3,20 @@ include Data
 include Lexer
 
 class Parser as this {
-    $constructor(err_handler, lexer) {
+    $constructor(err_handler, lexer, errorHandler=null) {
         this.code = lexer.data
         this.codelines = this.code.split("\n")
         this.tokens = lexer.output
         this.pos = 0
         this.err_handler = err_handler
         this.lexer = lexer
+        this.errorHandler = errorHandler
     }
     ## Utility
- 
+    function throwError(type, message, options={}, note="", kill=true) {
+        if this.errorHandler == null return false
+        else return this.errorHandler.Throw(type, message, options, note, kill)
+    }
     # Get next tokens
     function peek(n=0)
         return (this.tokens[this.pos + n]) if this.pos + n < this.tokens.length else (null);
@@ -525,6 +529,14 @@ class Parser as this {
         object = this.pExpression(require=true)
         expansion = null
         end = null
+        as_name = null
+        if this.compare('Keyword', 'as') {
+          this.eat()
+          as_name = this.eat('Identifier')
+          x = this.pBlock(single=false)
+          end = x[1]
+          expansion = x[0]
+        }
         if this.compare('Delimiter', '[') {
             expansion = pArray()
             end = expansion.position.end
@@ -547,6 +559,7 @@ class Parser as this {
         return {
             object: object,
             expansion: expansion,
+            as_name: as_name,
             positon: {
                 start:start, 
                 end:end
@@ -617,13 +630,30 @@ class Parser as this {
             this.eat()
             return_type = this.pExpression()
         }
-        [body, end] = this.pBlock()
+        inline = false
+        end = null
+        if this.compare('Delimiter', '{') {
+            old = this.pos
+            try {
+                [body, end] = this.pBlock()
+            } catch {
+                body = this.pStatement(require=true)
+                end = body.positions.end
+                inline = true
+                this.pos = old
+            }
+        } else {
+            body = this.pStatement(require=true)
+            end = body.positions.end
+            inline = true
+        }
         return {
             type: 'FunctionDefinition',
             name: name,
             parameters: parameters,
             special: special,
             ref_name: AS,
+            inline: inline,
             return_type: return_type,
             position: {start: starter, end: end}
         }
@@ -768,7 +798,7 @@ class Parser as this {
         }
         this.eat('Operator', 'in')
         this.eatLBs()
-        iterable = self.pExpression(exclude=['for'], require=true)
+        iterable = this.pExpression(exclude=['for'], require=true)
         [body, end] = this.pBlock()
         return {
             type: 'ForLoop',
@@ -844,14 +874,17 @@ class Parser as this {
                 AS = null
                 if this.compare('Keyword', 'as')
                     end = AS = this.eat() if this.compare('String') | this.compare('Identifier') else throw Error('Invalid Syntax')
-                stdout.write(AS.value ? name.value)
                 names.add({
                     object: name.value,
                     local: AS.value ? name.value
                 })
             }
             if this.compare('Keyword', 'from') {
-                end = lib_name = this.eat() if this.compare('Indentifier') | this.compare('String') else throw Error('Invalid Syntax')
+                end = lib_name = this.eat() if this.compare('Indentifier') | this.compare('String') else this.throwError('SyntaxError', 'Expected Identifier or String for library name!', {
+                    lineno: this.peek().start.line,
+                    marker: {start: this.peek().start.column, length: this.peek().value.length},
+                    underline: {start: start.start.column, end: this.peek().end.column}
+                }, 'You can use include as a function to include arbitrary libraries.')
                 return {
                     type: 'IncludeStatement',
                     includes: [
