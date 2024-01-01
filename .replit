@@ -6,7 +6,8 @@ language = "python3"
 entrypoint = "main.py"
 # A list of globs that specify which files and directories should
 # be hidden in the workspace.
-hidden = ["venv", ".config", "**/__pycache__", "**/.mypy_cache", "**/*.pyc", '.adk']
+hidden = ["venv", ".config", "**/__pycache__", "**/.mypy_cache", "**/*.pyc", '.adk', '.replit', 'replit.nix']
+modules = ["python-3.10:v18-20230807-322e88b"]
 
 # Specifies which nix channel to use when building the environment.
 [nix]
@@ -89,3 +90,7 @@ pattern = "**/*.py"
 
 [languages.python3.languageServer]
 start = "pylsp"
+
+[deployment]
+run = ["python3", "main.py"]
+deploymentTarget = "cloudrun"
