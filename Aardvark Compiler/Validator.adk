@@ -39,6 +39,21 @@ class NumberValue as this {
   function handleSet(value) {
     # Adjust min and max and other data based on the value it is now being set to.
   }
+  function multiplySelf(other) {
+    if this.value
+      this.value *= other.value
+    if this.min
+      this.min *= other.min
+    if this.max
+      this.max *= other.max
+    return this
+  }
+  function multiply(other) {
+    return this.clone().multiplySelf(other)
+  }
+  function clone() {
+    return NumberValue(this.value, this.min, this.max)
+  }
 }
 class StringValue as this {
   $constructor(value, minlen=99999999, maxlen=0, charset=[]) { #TODO: make minlen Infinity
@@ -104,18 +119,16 @@ class Validator as this {
     switch expr {
       case {type: 'VariableAccess', $value, $position} {
         var = getVar(scope, value, position, false)
-        if var != null {
+        if var != null
           var.references++
-          return {
-            dataType: 'variable',
-            name: value,
-            variable: var,
-            types: var.types,
-            position: position,
-            expression: expr
-          }
+        return {
+          dataType: 'variable',
+          name: value,
+          variable: var,
+          types: var.types?,
+          position: position,
+          expression: expr
         }
-        else return null
       }
       case {type: 'Index', $property, $value, $position} {
         var = getVar(scope, value, position, false)
@@ -144,16 +157,27 @@ class Validator as this {
         }
       }
       case {type: 'Operator', operator: '=', $left, $right} {
-        left = this.validate(left, scope)
+        stdout.write(right, '\n\n')
+        left = this.traverseAssignment(left, scope)
         right = this.validate(right, scope)
-        stdout.write('Assignment!\n', left, right)
+        stdout.write('Assignment!', right, '\n')
         if left.variable == null {
-          left = Variable(left.name, scope, right.types)
-          scope.set(left.name, left)
+          leftVar = Variable(left.name, scope, right.types)
+          scope.set(left.name, leftVar)
         }
         return {
           dataType: 'data',
           value: right
+        }
+      }
+      case {type: 'Multiply', $value, $variable} {
+        value = this.validate(value, scope)
+        variable = this.validate(variable, scope)
+        new = value.multiply(variable)
+        return {
+          value: new,
+          types: new.types,
+          dataType: 'value'
         }
       }
       case {type: 'StringLiteral', $value}
@@ -164,7 +188,7 @@ class Validator as this {
         }
       case {type: 'NumberLiteral', $value}
         return {
-          dataTye: 'value',
+          dataType: 'value',
           types: ['Number'],  
           value: NumberValue(value)
         }
