@@ -1,4 +1,4 @@
-## Run code here: [https://adkcode.programit.repl.co](https://aardvark-docs.replit.app/)
+## Run code here: [https://adkcode.programit.repl.co](https://adkcode.programit.repl.co)
 NOTE: for security reasons, some Aardvark features (such as `open`) are unavailable in AdkCode.
 
 
@@ -14,7 +14,7 @@ I recomend running `adk run main.adk`.
 That will let you try the `main.adk` example file.
 
 ## Documentation
-This site will give basic info on how to use the language: [Click Here](https://Aardvark-Docs.programit.repl.co).
+This site will give basic info on how to use the language: [Click Here](https://aardvark-docs.replit.app/).
 
 ## Contributing 
 View the list of things that need to be implemented [here](https://github.com/orgs/Aardvark-team/projects/3).
