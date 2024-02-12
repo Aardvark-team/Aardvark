@@ -1,4 +1,4 @@
-## Run code here: [https://adkcode.programit.repl.co](https://adkcode.programit.repl.co)
+## Run code here: [https://adkcode.programit.repl.co](https://aardvark-docs.replit.app/)
 NOTE: for security reasons, some Aardvark features (such as `open`) are unavailable in AdkCode.
 
 
