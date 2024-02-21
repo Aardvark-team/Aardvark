@@ -288,6 +288,8 @@ class String(str, Type):
 
     def __sub__(self, other):
         return self.removesuffix(other)
+    def __round__(self):
+        return self.lower()
 
 
 class Number(Type):
@@ -464,6 +466,8 @@ class Number(Type):
 
     def __hash__(self):
         return hash(self.value)
+    def __round__(self):
+        return round(self.value)
 
 
 class Boolean(int, Type):

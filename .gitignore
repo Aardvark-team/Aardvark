@@ -8,6 +8,8 @@ replit.nix
 http.ll
 main.py
 .replit
+\.replit
+*.replit
 .adk/*
 .adk/bin/*
 .adk

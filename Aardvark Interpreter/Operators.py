@@ -228,7 +228,7 @@ def Exists(x, y, errorhandler, line, ast, scope, exec):
 
 
 @operator("!", "not")
-def roundop(x, y, errorhandler, line, ast, scope, exec):
+def notop(x, y, errorhandler, line, ast, scope, exec):
     if x != Null:
         return unexpectedOperand(True, errorhandler, line, ast)
     # TODO: add if y and x equal none
