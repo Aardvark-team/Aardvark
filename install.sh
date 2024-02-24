@@ -48,13 +48,13 @@ command -v unzip >/dev/null ||
 
 
 
-# https://github.com/Aardvark-team/Aardvark/archive/refs/tags/1.0.0t2.zip
+# https://github.com/Aardvark-team/Aardvark/archive/refs/tags/v1.0.0-test.2.zip
 
 GITHUB=${GITHUB-"https://github.com"}
 
 github_repo="$GITHUB/Aardvark-team/Aardvark"
 
-download_url=$github_repo/archive/refs/tags/1.0.0t2.zip
+download_url=$github_repo/archive/refs/tags/v1.0.0-test.2.zip
 
 install_dir=$HOME/.adk
 bin_dir=$install_dir/bin
@@ -70,4 +70,4 @@ unzip -oqd "$install_dir" "$exe.zip" ||
     error 'Failed to extract Aardvark'
 
 chmod +x "$exe" ||
-    error 'Failed to set permissions on bun executable'
+    error 'Failed to set permissions on adk executable'
