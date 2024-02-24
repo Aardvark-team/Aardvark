@@ -1,9 +1,9 @@
-version_str = "Aardvark 1.0.0 Test 1"
+version_str = "Aardvark 1.0.0 Test 2"
 version = {
     major: 1,
     minor: 0,
     patch: 0,
     type: 'test',
     release: 1,
-    str: "Aardvark 1.0.0 Test 1"
+    str: "Aardvark 1.0.0 Test 2"
 }

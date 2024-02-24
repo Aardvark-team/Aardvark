@@ -1,2 +1,2 @@
 #!/bin/bash
-adk run "/home/runner/Aardvark/Aardvark Compiler/main.adk"
+adk run "/home/runner/Aardvark-py/Aardvark Compiler/main.adk"

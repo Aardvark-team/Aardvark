@@ -27,7 +27,7 @@ class Scope as this {
     this.value[k] = v
 }
 class NumberValue as this {
-	$constructor(value=0, min=99999999, max=-9999999) { #TODO: make min Infinity and max -Infinity
+	$constructor(value=0, min=99999999, max=-9999999) { #TODO: make min Infinity and max -Infinity respectively
     this.value = value
 		this.max = max
     this.min = min
