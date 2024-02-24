@@ -60,6 +60,8 @@ install_dir=$HOME/.adk
 bin_dir=$install_dir/bin
 exe=$bin_dir/adk
 
+info $install_dir
+
 mkdir -p "$install_dir" ||
     error "Failed to create install directory \"$install_dir\""
 
