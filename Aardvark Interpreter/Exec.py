@@ -1,7 +1,6 @@
 searchDirs = [
-    "/home/runner/Aardvark-py/.adk/lib/",
-    "/home/runner/Aardvark/.adk/lib/",
-    "../.adk/lib/",
+    "$AARDVARK_INSTALL/lib/",
+    "../lib/",
 ]
 import Error
 import Lexer
@@ -74,17 +73,21 @@ def sigmoid(x):
 def dsigmoid(x):
     return sigmoid(x) * (1 - sigmoid(x))
 
+
 def createGlobals(safe=False):
-    Globals = Scope({
+    Globals = Scope(
+        {
             "stdout": File(sys.stdout),
             "stdin": File(sys.stdin),
             "stderr": File(sys.stderr),
             "slice": lambda str, start=0, end=0: str[start:end],
             "prettify": prettify_ast,
             "range": lambda *args: list(range(*args)),
-            "typeof": lambda obj: obj._class.name
-            if type(obj) == Object and getattr(obj, "_class", False)
-            else type(obj).__name__,
+            "typeof": lambda obj: (
+                obj._class.name
+                if type(obj) == Object and getattr(obj, "_class", False)
+                else type(obj).__name__
+            ),
             "keys": lambda x: list(x.getAll().keys()),
             "dir": lambda x=None: x.getAll() if x else Globals.vars,
             "sort": lambda iterable, reverse=False, key=(lambda x: x): sorted(
@@ -137,23 +140,28 @@ def createGlobals(safe=False):
     )  # Define builtins here
     if not safe:
         Globals.set("open", open)
-        Globals.set("python", {
-           "import": lambda mod: importlib.import_module(mod),
-           "eval": lambda code: eval(
-               code,
-               {
-                   "importlib": importlib,
-                   "math": math,
-                   "random": random,
-                   "sys": sys,
-               },
-           ),
-        })
+        Globals.set(
+            "python",
+            {
+                "import": lambda mod: importlib.import_module(mod),
+                "eval": lambda code: eval(
+                    code,
+                    {
+                        "importlib": importlib,
+                        "math": math,
+                        "random": random,
+                        "sys": sys,
+                    },
+                ),
+            },
+        )
     return Globals
 
 
 class Executor:
-    def __init__(self, path, code, ast, errorhandler, filestack={}, is_main=False, safe=False):
+    def __init__(
+        self, path, code, ast, errorhandler, filestack={}, is_main=False, safe=False
+    ):
         self.path = path
         self.code = code
         self.codelines = code.split("\n")
@@ -162,8 +170,8 @@ class Executor:
         self.switch = None
         self.filestack = filestack
         self.Global = createGlobals(safe)
-        self.Global['include'] = self.include
-        self.Global['is_main'] = is_main
+        self.Global["include"] = self.include
+        self.Global["is_main"] = is_main
         # TODO: implement more builtins.
         self.errorhandler = errorhandler
 
