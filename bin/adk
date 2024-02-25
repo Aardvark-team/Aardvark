@@ -1,2 +1,2 @@
 #!/usr/bin/env bash
-python3 "$AARDVARK_INSTALL/Aardvark \Interpreter/main.py" "$@"
+python3 "$AARDVARK_INSTALL/Aardvark Interpreter/main.py" "$@"
