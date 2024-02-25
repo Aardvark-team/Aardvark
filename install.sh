@@ -1,4 +1,10 @@
+#!/usr/bin/env bash
+# set -euo pipefail
 
+if [[ ${OS:-} = Windows_NT ]]; then
+    echo 'error: Please install bun using Windows Subsystem for Linux'
+    exit 1
+fi
 # Reset
 Color_Off=''
 
@@ -54,7 +60,7 @@ GITHUB=${GITHUB-"https://github.com"}
 
 github_repo="$GITHUB/Aardvark-team/Aardvark"
 
-download_url=$github_repo/archive/refs/tags/v$version.zip
+download_url=$github_repo/releases/latest/download/adk.zip
 
 install_dir=$HOME/.adk
 bin_dir=$install_dir/bin
@@ -72,9 +78,9 @@ curl --fail --location --progress-bar --output "$zip" "$download_url" ||
 unzip -oqd "$install_dir" "$zip" ||
     error 'Failed to extract Aardvark'
 
-mv $install_dir/Aardvark-$version/{.,}* $install_dir/ 2>/dev/null
+mv $install_dir/adk/{.,}* $install_dir/ 2>/dev/null
 
-rmdir "$install_dir/Aardvark-$version" ||
+rmdir "$install_dir/adk" ||
     error 'Failed to remove Aardvark'
 
 chmod +x "$exe" ||
@@ -86,31 +92,76 @@ chmod +x $exe"c" ||
 success "Download Complete!"
 
 
+
+
 # The line you want to add to your profile
 line_to_add='export PATH="$PATH:$HOME/.adk/bin"\nexport AARDVARK_INSTALL="$HOME/.adk"'
+add_to_bash_profile() {
+    # List of potential profile files
+    profile_files=(.bash_profile .profile .bashrc)
+    if [[ ${XDG_CONFIG_HOME:-} ]]; then
+        profile_files+=(
+            "$XDG_CONFIG_HOME/.bash_profile"
+            "$XDG_CONFIG_HOME/.bashrc"
+            "$XDG_CONFIG_HOME/bash_profile"
+            "$XDG_CONFIG_HOME/bashrc"
+        )
+    fi
+    # Flag to check if file is found
+    file_found=0
 
-# List of potential profile files
-profile_files=(.bash_profile .profile .bashrc)
+    # Loop through the list and append the line to the first file that exists
+    for file in "${profile_files[@]}"; do
+    profile_path="$HOME/$file"
+    if [[ -f "$profile_path" ]]; then
+        echo -e $1 >> "$profile_path"
+        info "Added to $profile_path"
+        file_found=1
+        break
+    fi
+    done
 
-# Flag to check if file is found
-file_found=0
+    # If no file was found, create .bash_profile and append the line
+    if [[ $file_found -eq 0 ]]; then
+    profile_path="$HOME/.bash_profile"
+    echo -e $1 >> "$profile_path"
+    info "No existing profile file found. Created and added line to $profile_path"
+    fi
+}
 
-# Loop through the list and append the line to the first file that exists
-for file in "${profile_files[@]}"; do
-  profile_path="$HOME/$file"
-  if [[ -f "$profile_path" ]]; then
-    echo "$line_to_add" >> "$profile_path"
-    info "Added to $profile_path"
-    file_found=1
-    break
-  fi
-done
-
-# If no file was found, create .bash_profile and append the line
-if [[ $file_found -eq 0 ]]; then
-  profile_path="$HOME/.bash_profile"
-  echo "$line_to_add" >> "$profile_path"
-  info "No existing profile file found. Created and added line to $profile_path"
+# Check if AARDVARK_INSTALL is set and not empty
+if [ -n "$AARDVARK_INSTALL" ]; then
+    # Prepare the path we are looking for
+    target_path="$AARDVARK_INSTALL/bin"
+    
+    # Convert PATH into an array of directories
+    IFS=':' read -ra path_dirs <<< "$PATH"
+    
+    # Flag to track if we found the target path
+    found=0
+    
+    # Iterate through directories in PATH
+    for dir in "${path_dirs[@]}"; do
+        if [ "$dir" == "$target_path" ]; then
+            found=1
+            break
+        fi
+    done
+    
+    # Check if target path was found
+    if [ $found -eq 1 ]; then
+        info ".adk/bin is already in PATH."
+    else
+        add_to_bash_profile 'export PATH="$PATH:$HOME/.adk/bin"'
+    fi
+else
+    add_to_bash_profile 'export PATH="$PATH:$HOME/.adk/bin"\nexport AARDVARK_INSTALL="$HOME/.adk'
 fi
 
+
+
 success "Installation Complete!"
+
+echo
+info "To get started, run:"
+info_bold "  adk help"
