@@ -1,4 +1,4 @@
-from sty import fg
+from sty import fg, ef, rs
 import sys
 
 
@@ -78,10 +78,10 @@ class ArgumentParser:
             printer(message, end="\n\n")
 
         printer(
-            f"Usage: {self.__name} [command] [...options] [-switches, -keyword args]\n"
+            f"{ef.bold+fg.red}Usage: {fg.rs+self.__name} [command] [...options] [-flags, -keyword-args]{rs.bold_dim+fg.rs}\n"
         )
 
-        printer("Commands:")
+        printer(f"{ef.bold+fg.red}Commands:{rs.bold_dim+fg.rs}")
         for command, c, desc in self.__positional:
             if len(command) == 0:
                 continue
@@ -90,7 +90,7 @@ class ArgumentParser:
                 f"  {' '.join(command).ljust(15, ' ')}  {'' if not desc else f' - {desc}'}"
             )
 
-        printer("\nSwitches and keyword arguments:")
+        printer(f"\n{ef.bold+fg.red}Flags and keyword arguments:{rs.bold_dim+fg.rs}")
         for name in self.__keywords + self.__switches:
             desc = self.__arg_descriptions.get(name)
             printer(

@@ -2,22 +2,27 @@
 from Run import *
 import sys
 
+
 if __name__ == "__main__":
     import ArgumentParser
+    from sty import fg, ef, rs
 
     argp = ArgumentParser.ArgumentParser("adk")
     argp.switch("version", "Print the current version.")
     argp.switch("toks", "Print tokens. If not present, toks are not printed.")
     argp.switch("ast", "Print AST. If not present, ast is not printed.")
     argp.switch("debug", "Allow $test and $clear commands.")
-    argp.switch("no-ret", "if set, return values are not printed in live mode.")
+    argp.switch("no-ret", "if set, return values are not printed in repl mode.")
     argp.switch("e", "Use experimental repl.")
     argp.switch("safe", "Use safe mode.")
+    argp.switch("help", "Displays the help menu.")
 
     @argp.command()
     def main(ctx):
         if ctx.getSwitch("version"):
             print("Version info")
+        elif ctx.getSwitch("help"):
+            ctx.help()
         else:
             runLive(
                 ctx.getSwitch("debug"),
@@ -30,18 +35,33 @@ if __name__ == "__main__":
 
     @argp.command("run [file]", "Compile a file.")
     def Run(ctx):
-        runFile(ctx.positional[1], ctx.getSwitch("toks"), ctx.getSwitch("ast"), safe=ctx.getSwitch("safe"))
+        if ctx.getSwitch("help"):
+            print(
+                f"{ef.bold+fg.red}Usage: {fg.rs}adk run <file> [--safe, -ast, -toks]{rs.bold_dim+fg.rs}\n"
+            )
+        else:
+            runFile(
+                ctx.positional[1],
+                ctx.getSwitch("toks"),
+                ctx.getSwitch("ast"),
+                safe=ctx.getSwitch("safe"),
+            )
 
-    @argp.command(
-        "live", "Start an interactable language shell."
-    )  #''Run a live thing (idk what to call it)')
+    @argp.command("repl", "Start an interactable language shell.")
     def live(ctx):
-        runLive(
-            ctx.getSwitch("debug"),
-            ctx.getSwitch("no-ret"),
-            ctx.getSwitch("toks"),
-            ctx.getSwitch("ast"),
-        )
+        if ctx.getSwitch("help"):
+            print(
+                f"{ef.bold+fg.red}Usage: {fg.rs}adk repl [--safe, -ast, -toks, -no-ret, -e, --debug]{rs.bold_dim+fg.rs}\nRun {ef.bold}adk help{rs.bold_dim+fg.rs} for more info.\n"
+            )
+        else:
+            runLive(
+                ctx.getSwitch("debug"),
+                ctx.getSwitch("no-ret"),
+                ctx.getSwitch("toks"),
+                ctx.getSwitch("ast"),
+                ctx.getSwitch("e"),
+                ctx.getSwitch("safe"),
+            )
 
     @argp.command("help", "Shows help menu.")
     def help(ctx):
@@ -86,5 +106,4 @@ if __name__ == "__main__":
             runFile(other[0].removeprefix('./'), 'toks' in opts, 'ast' in opts)
             return True
     """
-
     argp.parse(sys.argv[1:])
