@@ -1,0 +1,52 @@
+# A function to calculate the edit distance between two words using dynamic programming.
+function editDistance(word1, word2) {
+  # Get the lengths of the two words.
+  m = word1.length
+  n = word2.length
+
+  # Create a 2D array to store the dynamic programming table.
+  dp = sequence(0, 1, m + 1)
+  for i in dp
+    dp[i] = sequence(0, 1, n + 1)
+
+  # Initialize the first row and column of the DP table.
+  for i in sequence(0, 1, m + 1)
+    dp[i][0] = i
+  for j in sequence(0, 1, n + 1)
+    dp[0][j] = j
+
+  # Fill in the DP table.
+  for i in sequence(1, 1, m)
+    for j in sequence(1, 1, n) {
+      # Calculate the cost of substitution (0 if characters are the same, 1 otherwise).
+      cost = 0 if word1[i - 1] == word2[j - 1] else 1
+
+      # Use the minimum of three possible operations: deletion, insertion, or substitution.
+      dp[i][j] = Math.min(
+        dp[i - 1][j] + 1,      # Deletion
+        dp[i][j - 1] + 1,      # Insertion
+        dp[i - 1][j - 1] + cost  # Substitution
+      )
+    }
+
+  # The final value in the DP table represents the edit distance between the two words.
+  return dp[m][n]
+}
+
+function findClosest(items, item) {
+  lowest_dist = 99
+  lowest_item = null
+  for i in items {
+    dist = editDistance(i, item)
+    if dist < lowest_dist {
+      lowest_dist = dist
+      lowest_item = i
+    }
+  }
+  return lowest_item
+}
+
+if is_main {
+  # Calculate and print the edit distance between 'hi' and 'he'.
+  stdout.write('Distance:', editDistance('hi', 'he'), '\n')
+}
