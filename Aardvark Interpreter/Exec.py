@@ -1,7 +1,3 @@
-searchDirs = [
-    "$AARDVARK_INSTALL/lib/",
-    "../lib/",
-]
 import Error
 import Lexer
 import Parser
@@ -31,6 +27,14 @@ from bitarray import bitarray
 from pathlib import Path
 from Utils import prettify_ast
 import os
+
+searchDirs = [
+    os.environ["AARDVARK_INSTALL"] + "/lib/",
+    "../lib/",
+    "/home/runner/Aardvark/lib/",
+    "/home/runner/Aardvark-py/lib/",
+    "/home/runner/Aardvark-py-API/lib/",
+]
 
 current_dir = os.getcwd()
 

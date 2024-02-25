@@ -80,6 +80,9 @@ rmdir "$install_dir/Aardvark-$version" ||
 chmod +x "$exe" ||
     error 'Failed to set permissions on adk executable'
 
+chmod +x $exe"c" ||
+    error 'Failed to set permissions on adkc executable'
+
 success "Download Complete!"
 
 
