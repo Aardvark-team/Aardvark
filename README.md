@@ -10,7 +10,7 @@ The real version will be compiled. You can see our progress on development in th
 ## Using the command
 Run `adk help` in the terminal to get help.
 
-I recomend running `adk run main.adk`.
+I recommend running `adk run main.adk`.
 That will let you try the `main.adk` example file.
 
 ## Documentation
@@ -18,4 +18,4 @@ This site will give basic info on how to use the language: [Click Here](https://
 
 ## Contributing 
 View the list of things that need to be implemented [here](https://github.com/orgs/Aardvark-team/projects/3).
-Make sure to also read the Aardvark docs [here](https://aardvark-docs.programit.repl.co).
+Make sure to also read the Aardvark docs [here](https://aardvark-docs.replit.app/).

@@ -1,2 +1,0 @@
-#!/bin/bash
-adk run "/home/runner/Aardvark-py/Aardvark Compiler/main.adk"
