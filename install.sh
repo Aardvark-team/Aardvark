@@ -2,7 +2,7 @@
 # set -euo pipefail
 
 if [[ ${OS:-} = Windows_NT ]]; then
-    echo 'error: Please install bun using Windows Subsystem for Linux'
+    echo 'error: Please install Aardvark using Windows Subsystem for Linux'
     exit 1
 fi
 # Reset
