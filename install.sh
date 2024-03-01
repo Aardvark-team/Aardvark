@@ -98,7 +98,7 @@ success "Download Complete!"
 line_to_add='export PATH="$PATH:$HOME/.adk/bin"\nexport AARDVARK_INSTALL="$HOME/.adk"'
 add_to_bash_profile() {
     # List of potential profile files
-    profile_files=(.bash_profile .profile .bashrc)
+    profile_files=(.bash_profile .profile .bashrc .zprofile)
     if [[ ${XDG_CONFIG_HOME:-} ]]; then
         profile_files+=(
             "$XDG_CONFIG_HOME/.bash_profile"
