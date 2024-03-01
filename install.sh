@@ -92,13 +92,122 @@ chmod +x $exe"c" ||
 success "Download Complete!"
 
 
-
+# Get the default shell from the SHELL environment variable
+default_shell=$(basename "$SHELL")
 
 # The line you want to add to your profile
 line_to_add='export PATH="$PATH:$HOME/.adk/bin"\nexport AARDVARK_INSTALL="$HOME/.adk"'
+
+# Get the default shell from the SHELL environment variable
+default_shell=$(basename "$SHELL")
+
+# Function to check if a command is available
+command_exists() {
+    command -v "$1" >/dev/null 2>&1
+}
+
+# Function to get the shell version
+get_shell_version() {
+    case "$1" in
+        bash)
+            bash --version | head -n 1 | cut -d " " -f 4
+            ;;
+        zsh)
+            zsh --version | cut -d " " -f 2
+            ;;
+        tcsh)
+            tcsh --version | head -n 1 | cut -d " " -f 3
+            ;;
+        dash)
+            dpkg -s dash | grep '^Version:' | cut -d " " -f 2
+            ;;
+        ksh)
+            ksh --version | head -n 1 | cut -d " " -f 3
+            ;;
+        fish)
+            fish --version
+            ;;
+        *)
+            echo "Unknown or unsupported shell: $1"
+            exit 1
+            ;;
+    esac
+}
+
+# Add a specific line to the configuration file based on shell version
+add_line_based_on_version() {
+    local shell_version=$1
+    local config_file=$2
+    local line_to_add=$3
+
+    case "$default_shell" in
+        bash|zsh|tcsh|ksh)
+            # For Bash, Zsh, Tcsh, Ksh
+            echo "$line_to_add" >> "$config_file"
+            ;;
+        dash)
+            # For Dash, only add if the version is at least 0.5.10
+            if dpkg --compare-versions "$shell_version" "ge" "0.5.10"; then
+                echo "$line_to_add" >> "$config_file"
+            fi
+            ;;
+        fish)
+            # For Fish, only add if the version is at least 3.1.0
+            if dpkg --compare-versions "$shell_version" "ge" "3.1.0"; then
+                echo "$line_to_add" >> "$config_file"
+            fi
+            ;;
+        *)
+            echo "Unknown or unsupported shell: $default_shell"
+            exit 1
+            ;;
+    esac
+}
+
+# Check the default shell and add configuration accordingly
+case "$default_shell" in
+    bash)
+        echo "Default shell is Bash"
+        config_file=~/.bash_profile
+        ;;
+    zsh)
+        echo "Default shell is Zsh"
+        config_file=~/.zshrc
+        ;;
+    tcsh)
+        echo "Default shell is Tcsh"
+        config_file=~/.tcshrc
+        ;;
+    dash)
+        echo "Default shell is Dash"
+        config_file=~/.profile
+        ;;
+    ksh)
+        echo "Default shell is Korn Shell (ksh)"
+        config_file=~/.kshrc
+        ;;
+    fish)
+        echo "Default shell is Fish"
+        config_file=~/.config/fish/config.fish
+        ;;
+    *)
+        echo "Unknown or unsupported shell: $default_shell"
+        exit 1
+        ;;
+esac
+
+# Get the shell version
+shell_version=$(get_shell_version "$default_shell")
+
+# Add the line to the configuration file based on the shell version
+add_line_based_on_version "$shell_version" "$config_file" "$line_to_add"
+
+
+
+
 add_to_bash_profile() {
     # List of potential profile files
-    profile_files=(.bash_profile .profile .bashrc .zprofile)
+    profile_files=(.bash_profile .profile .bashrc .inputrc .zshrc .zprofile .zshenv .config/fish/config.fish .config/fish/fish.config .kshrc .cshrc .tcshrc .cshrc)
     if [[ ${XDG_CONFIG_HOME:-} ]]; then
         profile_files+=(
             "$XDG_CONFIG_HOME/.bash_profile"
@@ -123,9 +232,10 @@ add_to_bash_profile() {
 
     # If no file was found, create .bash_profile and append the line
     if [[ $file_found -eq 0 ]]; then
-    profile_path="$HOME/.bash_profile"
-    echo -e $1 >> "$profile_path"
-    info "No existing profile file found. Created and added line to $profile_path"
+        add_line_based_on_version "$shell_version" "$config_file" "$1"
+        profile_path="$HOME/.bash_profile"
+        echo -e $1 >> "$profile_path"
+        info "No existing profile file found. Created and added line to $profile_path"
     fi
 }
 
