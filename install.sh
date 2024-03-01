@@ -103,6 +103,7 @@ add_to_bash_profile() {
         profile_files+=(
             "$XDG_CONFIG_HOME/.bash_profile"
             "$XDG_CONFIG_HOME/.bashrc"
+            "$XDG_CONFIG_HOME/.zprofile"
             "$XDG_CONFIG_HOME/bash_profile"
             "$XDG_CONFIG_HOME/bashrc"
         )
