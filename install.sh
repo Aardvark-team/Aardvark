@@ -118,7 +118,6 @@ add_to_bash_profile() {
         echo -e $1 >> "$profile_path"
         info "Added to $profile_path"
         file_found=1
-        break
     fi
     done
 
