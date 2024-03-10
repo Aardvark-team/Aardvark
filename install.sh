@@ -19,13 +19,19 @@ command -v unzip >/dev/null || print_error 'unzip is required to install Aardvar
 install_dir="$HOME/.adk"
 bin_dir="$install_dir/bin"
 zip="$install_dir/pack.zip"
+exe=$bin_dir/adk
 download_url="https://github.com/Aardvark-team/Aardvark/releases/latest/download/adk.zip"
 
 # Download and extract Aardvark
-mkdir -p "$bin_dir" || print_error "Failed to create install directory \"$install_dir\""
+mkdir -p "$install_dir" || print_error "Failed to create install directory \"$install_dir\""
 curl --fail --location --progress-bar --output "$zip" "$download_url" || print_error "Failed to download Aardvark"
 unzip -oqd "$install_dir" "$zip" || print_error 'Failed to extract Aardvark'
-chmod +x "$bin_dir/adk" || print_error 'Failed to set permissions on adk executable'
+mv $install_dir/adk/{.,}* $install_dir/ 2>/dev/null
+rmdir "$install_dir/adk" ||
+    print_error 'Failed to remove Aardvark'
+chmod +x $exe || print_error 'Failed to set permissions on adk executable'
+chmod +x $exe"c" ||
+    print_error 'Failed to set permissions on adkc executable'
 
 print_success "Download Complete!"
 
