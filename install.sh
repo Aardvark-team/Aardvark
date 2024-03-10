@@ -32,20 +32,20 @@ if [[ -t 1 ]]; then
 fi
 
 error() {
-    echo -e "${Red}error${Color_Off}:" "$@" >&2
+    printf "${Red}error${Color_Off}: $@\n"
     exit 1
 }
 
 info() {
-    echo -e "${Dim}$@ ${Color_Off}"
+    printf "${Dim}$@ ${Color_Off}\n"
 }
 
 info_bold() {
-    echo -e "${Bold_White}$@ ${Color_Off}"
+    printf "${Bold_White}$@ ${Color_Off}\n"
 }
 
 success() {
-    echo -e "${Green}$@ ${Color_Off}"
+    printf "${Green}$@ ${Color_Off}\n"
 }
 
 
@@ -224,7 +224,7 @@ add_to_bash_profile() {
     for file in "${profile_files[@]}"; do
     profile_path="$HOME/$file"
     if [[ -f "$profile_path" ]]; then
-        echo -e $1 >> "$profile_path"
+        echo $1 >> "$profile_path"
         info "Added to $profile_path"
         file_found=1
     fi
@@ -234,7 +234,7 @@ add_to_bash_profile() {
     if [[ $file_found -eq 0 ]]; then
         add_line_based_on_version "$shell_version" "$config_file" "$1"
         profile_path="$HOME/.bash_profile"
-        echo -e $1 >> "$profile_path"
+        echo $1 >> "$profile_path"
         info "No existing profile file found. Created and added line to $profile_path"
     fi
 }
