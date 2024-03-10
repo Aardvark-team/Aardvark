@@ -1,277 +1,64 @@
 #!/usr/bin/env bash
-# set -euo pipefail
 
-if [[ ${OS:-} = Windows_NT ]]; then
-    echo 'error: Please install Aardvark using Windows Subsystem for Linux'
-    exit 1
-fi
-# Reset
-Color_Off=''
+# Simplified preconditions check
+[[ "${OS:-}" = "Windows_NT" ]] && echo 'Please install Aardvark using WSL' && exit 1
 
-# Regular Colors
-Red=''
-Green=''
-Dim='' # White
+# Color setup
+Color_Off='\033[0m'; Red='\033[0;31m'; Green='\033[0;32m'; Dim='\033[0;2m'; Bold_White='\033[1m'; Bold_Green='\033[1;32m'
+[[ -t 1 ]] || { Color_Off=''; Red=''; Green=''; Dim=''; Bold_White=''; Bold_Green=''; }
 
-# Bold
-Bold_White=''
-Bold_Green=''
+# Utility functions
+print_error() { printf "${Red}error${Color_Off}: $@\n" >&2; exit 1; }
+print_info() { printf "${Dim}$@ ${Color_Off}\n"; }
+print_success() { printf "${Green}$@ ${Color_Off}\n"; }
 
-if [[ -t 1 ]]; then
-    # Reset
-    Color_Off='\033[0m' # Text Reset
+# Check for required commands
+command -v unzip >/dev/null || print_error 'unzip is required to install Aardvark'
 
-    # Regular Colors
-    Red='\033[0;31m'   # Red
-    Green='\033[0;32m' # Green
-    Dim='\033[0;2m'    # White
+# Variables for installation
+install_dir="$HOME/.adk"
+bin_dir="$install_dir/bin"
+zip="$install_dir/pack.zip"
+download_url="https://github.com/Aardvark-team/Aardvark/releases/latest/download/adk.zip"
 
-    # Bold
-    Bold_Green='\033[1;32m' # Bold Green
-    Bold_White='\033[1m'    # Bold White
-fi
+# Download and extract Aardvark
+mkdir -p "$bin_dir" || print_error "Failed to create install directory \"$install_dir\""
+curl --fail --location --progress-bar --output "$zip" "$download_url" || print_error "Failed to download Aardvark"
+unzip -oqd "$install_dir" "$zip" || print_error 'Failed to extract Aardvark'
+chmod +x "$bin_dir/adk" || print_error 'Failed to set permissions on adk executable'
 
-error() {
-    printf "${Red}error${Color_Off}: $@\n"
-    exit 1
-}
+print_success "Download Complete!"
 
-info() {
-    printf "${Dim}$@ ${Color_Off}\n"
-}
-
-info_bold() {
-    printf "${Bold_White}$@ ${Color_Off}\n"
-}
-
-success() {
-    printf "${Green}$@ ${Color_Off}\n"
-}
-
-
-command -v unzip >/dev/null ||
-    error 'unzip is required to install Aardvark'
-
-
-
-# https://github.com/Aardvark-team/Aardvark/archive/refs/tags/v1.0.0-test.2.zip
-version=1.0.0-test.2
-GITHUB=${GITHUB-"https://github.com"}
-
-github_repo="$GITHUB/Aardvark-team/Aardvark"
-
-download_url=$github_repo/releases/latest/download/adk.zip
-
-install_dir=$HOME/.adk
-bin_dir=$install_dir/bin
-exe=$bin_dir/adk
-zip=$install_dir/pack.zip
-
-rm -r "$install_dir" || true
-
-mkdir -p "$install_dir" ||
-    error "Failed to create install directory \"$install_dir\""
-
-curl --fail --location --progress-bar --output "$zip" "$download_url" ||
-    error "Failed to download Aardvark from \"$download_url\""
-
-unzip -oqd "$install_dir" "$zip" ||
-    error 'Failed to extract Aardvark'
-
-mv $install_dir/adk/{.,}* $install_dir/ 2>/dev/null
-
-rmdir "$install_dir/adk" ||
-    error 'Failed to remove Aardvark'
-
-chmod +x "$exe" ||
-    error 'Failed to set permissions on adk executable'
-
-chmod +x $exe"c" ||
-    error 'Failed to set permissions on adkc executable'
-
-success "Download Complete!"
-
-
-# Get the default shell from the SHELL environment variable
-default_shell=$(basename "$SHELL")
-
-# The line you want to add to your profile
-line_to_add='export PATH="$PATH:$HOME/.adk/bin"\nexport AARDVARK_INSTALL="$HOME/.adk"\n'
-
-# Get the default shell from the SHELL environment variable
-default_shell=$(basename "$SHELL")
-
-# Function to check if a command is available
-command_exists() {
-    command -v "$1" >/dev/null 2>&1
-}
-
-# Function to get the shell version
-get_shell_version() {
-    case "$1" in
-        bash)
-            bash --version | head -n 1 | cut -d " " -f 4
-            ;;
-        zsh)
-            zsh --version | cut -d " " -f 2
-            ;;
-        tcsh)
-            tcsh --version | head -n 1 | cut -d " " -f 3
-            ;;
-        dash)
-            dpkg -s dash | grep '^Version:' | cut -d " " -f 2
-            ;;
-        ksh)
-            ksh --version | head -n 1 | cut -d " " -f 3
-            ;;
-        fish)
-            fish --version
-            ;;
-        *)
-            error "Unknown or unsupported shell: $1"
-            exit 1
-            ;;
-    esac
-}
-
-# Add a specific line to the configuration file based on shell version
-add_line_based_on_version() {
-    local shell_version=$1
-    local config_file=$2
-    local line_to_add=$3
-
-    case "$default_shell" in
-        bash|zsh|tcsh|ksh)
-            # For Bash, Zsh, Tcsh, Ksh
-            printf "$line_to_add" >> "$config_file"
-            ;;
-        dash)
-            # For Dash, only add if the version is at least 0.5.10
-            if dpkg --compare-versions "$shell_version" "ge" "0.5.10"; then
-                printf "$line_to_add" >> "$config_file"
-            fi
-            ;;
-        fish)
-            # For Fish, only add if the version is at least 3.1.0
-            if dpkg --compare-versions "$shell_version" "ge" "3.1.0"; then
-                printf "$line_to_add" >> "$config_file"
-            fi
-            ;;
-        *)
-            error "Unknown or unsupported shell: $default_shell"
-            exit 1
-            ;;
-    esac
-}
-
-# Check the default shell and add configuration accordingly
-case "$default_shell" in
-    bash)
-        echo "Default shell is Bash"
-        config_file=~/.bash_profile
-        ;;
-    zsh)
-        echo "Default shell is Zsh"
-        config_file=~/.zshrc
-        ;;
-    tcsh)
-        echo "Default shell is Tcsh"
-        config_file=~/.tcshrc
-        ;;
-    dash)
-        echo "Default shell is Dash"
-        config_file=~/.profile
-        ;;
-    ksh)
-        echo "Default shell is Korn Shell (ksh)"
-        config_file=~/.kshrc
-        ;;
-    fish)
-        echo "Default shell is Fish"
-        config_file=~/.config/fish/config.fish
-        ;;
-    *)
-        error "Unknown or unsupported shell: $default_shell"
-        exit 1
-        ;;
-esac
-
-# Get the shell version
-shell_version=$(get_shell_version "$default_shell")
-
-# Add the line to the configuration file based on the shell version
-add_line_based_on_version "$shell_version" "$config_file" "$line_to_add"
-
-
-
-
-add_to_bash_profile() {
-    # List of potential profile files
-    profile_files=(.bash_profile .profile .bashrc .inputrc .zshrc .zprofile .zshenv .config/fish/config.fish .config/fish/fish.config .kshrc .cshrc .tcshrc .cshrc)
-    if [[ ${XDG_CONFIG_HOME:-} ]]; then
-        profile_files+=(
-            "$XDG_CONFIG_HOME/.bash_profile"
-            "$XDG_CONFIG_HOME/.bashrc"
-            "$XDG_CONFIG_HOME/.zprofile"
-            "$XDG_CONFIG_HOME/bash_profile"
-            "$XDG_CONFIG_HOME/bashrc"
-        )
-    fi
-    # Flag to check if file is found
-    file_found=0
-
-    # Loop through the list and append the line to the first file that exists
-    for file in "${profile_files[@]}"; do
-    profile_path="$HOME/$file"
-    if [[ -f "$profile_path" ]]; then
-        printf $1 >> "$profile_path"
-        info "Added to $profile_path"
-        file_found=1
-    fi
-    done
-
-    # If no file was found, create .bash_profile and append the line
-    if [[ $file_found -eq 0 ]]; then
-        add_line_based_on_version "$shell_version" "$config_file" "$1"
-        profile_path="$HOME/.bash_profile"
-        printf $1 >> "$profile_path"
-        info "No existing profile file found. Created and added line to $profile_path"
-    fi
-}
-
-# Check if AARDVARK_INSTALL is set and not empty
-if [ -n "$AARDVARK_INSTALL" ]; then
-    # Prepare the path we are looking for
-    target_path="$AARDVARK_INSTALL/bin"
+# Update profile to include Aardvark in PATH if not already included
+update_profile() {
+    local path_line='export PATH="$PATH:$HOME/.adk/bin"'
+    local install_dir_line='export AARDVARK_INSTALL="$HOME/.adk"'
     
-    # Convert PATH into an array of directories
-    IFS=':' read -ra path_dirs <<< "$PATH"
-    
-    # Flag to track if we found the target path
-    found=0
-    
-    # Iterate through directories in PATH
-    for dir in "${path_dirs[@]}"; do
-        if [ "$dir" == "$target_path" ]; then
-            found=1
+    # Determine which profile file to update
+    local profile_files=(.bash_profile .profile .bashrc .zshrc .config/fish/config.fish)
+    local profile_path=""
+    for profile in "${profile_files[@]}"; do
+        if [[ -f "$HOME/$profile" ]]; then
+            profile_path="$HOME/$profile"
             break
         fi
     done
-    
-    # Check if target path was found
-    if [ $found -eq 1 ]; then
-        info ".adk/bin is already in PATH."
-    else
-        add_to_bash_profile 'export PATH="$PATH:$HOME/.adk/bin"\n'
+    if [[ -z "$profile_path" ]]; then
+        profile_path="$HOME/.bash_profile" # Default to .bash_profile if no other profile files exist
     fi
-else
-    add_to_bash_profile 'export PATH="$PATH:$HOME/.adk/bin"\nexport AARDVARK_INSTALL="$HOME/.adk"\n'
-fi
 
+    # Check and update the profile file if needed
+    if ! grep -qxF "$path_line" "$profile_path"; then
+        echo "$path_line" >> "$profile_path"
+        print_info "Updated $profile_path with Aardvark PATH."
+    fi
+    if ! grep -qxF "$install_dir_line" "$profile_path"; then
+        echo "$install_dir_line" >> "$profile_path"
+        print_info "Updated $profile_path with Aardvark install directory."
+    fi
+}
 
-
-success "Installation Complete!"
-
-echo
-info "To get started, run:"
-info_bold "  adk help"
+update_profile
+print_success "Installation Complete!"
+print_info "To get started, run:"
+printf "${Bold_White}  adk help${Color_Off}\n"
