@@ -6,7 +6,7 @@ import inspect
 from Operators import Operators
 import random
 import math
-from nltk import edit_distance
+from nlp import edit_distance
 import Types
 from Types import (
     Null,
