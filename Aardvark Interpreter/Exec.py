@@ -23,7 +23,7 @@ from Types import (
     Class,
 )
 import importlib
-from bitarray import bitarray
+# from bitarray import bitarray
 from pathlib import Path
 from Utils import prettify_ast
 import os
