@@ -265,7 +265,7 @@ if [ -n "$AARDVARK_INSTALL" ]; then
         add_to_bash_profile 'export PATH="$PATH:$HOME/.adk/bin"'
     fi
 else
-    add_to_bash_profile 'export PATH="$PATH:$HOME/.adk/bin"\nexport AARDVARK_INSTALL="$HOME/.adk'
+    add_to_bash_profile 'export PATH="$PATH:$HOME/.adk/bin"\nexport AARDVARK_INSTALL="$HOME/.adk"'
 fi
 
 

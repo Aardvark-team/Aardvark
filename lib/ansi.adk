@@ -20,7 +20,9 @@ ef = {
     fast_blink: ESC + "[6m",
     invert: ESC + "[7m"
 }
-fg.rs = bg.rs = ef.rs = rs.all
+fg.rs = $"{ESC}[39m"
+bg.rs = $"{ESC}[49m"
+ef.rs = rs.all
 clear = ESC + "[2J"
 
 # TODO: Add cursor control, clear screen
