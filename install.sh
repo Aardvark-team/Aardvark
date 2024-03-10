@@ -96,7 +96,7 @@ success "Download Complete!"
 default_shell=$(basename "$SHELL")
 
 # The line you want to add to your profile
-line_to_add='export PATH="$PATH:$HOME/.adk/bin"\nexport AARDVARK_INSTALL="$HOME/.adk"'
+line_to_add='export PATH="$PATH:$HOME/.adk/bin"\nexport AARDVARK_INSTALL="$HOME/.adk"\n'
 
 # Get the default shell from the SHELL environment variable
 default_shell=$(basename "$SHELL")
@@ -128,7 +128,7 @@ get_shell_version() {
             fish --version
             ;;
         *)
-            echo "Unknown or unsupported shell: $1"
+            error "Unknown or unsupported shell: $1"
             exit 1
             ;;
     esac
@@ -143,22 +143,22 @@ add_line_based_on_version() {
     case "$default_shell" in
         bash|zsh|tcsh|ksh)
             # For Bash, Zsh, Tcsh, Ksh
-            echo "$line_to_add" >> "$config_file"
+            printf "$line_to_add" >> "$config_file"
             ;;
         dash)
             # For Dash, only add if the version is at least 0.5.10
             if dpkg --compare-versions "$shell_version" "ge" "0.5.10"; then
-                echo "$line_to_add" >> "$config_file"
+                printf "$line_to_add" >> "$config_file"
             fi
             ;;
         fish)
             # For Fish, only add if the version is at least 3.1.0
             if dpkg --compare-versions "$shell_version" "ge" "3.1.0"; then
-                echo "$line_to_add" >> "$config_file"
+                printf "$line_to_add" >> "$config_file"
             fi
             ;;
         *)
-            echo "Unknown or unsupported shell: $default_shell"
+            error "Unknown or unsupported shell: $default_shell"
             exit 1
             ;;
     esac
@@ -191,7 +191,7 @@ case "$default_shell" in
         config_file=~/.config/fish/config.fish
         ;;
     *)
-        echo "Unknown or unsupported shell: $default_shell"
+        error "Unknown or unsupported shell: $default_shell"
         exit 1
         ;;
 esac
@@ -224,7 +224,7 @@ add_to_bash_profile() {
     for file in "${profile_files[@]}"; do
     profile_path="$HOME/$file"
     if [[ -f "$profile_path" ]]; then
-        echo $1 >> "$profile_path"
+        printf $1 >> "$profile_path"
         info "Added to $profile_path"
         file_found=1
     fi
@@ -234,7 +234,7 @@ add_to_bash_profile() {
     if [[ $file_found -eq 0 ]]; then
         add_line_based_on_version "$shell_version" "$config_file" "$1"
         profile_path="$HOME/.bash_profile"
-        echo $1 >> "$profile_path"
+        printf $1 >> "$profile_path"
         info "No existing profile file found. Created and added line to $profile_path"
     fi
 }
@@ -262,10 +262,10 @@ if [ -n "$AARDVARK_INSTALL" ]; then
     if [ $found -eq 1 ]; then
         info ".adk/bin is already in PATH."
     else
-        add_to_bash_profile 'export PATH="$PATH:$HOME/.adk/bin"'
+        add_to_bash_profile 'export PATH="$PATH:$HOME/.adk/bin"\n'
     fi
 else
-    add_to_bash_profile 'export PATH="$PATH:$HOME/.adk/bin"\nexport AARDVARK_INSTALL="$HOME/.adk"'
+    add_to_bash_profile 'export PATH="$PATH:$HOME/.adk/bin"\nexport AARDVARK_INSTALL="$HOME/.adk"\n'
 fi
 
 
