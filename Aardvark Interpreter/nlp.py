@@ -1,3 +1,6 @@
+# This file removes the nltk dependency.
+
+
 def edit_distance(word1, word2):
     # Get the lengths of the two words.
     m = len(word1)
