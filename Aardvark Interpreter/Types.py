@@ -71,7 +71,7 @@ class Object(Type):
         getitem=None,
         deleteitem=None,
         delete=None,
-        string=None
+        string=None,
     ):
         self._class = _class
         self.name = name
@@ -106,7 +106,7 @@ class Object(Type):
         return self.vars.get(name, default)
 
     def __call__(self, *args, **kwargs):
-        if '_call' in dir(self) and self._call:
+        if "_call" in dir(self) and self._call:
             return self._call(*args, **kwargs)
 
     def __setitem__(self, name, value):
@@ -125,7 +125,6 @@ class Object(Type):
 
     def delete(self, name):
         del self.vars[name]
-        
 
     def __delitem__(self, name):
         if self._deleteitem:
@@ -152,6 +151,7 @@ class Object(Type):
         if self._class:
             return self._class.childstr()
         return self.vars.__str__()
+
     def __add__(self, other):
         return Object(self.vars | other.vars)
 
@@ -288,6 +288,7 @@ class String(str, Type):
 
     def __sub__(self, other):
         return self.removesuffix(other)
+
     def __round__(self):
         return self.lower()
 
@@ -308,9 +309,11 @@ class Number(Type):
         self.value = value
         float.__init__(self)
         self.vars = {
-            "digits": [int(x) if x in "0123456789" else x for x in str(value)]
-            if len(str(value)) > 1
-            else [value],
+            "digits": (
+                [int(x) if x in "0123456789" else x for x in str(value)]
+                if len(str(value)) > 1
+                else [value]
+            ),
             # methods and attributes here
         }
         try:
@@ -466,6 +469,7 @@ class Number(Type):
 
     def __hash__(self):
         return hash(self.value)
+
     def __round__(self):
         return round(self.value)
 
@@ -523,7 +527,7 @@ class Array(Type, list):
             "backwards": self._backwards,
             "filter": self._filter,
             "copy": self.copy,
-            "slice": lambda start, end, step=1: Array(self.value[start:end:step])
+            "slice": lambda start, end, step=1: Array(self.value[start:end:step]),
             # methods and attributes here
         }
 
@@ -565,10 +569,12 @@ class Array(Type, list):
             self.value[int(name)] = value
             return value
         return self.set(name, value)
+
     def get(self, name, default=None):
         if type(name) == Number:
             return self.value[int(name)]
         return self.vars.get(name, default)
+
     def __getitem__(self, name):
         if type(name) == Number:
             return self.value[int(name)]
@@ -592,7 +598,7 @@ class Set(Type, list):
             "length": len(self),
             "reverse": self._reverse,
             "filter": self._filter,
-            "slice": lambda start, end, step=1: Set(self.value[start:end:step])
+            "slice": lambda start, end, step=1: Set(self.value[start:end:step]),
             # methods and attributes here
         }
 
@@ -680,7 +686,7 @@ class File(Type):
         return ret
 
     def writeLines(self, *lines):
-        return self.obj.writelines(*[str(lines) for line in lines])
+        return self.obj.writelines([str(lines) for line in lines])
 
     def delete(self):
         os.remove(self.name)

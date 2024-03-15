@@ -25,7 +25,14 @@ class FG:
         return f"{ESC}[38;2;{r};{g};{b}m"
 
     rs = f"{ESC}[39m"
-    red = __call__(0, 255, 0, 0)
+    red = f"{ESC}[31m"
+    blue = f"{ESC}[34m"
+    green = f"{ESC}[32m"
+    yellow = f"{ESC}[33m"
+    magenta = f"{ESC}[35m"
+    cyan = f"{ESC}[36m"
+    white = f"{ESC}[37m"
+    black = f"{ESC}[30m"
 
 
 class BG:
@@ -33,7 +40,14 @@ class BG:
         return f"{ESC}[48;2;{r};{g};{b}m"
 
     rs = f"{ESC}[49m"
-    red = __call__(0, 255, 0, 0)
+    red = f"{ESC}[41m"
+    blue = f"{ESC}[44m"
+    green = f"{ESC}[42m"
+    yellow = f"{ESC}[43m"
+    magenta = f"{ESC}[45m"
+    cyan = f"{ESC}[46m"
+    white = f"{ESC}[47m"
+    black = f"{ESC}[40m"
 
 
 fg = FG()
