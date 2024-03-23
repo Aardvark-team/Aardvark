@@ -149,8 +149,8 @@ Keywords = {
     "type",
     "pause-until",
 }
-for x in Operators:
-    print(x)
+# for x in Operators:
+#     print(x)
 
 
 # https://replit.com/@Programit/Redesign
