@@ -146,7 +146,6 @@ Keywords = {
     "catch",
     "break",
     "continue",
-    "type",
     "pause-until",
 }
 # for x in Operators:
