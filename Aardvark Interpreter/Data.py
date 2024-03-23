@@ -59,7 +59,7 @@ PureOperators = {
     "?",  # x.y? will be null if x.y doesn't exist or if it is null
     "->",  # For defining a function return type
     "...",
-    "$"
+    "$",
     # "<-",  #idk, we can use it for something maybe.
 }
 #!& should be valid, not and.
@@ -146,7 +146,11 @@ Keywords = {
     "catch",
     "break",
     "continue",
+    "type",
+    "pause-until",
 }
+for x in Operators:
+    print(x)
 
 
 # https://replit.com/@Programit/Redesign

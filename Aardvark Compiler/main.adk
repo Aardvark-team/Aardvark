@@ -38,7 +38,7 @@ toks = lexer.tokenize(code)
 # stdout.write(prettify(toks), '\n')
 stdout.write('Parsing...\n')
 
-parser = Parser(null, lexer)
+parser = Parser(lexer, errorHandler)
 data = parser.parse()
 
 

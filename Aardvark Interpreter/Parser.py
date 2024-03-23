@@ -485,9 +485,11 @@ class Parser:
                     "value": ast_node,
                     "positions": {
                         "start": ast_node["positions"]["start"],
-                        "end": property["positions"]["end"]
-                        if property
-                        else ast_node["positions"]["end"],
+                        "end": (
+                            property["positions"]["end"]
+                            if property
+                            else ast_node["positions"]["end"]
+                        ),
                     },
                 }
                 continue  # Check for others
@@ -817,9 +819,11 @@ class Parser:
                         "default": var_default,
                         "absorb": absorb,
                         "positions": {
-                            "start": var_type["positions"]["start"]
-                            if var_type
-                            else var_name.start,
+                            "start": (
+                                var_type["positions"]["start"]
+                                if var_type
+                                else var_name.start
+                            ),
                             "end": var_name.end,
                         },
                     }
@@ -916,9 +920,9 @@ class Parser:
             "value": return_value,
             "positions": {
                 "start": starter.start,
-                "end": return_value["positions"]["end"]
-                if return_value
-                else starter.end,
+                "end": (
+                    return_value["positions"]["end"] if return_value else starter.end
+                ),
             },
         }
 
@@ -1279,6 +1283,8 @@ class Parser:
             if len(body) > 0 and self.peek(-1).type != TokenTypes["LineBreak"]:
                 self.eat(TokenTypes["LineBreak"])
             self.eatLBs()
+            if self.compare("Delimiter", "}"):
+                break
             body.append(self.pCaseStatement())
             self.eatLBs()
         close = self.eat("Delimiter", "}")
@@ -1467,12 +1473,16 @@ class Parser:
             "type": "Program",
             "body": self.statements,
             "positions": {
-                "start": 0
-                if len(self.statements) == 0
-                else self.statements[0]["positions"]["start"],
-                "end": 0
-                if len(self.statements) == 0
-                else self.statements[-1]["positions"]["end"],
+                "start": (
+                    0
+                    if len(self.statements) == 0
+                    else self.statements[0]["positions"]["start"]
+                ),
+                "end": (
+                    0
+                    if len(self.statements) == 0
+                    else self.statements[-1]["positions"]["end"]
+                ),
             },
         }
 

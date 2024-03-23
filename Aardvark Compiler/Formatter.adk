@@ -1,0 +1,29 @@
+include Lexer
+include Errors
+include Parser
+
+function generate_text(node) {
+    switch node.type {
+        
+    }
+}
+
+
+function format_test(text) {
+    errorHandler = Errors.ErrorHandler(code, '<main>')
+    lexer = Lexer(false, false, errorHandler)
+    tokens = lexer.tokenize(code)
+
+    parser = Parser(lexer, null)
+    AST = parser.parse()
+    stdout.write(AST, '\n')
+    generate_text(AST)
+}
+stdout.write(format_test("
+x=0
+y=1
+stdout.write('Hello World\n')
+function my_function() {
+    return 5
+}
+"))

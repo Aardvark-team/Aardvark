@@ -3,19 +3,18 @@ include Data
 include Lexer
 
 class Parser as this {
-    $constructor(err_handler, lexer, errorHandler=null) {
+    $constructor(lexer, errorHandler=null) {
         this.code = lexer.data
         this.codelines = this.code.split("\n")
         this.tokens = lexer.output
         this.pos = 0
-        this.err_handler = err_handler
         this.lexer = lexer
         this.errorHandler = errorHandler
     }
     ## Utility
-    function throwError(type, message, options={}, note="", kill=true) {
+    function throwError(errorType, message, options={}, note="", kill=true) {
         if this.errorHandler == null return false
-        else return this.errorHandler.Throw(type, message, options, note, kill)
+        else return this.errorHandler.Throw(errorType, message, options, note, kill)
     }
     # Get next tokens
     function peek(n=0)
@@ -23,11 +22,11 @@ class Parser as this {
     function pos()
         return this.peek().start
     # Compare the next token with type, value
-    function compare(Type, value, n=0) {
+    function compare(tokenType, value, n=0) {
         if this.isEOF() return false
 
         tok = this.peek(n)
-        if tok & tok.type == Type & (value == null | value == tok.value) return true
+        if tok & tok.type == tokenType & (value == null | value == tok.value) return true
         return false
     }
 
@@ -41,8 +40,8 @@ class Parser as this {
     function isEOF() return this.pos >= this.tokens.length;
 
     # Unexpected End Of File Error
-    function EOFError(Type, value) {
-        throw Error("EOF", $"Unexpected EOF, pos {this.pos}, {this.tokens.length}. Expected {Type} {value}")
+    function EOFError(tokenType, value) {
+        throw Error("EOF", $"Unexpected EOF, pos {this.pos}, {this.tokens.length}. Expected {tokenType} {value}")
         #TODO
     }
 
@@ -163,7 +162,6 @@ class Parser as this {
             this.eat()
             this.eatLBs()
             ast_node = this.pStatement(eatLBs=true)
-            #TODO, allow linebreaks in it.
             this.eatLBs()
             this.eat('Delimiter', ')')
         }
