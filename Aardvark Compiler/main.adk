@@ -1,3 +1,4 @@
+#!/usr/bin/env adk
 stdout.write('Line 1.\n')
 include Lexer from Lexer
 include Parser from Parser

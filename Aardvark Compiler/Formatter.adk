@@ -2,22 +2,39 @@ include Lexer
 include Errors
 include Parser
 
-function generate_text(node) {
+function generate_text(node, original_text) {
     switch node.type {
-        
+        case "Program" {
+            text = ""
+            for node in node.body {
+                text += generate_text(node, original_text) + "\n"
+            }
+            return text
+        }
+        case "Operator" {
+            return generate_text(node.left, original_text) + " " + node.operator + " " + generate_text(node.right, original_text)
+        }
+        case "NumberLiteral" {
+            return String(node.value)
+        }
+        case $defualt {
+            # stdout.write(node, "\n")
+            # stdout.write(original_text.slice(node.position.start.index, node.position.end.index+1), "\n")
+            return original_text.slice(node.position.start.index, node.position.end.index+1)
+        }
     }
 }
 
 
 function format_test(text) {
-    errorHandler = Errors.ErrorHandler(code, '<main>')
-    lexer = Lexer(false, false, errorHandler)
-    tokens = lexer.tokenize(code)
+    errorHandler = Errors.ErrorHandler(text, '<main>')
+    lexer = Lexer.Lexer(false, false, errorHandler)
+    tokens = lexer.tokenize(text)
 
-    parser = Parser(lexer, null)
+    parser = Parser.Parser(lexer, null)
     AST = parser.parse()
-    stdout.write(AST, '\n')
-    generate_text(AST)
+    # stdout.write(AST, '\n')
+    generate_text(AST, text)
 }
 stdout.write(format_test("
 x=0

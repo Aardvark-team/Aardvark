@@ -1254,8 +1254,13 @@ class Parser:
     #   Case
     def pCaseStatement(self):
         starter = self.eat("Keyword", "case")
+        compare = None
+        special = None
         if self.compare("Delimiter", "{"):
             compare = self.pSPMObject()
+        elif self.compare("Operator", "$"):
+            self.eat("Operator")
+            special = self.eat("Identifier")
         else:
             compare = self.pExpression()
         # ADD the case in y, case == 5 later
@@ -1269,6 +1274,7 @@ class Parser:
             "type": "CaseStatement",
             "compare": compare,
             "body": body,
+            "special": special,
             "positions": {"start": starter.start, "end": lasti},
         }
 

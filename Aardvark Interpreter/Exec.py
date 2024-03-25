@@ -23,6 +23,7 @@ from Types import (
     Class,
 )
 import importlib
+
 # from bitarray import bitarray
 from pathlib import Path
 from Utils import prettify_ast
@@ -535,7 +536,10 @@ class Executor:
                 return compare, define
             case {"type": "CaseStatement"}:
                 casescope = Scope({}, parent=scope)
-                if expr["compare"]["type"] == "SPMObject":
+                if expr["special"]:
+                    self.defineVar(expr["special"], self.switch, casescope)
+                    return self.Exec(expr["body"], casescope)
+                elif expr["compare"]["type"] == "SPMObject":
                     compare, define = self.ExecExpr(expr["compare"], scope)
                     for c in compare:
                         if self.switch[c] != compare[c]:
