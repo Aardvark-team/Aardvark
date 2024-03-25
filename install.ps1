@@ -1,3 +1,7 @@
+param (
+  [string]$branch = "stable"
+)
+
 # Check if running on Windows
 if ($env:OS -ne "Windows_NT") {
   Write-Error "error: Please install Aardvark using the bash script"
@@ -120,6 +124,12 @@ $install_dir = "$Home\.adk"
 $bin_dir = "$install_dir\bin"
 $exe = "$bin_dir\adk"
 $zip = "$install_dir\pack.zip"
+$install_wrapper = "$install_dir\adk"
+
+if ($branch -eq "canary") {
+  $download_url = "$github_repo/archive/refs/heads/main.zip"
+  $install_wrapper = "$install_dir\Aardvark-main"
+}
 
 # Clean previous installation
 Remove-Item -Path $install_dir -Recurse -ErrorAction SilentlyContinue
@@ -134,10 +144,10 @@ Invoke-WebRequest -Uri $download_url -OutFile $zip -ErrorAction Stop
 Expand-Archive -Path $zip -DestinationPath $install_dir -Force
 
 # Move files from subdirectory
-Move-Item -Path "$install_dir\adk\*" -Destination $install_dir -Force
+Move-Item -Path "$install_wrapper\*" -Destination $install_dir -Force
 
 # Remove empty subdirectory
-Remove-Item -Path "$install_dir\adk" -Force
+Remove-Item -Path "$install_wrapper" -Force
 
 # Set permissions
 Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force
