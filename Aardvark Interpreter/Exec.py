@@ -235,11 +235,36 @@ class Executor:
         self.filestack[file] = executor.Global
         return executor.Global
 
-    def defineVar(self, name, value, scope):
+    def defineVar(
+        self, name, value, scope, is_static=False, expr=None, is_defined=True
+    ):
         if name in scope.getAll() and name not in list(scope.vars.keys()):
             self.defineVar(name, value, scope.parent)
+        elif (
+            name in list(scope.vars.keys())
+            and getattr(scope[name], "is_static", False)
+            and getattr(scope[name], "is_defined", True)
+        ):
+            start = expr["positions"]["start"]
+            self.errorhandler.throw(
+                "Assignment",
+                "Cannot reassign a static variable.",
+                {
+                    "traceback": self.traceback,
+                    "lineno": start["line"],
+                    "marker": {"start": start["col"], "length": len(name)},
+                    "underline": {
+                        "start": start["col"] - 2,
+                        "end": start["col"] + len(name),
+                    },
+                },
+            )
         else:
+            if getattr(scope[name], "is_static", None) == True:
+                is_static = True
             scope[name] = pyToAdk(value)
+            scope[name].is_defined = is_defined
+            scope[name].is_static = is_static
 
     def makeFunct(self, expr, parent):
         special = expr["special"]
@@ -282,7 +307,7 @@ class Executor:
         self,
         scope,
         varname,
-        start,
+        start=None,
         error=True,
         message='Undefined variable "{name}"',
     ):
@@ -458,7 +483,6 @@ class Executor:
                             )
                         )
                     except TypeError as e:
-                        # print(e, dir(e), e.__traceback__)
                         self.errorhandler.throw(
                             "Value",
                             e.args[0],
@@ -555,6 +579,17 @@ class Executor:
                     compare = self.ExecExpr(expr["compare"], scope)
                     if self.switch == compare:
                         return self.Exec(expr["body"], casescope)
+            case {"type": "Assignment"}:
+                value = self.ExecExpr(expr["value"], scope) if expr["value"] else None
+                self.defineVar(
+                    expr["var_name"],
+                    value,
+                    scope,
+                    expr["is_static"],
+                    expr,
+                    is_defined=value != None,
+                )
+                return value
             case {"type": "SwitchStatement"}:
                 switchscope = Scope({}, parent=scope)
                 self.switch = self.ExecExpr(expr["value"], scope)
@@ -677,7 +712,6 @@ class Executor:
                 except Exception as e:
                     sys.stderr = stderr
                     if expr["catchbody"]:
-                        # print(e, dir(e), e.__note__, e.args)
                         notes = e.args
                         error = Types.Error(notes[1], notes[2])
                         catchscope = Scope({}, parent=scope)

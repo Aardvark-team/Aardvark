@@ -364,14 +364,14 @@ def assign(
     if var["type"] == "PropertyAccess":
         defscope = exec.enterScope(var["value"], scope, scope)
         var = var["property"]
-        exec.defineVar(var, value, defscope)
+        exec.defineVar(var, value, defscope, False, expr)
     elif var["type"] == "Index":
         defscope = exec.enterScope(var["value"], scope, scope)
         var = exec.ExecExpr(var["property"], scope)
-        exec.defineVar(var, value, defscope)
+        exec.defineVar(var, value, defscope, False, expr)
     elif var["type"] == "VariableAccess":
         var = var["value"]
-        exec.defineVar(var, value, defscope)
+        exec.defineVar(var, value, defscope, False, expr)
     elif var["type"] == "Array":
         spread = None
         for i in range(len(var["items"])):
@@ -381,7 +381,7 @@ def assign(
             else:
                 assign(val, value[i], errorhandler, line, expr, scope, exec, True)
         if spread:
-            exec.defineVar(spread, value[i:], defscope)
+            exec.defineVar(spread, value[i:], defscope, False, expr)
     elif not allowLiteral:
         errorhandler.throw(
             "Assignment",

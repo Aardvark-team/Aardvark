@@ -147,6 +147,8 @@ Keywords = {
     "break",
     "continue",
     "pause-until",
+    "let",
+    "static",
 }
 # for x in Operators:
 #     print(x)

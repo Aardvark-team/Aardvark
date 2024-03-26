@@ -395,7 +395,7 @@ class Parser:
             ast_node = self.pObject()
 
         elif tok.type == TokenTypes["Delimiter"] and tok.value == "[":
-            ast_node = self.pArray(tok)
+            ast_node = self.pArray()
 
         elif tok.type == TokenTypes["Identifier"]:
             self.eat(tok.type)
@@ -514,7 +514,6 @@ class Parser:
                 while_ast = self.pWhileLoop(True)
                 while_ast["body"] = ast_node
                 ast_node = while_ast
-            # TODO: add a, b, c
 
             return ast_node
 
@@ -598,7 +597,6 @@ class Parser:
                     .get("end", op.end),  # to handle if there is no right
                 },
             }
-        # TODO: extends = [] causes it too loop forever.
         if left == None and require:
             if level < 0:
                 left = self.pPrimary(require=require, exclude=exclude)
@@ -677,8 +675,8 @@ class Parser:
 
     # Array:
     # 	[ Expression ( , Expression ) ]
-    def pArray(self, starter):
-        self.eat(TokenTypes["Delimiter"], "[")
+    def pArray(self):
+        starter = self.eat(TokenTypes["Delimiter"], "[")
         items = self.parseListLike(",", (TokenTypes["Delimiter"], "]"))
         closing_par = self.eat(TokenTypes["Delimiter"], "]")
 
@@ -788,7 +786,11 @@ class Parser:
                 starter = openparen.start
             while self.peek() and not self.compare(TokenTypes["Delimiter"], ")"):
                 var_type = None
+                var_name = None
                 absorb = False
+                is_ref = False
+                is_static = False
+                var_default = None
                 self.eatLBs()
                 if len(parameters) > 0:
                     self.eat(TokenTypes["Delimiter"], ",")
@@ -796,13 +798,22 @@ class Parser:
                 if self.compare("Operator", "..."):
                     self.eat("Operator")
                     absorb = True
-                var_name = self.eat(TokenTypes["Identifier"])
-                self.eatLBs()
-                var_default = None
-                if self.compare("Delimiter", ":"):
-                    self.eat("Delimiter")
-                    self.eatLBs()
-                    var_type = self.pExpression(exclude="=")
+                if self.compare("Operator", "@"):
+                    self.eat()
+                    is_ref = True
+                if self.compare("Keyword", "static"):
+                    self.eat()
+                    is_static = True
+                if self.compare("Delimiter", "["):
+                    var_type = self.pArray()
+                    var_name = self.eat("Identifier")
+                else:
+                    temp = self.eat("Identifier")
+                    if self.compare("Identifier"):
+                        var_type = temp
+                        var_name = self.eat("Identifier")
+                    else:
+                        var_name = temp
                 self.eatLBs()
                 if self.compare("Operator", "="):
                     self.eat("Operator")
@@ -818,6 +829,8 @@ class Parser:
                         "value_type": var_type,
                         "default": var_default,
                         "absorb": absorb,
+                        "is_ref": is_ref,
+                        "is_static": is_static,
                         "positions": {
                             "start": (
                                 var_type["positions"]["start"]
@@ -895,7 +908,7 @@ class Parser:
         if self.compare("Delimiter", "{"):
             obj = self.pObject()
         elif self.compare("Delimiter", "["):
-            obj = self.pArray(self.peek())
+            obj = self.pArray()
         elif self.compare("Identifier", "set"):
             self.eat("Identifier")
             obj = self.pSet(self.peek())
@@ -1379,6 +1392,43 @@ class Parser:
             "positions": {"start": keyw.start, "end": keyw.end},
         }
 
+    def pAssignment(self):
+        letkw = self.eat("Keyword", "let")
+        # TODO: use a loop here to parse multiple assignments separated by commas.
+        is_static = False
+        var_type = None
+        var_name = None
+        value = None
+        if self.compare("Keyword", "static"):
+            self.eat("Keyword")
+            is_static = True
+        if self.compare("Delimiter", "["):
+            var_type = self.pArray()
+            var_name = self.eat("Identifier")
+        else:
+            temp = self.eat("Identifier")
+            if self.compare("Identifier"):
+                var_type = temp
+                var_name = self.eat("Identifier")
+            else:
+                var_name = temp
+        # let static Number y = 9
+        # let static [Number, String] = 7
+        if self.compare("Operator", "="):
+            self.eat("Operator", "=")
+            value = self.pExpression()
+        return {
+            "type": "Assignment",
+            "is_static": is_static,
+            "var_type": var_type,
+            "var_name": var_name.value,
+            "value": value,
+            "positions": {
+                "start": letkw.start,
+                "end": value["positions"]["end"] if value else var_name.end,
+            },
+        }
+
     # Statement:
     # 	VariableDefinition
     def pStatement(self, require=False, eatLBs=True):
@@ -1455,6 +1505,8 @@ class Parser:
                     "underline": {"start": 0, "end": e.end["col"] + 5},
                 },
             )
+        if self.compare("Keyword", "let"):
+            return self.pAssignment()
 
         return self.pExpression(require=require, eatLBs=eatLBs)
 
