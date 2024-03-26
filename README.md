@@ -1,6 +1,15 @@
 # Installation
+### UNIX
 You can install Aardvark with this command:
-`curl -fsSL https://raw.githubusercontent.com/Aardvark-team/Aardvark/main/install.sh | sh`
+```sh
+curl -fsSL https://raw.githubusercontent.com/Aardvark-team/Aardvark/main/install.sh | sh
+```
+
+### Windows
+```powershell
+& $([scriptblock]::Create((iwr https://raw.githubusercontent.com/Aardvark-team/Aardvark/main/install.ps1)))
+```
+You can also add `-branch canary` to install the lastest changes (windows installer only).
 
 This will add a `.adk` folder to your home directory which includes the Aardvark source.
 It will also add `~/.adk/bin` to your PATH, which gives you access to the commands `adk` and `adkc`.
