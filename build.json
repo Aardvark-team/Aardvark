@@ -1,0 +1,18 @@
+{
+    "targets": [
+        {
+            "out": "builds/macos-arm64",
+            "OS": "darwin",
+            "arch": "arm64"
+        },
+        {
+            "out": "builds/linux-arm64",
+            "OS": "linux",
+            "arch": "arm64"
+        }
+    ],
+    "optimizations": {
+        "compile-time-calculations": false,
+        "inlining": false
+    }
+}

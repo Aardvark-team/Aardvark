@@ -60,14 +60,31 @@ GITHUB=${GITHUB-"https://github.com"}
 
 github_repo="$GITHUB/Aardvark-team/Aardvark"
 
-download_url=$github_repo/releases/latest/download/adk.zip
+release_url=$github_repo/releases/latest/download/adk.zip
+latest_url=$github_repo/archive/main.zip
+
+info_bold "Would you like to install the lastest release or the canary? [release/canary]: "
+
+read -r input
+case $input in
+    [Rr]elease|[rR]*)
+        download_url=$release_url
+        ;;
+    Canary|[cC]*)
+        download_url=$latest_url
+        ;;
+    *)
+        error "Invalid input. Please choose \"release\" or \"canary\"."
+        ;;
+esac
+
 
 install_dir=$HOME/.adk
 bin_dir=$install_dir/bin
 exe=$bin_dir/adk
 zip=$install_dir/pack.zip
 
-rm -r "$install_dir" || true
+rm -r "$install_dir" 2>/dev/null
 
 mkdir -p "$install_dir" ||
     error "Failed to create install directory \"$install_dir\""
@@ -78,10 +95,10 @@ curl --fail --location --progress-bar --output "$zip" "$download_url" ||
 unzip -oqd "$install_dir" "$zip" ||
     error 'Failed to extract Aardvark'
 
-mv $install_dir/adk/{.,}* $install_dir/ 2>/dev/null
+mv $install_dir/adk/{.,}* $install_dir/ 2>/dev/null || mv $install_dir/Aardvark-main/{.,}* $install_dir/ 2>/dev/null
 
-rmdir "$install_dir/adk" ||
-    error 'Failed to remove Aardvark'
+rmdir "$install_dir/adk" 2>/dev/null ||
+    rmdir "$install_dir/Aardvark-main" || error 'Failed to remove Aardvark'
 
 chmod +x "$exe" ||
     error 'Failed to set permissions on adk executable'
@@ -198,9 +215,6 @@ esac
 
 # Get the shell version
 shell_version=$(get_shell_version "$default_shell")
-
-# Add the line to the configuration file based on the shell version
-add_line_based_on_version "$shell_version" "$config_file" "$line_to_add"
 
 
 
