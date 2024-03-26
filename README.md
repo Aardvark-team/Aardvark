@@ -23,6 +23,10 @@ This site will give basic info on how to use the language: [Click Here](https://
 You can try AdkCode here: `https://adkcode.replit.app/`
 NOTE: filesystem access will be denied and certian abilities restricted within this enviroment.
 
+# VSCode extension
+Clone [the extension repository](https://github.com/Aardvark-team/Aardvark-vscode-extension) and then add that to your `~/.vscode/extensions/` folder (UNIX) or `%USERPROFILE%\.vscode\extensions` (Windows).
+For now it only provides syntax highlighting and a run button.
+
 # Contributing 
 View the list of things that need to be implemented [here](https://github.com/orgs/Aardvark-team/projects/3).
 Make sure to also read the Aardvark docs [here](https://aardvark-docs.replit.app/).
