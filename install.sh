@@ -2,7 +2,9 @@
 # set -euo pipefail
 
 if [[ ${OS:-} = Windows_NT ]]; then
-    echo 'error: Please install Aardvark using Windows Subsystem for Linux'
+    echo 'error: Please install Aardvark using Windows Subsystem for Linux.'
+    echo 'Attempting anyways...'
+    powershell.exe -ExecutionPolicy Bypass -Command "& { Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/Aardvark-team/Aardvark/main/install.ps1' -OutFile 'install.ps1'; .\install.ps1; Remove-Item -Path 'install.ps1' }"
     exit 1
 fi
 # Reset
