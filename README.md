@@ -20,8 +20,9 @@ That will let you try the `main.adk` example file.
 This site will give basic info on how to use the language: [Click Here](https://aardvark-docs.replit.app/).
 
 # AdkCode
-You can try AdkCode here: `https://adkcode.replit.app/`
-NOTE: filesystem access will be denied and certian abilities restricted within this enviroment.
+You can try AdkCode [here](https://adkcode.replit.app/).
+
+##### NOTE: filesystem access will be denied and certian abilities restricted within this enviroment.
 
 # VSCode extension
 Clone [the extension repository](https://github.com/Aardvark-team/Aardvark-vscode-extension) and then add that to your `~/.vscode/extensions/` folder (UNIX) or `%USERPROFILE%\.vscode\extensions` (Windows).
