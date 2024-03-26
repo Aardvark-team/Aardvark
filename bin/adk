@@ -1,2 +1,2 @@
-#!/usr/bin/env bash
-python3 "$AARDVARK_INSTALL/Aardvark Interpreter/main.py" "$@"
+#!/usr/bin/env sh
+python3 "$(dirname "$0")"/../Aardvark\ Interpreter/main.py "$@"

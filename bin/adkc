@@ -1,2 +1,2 @@
-#!/usr/bin/env bash
-adk run "$AARDVARK_INSTALL/Aardvark Compiler/main.adk"
+#!/usr/bin/env sh
+adk run "$(dirname "$0")"/../Aardvark\ Compiler/main.adk

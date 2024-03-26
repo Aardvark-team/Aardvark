@@ -1,2 +1,2 @@
 @echo OFF
-python "%AARDVARK_INSTALL%\Aardvark Interpreter\main.py" %*
+python "%~dp0..\Aardvark Interpreter\main.py" %*
