@@ -68,17 +68,13 @@ latest_url=$github_repo/archive/main.zip
 info_bold "Would you like to install the lastest release or the canary? [release/canary]: "
 
 read -r input
-case $input in
-    [Rr]elease|[rR]*)
-        download_url=$release_url
-        ;;
-    Canary|[cC]*)
-        download_url=$latest_url
-        ;;
-    *)
-        error "Invalid input. Please choose \"release\" or \"canary\"."
-        ;;
-esac
+if [[ $input =~ [Rr]elease|[rR]* ]] ; then
+  download_url=$release_url
+elif [[ $input =~ Canary|[cC]* ]] ; then
+  download_url=$latest_url
+else
+  error "Invalid input. Please choose \"release\" or \"canary\"."
+fi
 
 
 install_dir=$HOME/.adk
