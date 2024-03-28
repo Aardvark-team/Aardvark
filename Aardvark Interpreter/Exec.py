@@ -322,7 +322,7 @@ class Executor:
     ):
         val = scope.get(varname, None)
         success = val != None
-        if not val.is_defined:
+        if not getattr(val, "is_defined", True):
             if success:
                 message = 'Uninitialized variable "{name}"'
             success = False
