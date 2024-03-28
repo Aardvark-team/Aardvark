@@ -2,7 +2,7 @@
 ### UNIX
 You can install Aardvark with this command:
 ```sh
-curl -fsSL https://raw.githubusercontent.com/Aardvark-team/Aardvark/main/install.sh | sh
+sh <(curl -fsSL https://raw.githubusercontent.com/Aardvark-team/Aardvark/main/install.sh)
 ```
 
 ### Windows
