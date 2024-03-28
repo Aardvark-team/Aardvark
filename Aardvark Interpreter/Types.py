@@ -659,6 +659,7 @@ class File(Type):
             "write": self.write,
             "readAll": self.readAll,
             "readLine": self.readLine,
+            "readLines": self.readLines,
             "writeLines": self.writeLines,
             "erase": self.erase,
             "move": self.move,
@@ -675,6 +676,9 @@ class File(Type):
 
     def readLine(self):
         return self.obj.readline()
+
+    def readLines(self, n=-1):
+        return self.obj.readlines(n)
 
     def readAll(self):
         return self.obj.read()

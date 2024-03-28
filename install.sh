@@ -57,7 +57,7 @@ command -v unzip >/dev/null ||
 
 
 # https://github.com/Aardvark-team/Aardvark/archive/refs/tags/v1.0.0-test.2.zip
-version=1.0.0-test.2
+
 GITHUB=${GITHUB-"https://github.com"}
 
 github_repo="$GITHUB/Aardvark-team/Aardvark"
@@ -65,16 +65,26 @@ github_repo="$GITHUB/Aardvark-team/Aardvark"
 release_url=$github_repo/releases/latest/download/adk.zip
 latest_url=$github_repo/archive/main.zip
 
-info_bold "Would you like to install the lastest release or the canary? [release/canary]: "
+while true; do
+    info_bold "Would you like to install the lastest release or the canary? [release/canary]: "
 
-read -r input
-if [[ $input =~ [Rr]elease|[rR]* ]] ; then
-  download_url=$release_url
-elif [[ $input =~ Canary|[cC]* ]] ; then
-  download_url=$latest_url
-else
-  error "Invalid input. Please choose \"release\" or \"canary\"."
-fi
+    read -r input
+
+    if [[ $input =~ ^[Rr]elease$ ]]; then
+        info "Installing release"
+        download_url=$release_url
+        break
+    elif [[ $input =~ ^[Cc]anary$ ]]; then
+        info "Installing canary"
+        download_url=$latest_url
+        break
+    else
+        echo "Invalid input. Please choose 'release' or 'canary'."
+    fi
+done
+
+
+info "Installing Aardvark from $download_url"
 
 
 install_dir=$HOME/.adk

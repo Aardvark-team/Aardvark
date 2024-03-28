@@ -144,7 +144,6 @@ def createGlobals(safe=False):
         }
     )  # Define builtins here
     if not safe:
-        Globals.set("open", open)
         Globals.set(
             "python",
             {
@@ -175,6 +174,16 @@ class Executor:
         self.switch = None
         self.filestack = filestack
         self.Global = createGlobals(safe)
+        if not safe:
+
+            def adk_open(path, *args, **kwargs):
+                # Make path relative to the file being executed.
+                if not Path(path).is_absolute():
+                    path = Path(Path(self.path).parent, path)
+
+                return open(path, *args, **kwargs)
+
+            self.Global.set("open", adk_open)
         self.Global["include"] = self.include
         self.Global["is_main"] = is_main
         # TODO: implement more builtins.
@@ -313,6 +322,10 @@ class Executor:
     ):
         val = scope.get(varname, None)
         success = val != None
+        if not val.is_defined:
+            if success:
+                message = 'Uninitialized variable "{name}"'
+            success = False
         if success:
             return pyToAdk(val)
         elif error:
