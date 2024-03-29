@@ -37,7 +37,13 @@ stdout.write("Hello World") if main else if 5 < 6 stdout.write("5 < 6") else std
 
 Variables
 
-Defining a variable is easy, its kinda similar to Python. `x = value`.
+Defining a variable is easy, its kinda similar to JavaScript. Declare a variable with `let`. The modifiers and type go after that. So, for example:
+```adk
+let x = 5
+let Number my_number = 5
+let static String my_string = "hello"
+```
+There is also the more advanced concept of layouts, which you can find in `layouts.md`.
 
 
 Functions
@@ -52,9 +58,9 @@ The biggest difference, is Aardvark functions don't have a this by default. You 
 ```
 function x as this {}
 ```
-This allows you to customize the name of this. Function in Aardvark are not built to be like classes as they are in JavaScript, use a class for that. The this is used mainly for dynamic functions, functions that you create programitally. If you want your function to have a specific return type, use the -> operator: `function x() -> Type {}`. Function parameters can also require a certain type: `function x(param: type) {}`. You can also require one of many types for a parameter: `function x(param: [Type1, Type2]) {}`.You can also set a default value for parameters: `function x(param=x) {}`. This is a lot at once, so let me give you an example using this all at once:
+This allows you to customize the name of this. Function in Aardvark are not built to be like classes as they are in JavaScript, use a class for that. The this is used mainly for dynamic functions, functions that you create programitally. If you want your function to have a specific return type, use the -> operator: `function x() -> Type {}`. Function parameters can also require a certain type: `function x(type param) {}`. You can also require one of many types for a parameter: `function x([Type1, Type2] param) {}`.You can also set a default value for parameters: `function x(param=x) {}`. This is a lot at once, so let me give you an example using this all at once:
 ```
-function powPow(x: [String, Number] = 1) as this -> Number {
+function powPow([String, Number] x = 1) as this -> Number {
   if typeof(x) == String 
     x = Number(x)
   return this.lastResult = x^x

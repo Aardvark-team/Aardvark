@@ -31,3 +31,5 @@ let My_Type z = My_Type(5)
 stdout.write(type_of(z.value), z.value, z.method_called, '\n') # Number 5 constructor
 ```
 Interesting! Only the constructor was called. Why? We didn't need to handle the initialization because we already had an instance of `My_Type`.
+
+
