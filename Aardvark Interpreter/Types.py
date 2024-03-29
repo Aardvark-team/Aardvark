@@ -527,6 +527,7 @@ class Array(Type, list):
             "backwards": self._backwards,
             "filter": self._filter,
             "copy": self.copy,
+            "map": lambda func: Array([func(i) for i in self]),
             "slice": lambda start, end, step=1: Array(self.value[start:end:step]),
             # methods and attributes here
         }

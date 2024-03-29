@@ -1,16 +1,14 @@
 # Immediate TODO:
  - [ ] Make number keys in Objects be number, not strings.
- - [ ] Allow break in switch case.
  - [ ] Add `adk update` to fetch from github.
- - [ ] Make it work outside of replit somehow.
  - [x] Add structural pattern matching
  - [ ] Extending & function overloading.
- - [ ] array indices don't work. arr[0]
- - [ ] slice function doesn't work with arrays at least
+ - [x] array indices don't work. arr[0]
+ - [x] slice function doesn't work with arrays at least
 
 # Lexer
 ## The few things left to do.
- - [ ] ... operator
+ - [x] ... operator
  - [x] break
 
 # Parser
@@ -46,7 +44,7 @@
  - [x] break
 
 ## Expressions / Syntax
- - [ ] ... spread operator
+ - [x] ... spread operator
  - [x] Types
  - [x] Indexes (x[])
  - [x] Abstract Multiplication (i.e. 5x, 7(2 + 3), etc...)
@@ -61,7 +59,7 @@
  - [x] All operators (?, *, &, ^, %, !, ~, -, +, =, /, <, >, ->, =>, >=, <=, |, etc...)
 
 # Execution
-- [ ] ... spread operator
+- [x] ... spread operator
 - [x] Remove let 
 - [x] For loops
 - [x] Return
