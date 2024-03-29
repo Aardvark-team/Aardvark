@@ -4,6 +4,7 @@ import time
 import os
 import sys
 import inspect
+from functools import cmp_to_key
 
 
 def convert_number(number: str, base: int, charmap: str):
@@ -526,9 +527,9 @@ class Array(Type, list):
             "reverse": self._reverse,
             "backwards": self._backwards,
             "filter": self._filter,
-            "copy": self.copy,
             "map": lambda func: Array([func(i) for i in self]),
             "slice": lambda start, end, step=1: Array(self.value[start:end:step]),
+            "sort": self._sort,
             # methods and attributes here
         }
 
@@ -554,6 +555,10 @@ class Array(Type, list):
 
     def _backwards(self):
         return reversed(self.value)
+
+    def _sort(self, key=lambda x, y: x - y, reverse=False):
+        self.sort(key=cmp_to_key(key), reverse=reverse)
+        self.value.sort(key=cmp_to_key(key), reverse=reverse)
 
     def _append(self, *args, **kwargs):
         self.append(*args, **kwargs)
