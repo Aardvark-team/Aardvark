@@ -528,6 +528,7 @@ class Array(Type, list):
             "backwards": self._backwards,
             "filter": self._filter,
             "map": lambda func: Array([func(i) for i in self]),
+            "reduce": self._reduce,
             "slice": lambda start, end, step=1: Array(self.value[start:end:step]),
             "sort": self._sort,
             # methods and attributes here
@@ -559,6 +560,11 @@ class Array(Type, list):
     def _sort(self, key=lambda x, y: x - y, reverse=False):
         self.sort(key=cmp_to_key(key), reverse=reverse)
         self.value.sort(key=cmp_to_key(key), reverse=reverse)
+
+    def _reduce(self, func, start=0):
+        for i in self.value:
+            start = func(start, i)
+        return start
 
     def _append(self, *args, **kwargs):
         self.append(*args, **kwargs)
