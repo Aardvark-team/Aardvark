@@ -61,7 +61,7 @@ function x as this {}
 This allows you to customize the name of this. Function in Aardvark are not built to be like classes as they are in JavaScript, use a class for that. The this is used mainly for dynamic functions, functions that you create programitally. If you want your function to have a specific return type, use the -> operator: `function x() -> Type {}`. Function parameters can also require a certain type: `function x(type param) {}`. You can also require one of many types for a parameter: `function x([Type1, Type2] param) {}`.You can also set a default value for parameters: `function x(param=x) {}`. This is a lot at once, so let me give you an example using this all at once:
 ```
 function powPow([String, Number] x = 1) as this -> Number {
-  if typeof(x) == String 
+  if type_of(x) == String 
     x = Number(x)
   return this.lastResult = x^x
 }
@@ -70,7 +70,7 @@ The ability to refer to the function itself within the function allows you to sa
 
 Objects
 
-Objects in Aardvark are noticably different than those of other languages. Every value that can be assigned to a variable is an Object, including Strings, Numbers, Classes, Functions, etc. The Object class is the base class of all data types. The Object class itself has no attributes or methods, not even length. We will refer to Objects as any member of the Object class or a class that inherits from it. Objects in Aardvark have both items and properties. By default, items and properties are equivalent, but this can be overrided. Properties are referenced by . as in other languages. Items use `[]`, also common in other langauges, so I probably don't have to explain how this works, but I will give an example:
+Objects in Aardvark are noticeably different than those of other languages. Every value that can be assigned to a variable is an Object, including Strings, Numbers, Classes, Functions, etc. The Object class is the base class of all data types. The Object class itself has no attributes or methods, not even length. We will refer to Objects as any member of the Object class or a class that inherits from it. Objects in Aardvark have both items and properties. By default, items and properties are equivalent, but this can be override. Properties are referenced by . as in other languages. Items use `[]`, also common in other languages, so I probably don't have to explain how this works, but I will give an example:
 ```
 property_value = object.property_name
 item_value = object[item_name]

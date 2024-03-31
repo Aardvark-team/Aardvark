@@ -24,7 +24,7 @@
 ## Statements
  - [x] Variable Definitions
  - [x] Remove let
- - [ ] Add `x, y, z = a` and deconstruction
+ - [x] Add `[x, y, z] = a` and deconstruction
  - [x] Inline ifs
  - [x] Switch Case (basic)
  <!--- [ ] Switch Case (full)-->

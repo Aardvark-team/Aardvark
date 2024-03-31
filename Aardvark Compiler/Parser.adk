@@ -257,8 +257,19 @@ class Parser as this {
             #TODO
         }
     }
-    function pTypedIdentifier() {
-        
+    function pLayout()
+    function pOptionallyTypedIdentifier() {
+        #TODO! Parses type, union, layout, everything
+        #*
+        Should parse the following:
+        x
+        String x
+        [Number, String] x
+        layout(Number) {} x
+        [layout(Number), String] x
+        etc...
+        *#
+
     }
     function pExpression(level=keys(OrderOfOps).length-1, require=false, exclude=[], eatLBs=false) {
         left = this.pPrimary(false) if level < 0 else this.pExpression(level - 1, false, exclude, eatLBs)

@@ -3,16 +3,25 @@
         {
             "out": "builds/macos-arm64",
             "OS": "darwin",
-            "arch": "arm64"
+            "architecture": "arm64"
         },
         {
-            "out": "builds/linux-arm64",
+            "out": "builds/linux-x86_64",
             "OS": "linux",
-            "arch": "arm64"
+            "architecture": "x86_64"
         }
     ],
     "optimizations": {
         "compile-time-calculations": false,
         "inlining": false
+    },
+    "format-on-build": true,
+    "format-options": {
+        "indent": 4,
+        "max-line-length": 120
+    },
+    "enforced-style": {
+        "require-manual-types": true,
+        "require-return-in-function": true
     }
 }
