@@ -577,19 +577,23 @@ class Array(Type, list):
         self.vars["length"] = len(self)
 
     def __setitem__(self, name, value):
-        if type(name) == Number:
+        if type(name) == Number or name.isdigit():
+            index = int(name)
+            if index >= len(self.value):
+                return None
             self.value[int(name)] = value
             return value
         return self.set(name, value)
 
     def get(self, name, default=None):
-        if type(name) == Number:
-            return self.value[int(name)]
+        if type(name) == Number or name.isdigit():
+            index = int(name)
+            if index >= len(self.value):
+                return default
+            return self.value[index]
         return self.vars.get(name, default)
 
     def __getitem__(self, name):
-        if type(name) == Number:
-            return self.value[int(name)]
         return self.get(name, Null)
 
 

@@ -137,6 +137,7 @@ Keywords = {
     "delete",
     "include",
     "async",
+    "await",
     "yield",
     "defer",  # Statements
     "as",

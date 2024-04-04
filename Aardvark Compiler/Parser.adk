@@ -3,11 +3,11 @@ include Data
 include Lexer
 
 class Parser as this {
+    let Number pos = 0
     $constructor(lexer, errorHandler=null) {
         this.code = lexer.data
         this.codelines = this.code.split("\n")
         this.tokens = lexer.output
-        this.pos = 0
         this.lexer = lexer
         this.errorHandler = errorHandler
     }
@@ -257,7 +257,7 @@ class Parser as this {
             #TODO
         }
     }
-    function pLayout()
+    function pLayout() {}
     function pOptionallyTypedIdentifier() {
         #TODO! Parses type, union, layout, everything
         #*
@@ -265,6 +265,9 @@ class Parser as this {
         x
         String x
         [Number, String] x
+        Number or String x
+        Number | String x
+        (Number | String) x
         layout(Number) {} x
         [layout(Number), String] x
         etc...

@@ -376,6 +376,7 @@ class Executor:
                     scope, expr["value"], expr["positions"]["start"], undefinedError
                 )
             case {"type": "PropertyAccess"}:
+                # TODO: make it work with the x.$y and x.(y)! See TODO in Parser.
                 obj = pyToAdk(self.ExecExpr(expr["value"], scope, undefinedError))
                 objname = (
                     obj.name

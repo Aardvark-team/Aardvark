@@ -457,9 +457,38 @@ class Parser:
                         "variable": var,
                     },
                 }
-            while self.compare(TokenTypes["Delimiter"], "."):
+            # TODO: make the below PropertyAccess handle parentheses and negative numbers.
+            while (
+                self.compare(TokenTypes["Delimiter"], ".")
+                and self.peek(1).start["col"] == self.peek().start["col"] + 1
+                and (
+                    self.peek(1).type
+                    in [
+                        TokenTypes["Identifier"],
+                        TokenTypes["Number"],
+                        TokenTypes["String"],
+                    ]
+                    or self.peek(1).value == "$"
+                )
+            ):
                 self.eat(TokenTypes["Delimiter"])
-                property_name = self.eat(TokenTypes["Identifier"])
+                property_name = None
+                if self.compare("Identifier"):
+                    property_name = self.eat("Identifier")
+                elif self.compare("String"):
+                    property_name = self.eat("String")
+                elif self.compare("Number"):
+                    property_name = self.eat("Number")
+                elif self.compare("Operator", "$"):
+                    self.eat("Operator")
+                    property_name = {
+                        "type": "VariableAccess",
+                        "value": self.eat("Identifier").value,
+                        "positions": {
+                            "start": property_name.start,
+                            "end": property_name.end,
+                        },
+                    }
 
                 ast_node = {
                     "type": "PropertyAccess",
