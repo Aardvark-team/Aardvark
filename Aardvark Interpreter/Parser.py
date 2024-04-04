@@ -45,18 +45,16 @@ class Parser:
     # Get the next token
     def peek(self, n=0):
         tok = self.tokens[self.pos + n] if self.pos + n < len(self.tokens) else None
-        # print("PEEK", tok)
         return tok
 
     # Compare the next token with type, value
-    def compare(self, Type, value=None):
+    def compare(self, Type, value=None, n=0):
         # global compares
         # compares += 1
-        # print("COMPARE", compares, Type, value)
         if self.isEOF():
             return False
 
-        tok = self.peek()
+        tok = self.peek(n)
         if type(Type) == str:
             Type = TokenTypes[Type]
         if tok and tok.type == Type and (value is None or value == tok.value):
@@ -111,11 +109,6 @@ class Parser:
 
     # Consume the current token if the types match, else throw an error
     def eat(self, Type="any", value=None, is_type=False):
-        # global eats
-        # eats += 1
-        # print("EAT", eats)
-        # if self.peek().start['line'] >= 884:
-        #     self.debug = True
         if type(Type) == str:
             Type = TokenTypes[Type]
 
@@ -165,7 +158,6 @@ class Parser:
             self.pyError = {}
             raise SyntaxError("Unexpected token")
 
-        # print(Type, value, is_type, next_tok)
         self.err_handler.throw(
             "Syntax",
             f'Unexpected {str(next_tok.type)}: "{str(next_tok.value)}"',
@@ -258,7 +250,6 @@ class Parser:
                 )
             else:
                 return None
-        # print(self.compare("Operator", "$"), self.peek(1), self.peek(1).type == TokenTypes["String"], self.peek().end["col"] == self.peek(1).start["col"] - 1)
         if (
             self.compare("Operator", "$")
             and self.peek(1)
@@ -457,49 +448,105 @@ class Parser:
                         "variable": var,
                     },
                 }
-            # TODO: make the below PropertyAccess handle parentheses and negative numbers.
             while (
                 self.compare(TokenTypes["Delimiter"], ".")
                 and self.peek(1).start["col"] == self.peek().start["col"] + 1
-                and (
-                    self.peek(1).type
-                    in [
-                        TokenTypes["Identifier"],
-                        TokenTypes["Number"],
-                        TokenTypes["String"],
-                    ]
-                    or self.peek(1).value == "$"
-                )
             ):
-                self.eat(TokenTypes["Delimiter"])
-                property_name = None
+                dot = self.eat(TokenTypes["Delimiter"])
+                property = None
                 if self.compare("Identifier"):
-                    property_name = self.eat("Identifier")
-                elif self.compare("String"):
-                    property_name = self.eat("String")
-                elif self.compare("Number"):
-                    property_name = self.eat("Number")
-                elif self.compare("Operator", "$"):
-                    self.eat("Operator")
-                    property_name = {
-                        "type": "VariableAccess",
-                        "value": self.eat("Identifier").value,
+                    tok = self.eat("Identifier")
+                    property = {
+                        "type": "StringLiteral",
+                        "value": tok.value,
                         "positions": {
-                            "start": property_name.start,
-                            "end": property_name.end,
+                            "start": tok.start,
+                            "end": tok.end,
                         },
                     }
+                elif self.compare("String"):
+                    tok = self.eat("String")
+                    property = {
+                        "type": "StringLiteral",
+                        "value": tok.value,
+                        "positions": {
+                            "start": tok.start,
+                            "end": tok.end,
+                        },
+                    }
+                elif self.compare("Number"):
+                    tok = self.eat("Number")
+                    property = {
+                        "type": "NumberLiteral",
+                        "value": tok.value,
+                        "positions": {
+                            "start": tok.start,
+                            "end": tok.end,
+                        },
+                    }
+                elif self.compare("Operator", "$"):
+                    self.eat("Operator")
+                    tok = self.eat("Identifier")
+                    property = {
+                        "type": "VariableAccess",
+                        "value": tok.value,
+                        "positions": {
+                            "start": tok.start,
+                            "end": tok.end,
+                        },
+                    }
+                elif self.compare("Delimiter", "("):
+                    self.eat("Delimiter")
+                    property = self.pStatement(eatLBs=True)
+                    self.eat("Delimiter", ")")
+                elif self.compare("Operator", "-"):
+                    op = self.eat("Operator")
+                    tok = self.eat("Number")
+                    property = {
+                        "type": "Operator",
+                        "operator": "-",
+                        "left": None,
+                        "right": {
+                            "type": "NumberLiteral",
+                            "value": tok.value,
+                            "positions": {
+                                "start": tok.start,
+                                "end": tok.end,
+                            },
+                        },
+                        "positions": {
+                            "start": op.start,
+                            "end": tok.end,
+                        },
+                    }
+                else:
+                    self.err_handler.throw(
+                        "Syntax",
+                        "Unexpected End Of Expression",
+                        {
+                            "lineno": dot.end["line"],
+                            "marker": {"start": dot.end["col"], "length": 2},
+                            "underline": {
+                                "start": dot.end["col"],
+                                "end": len(self.codelines[dot.end["line"] - 1]),
+                            },
+                            "did_you_mean": Error.Highlight(
+                                self.codelines[dot.end["line"] - 1],
+                                {"background": None, "linenums": False},
+                            )
+                            + Error.styles["suggestion"]
+                            + "<value>"
+                            + fg.rs,
+                        },
+                    )
 
                 ast_node = {
                     "type": "PropertyAccess",
-                    "property": property_name.value,
+                    "property": property,
                     "value": ast_node,
                     "positions": {
                         "start": ast_node["positions"]["start"],
-                        "end": property_name.end,
-                    },
-                    "tokens": {
-                        "property": property_name,
+                        "end": property["positions"]["end"],
                     },
                 }
                 continue  # Check for others
@@ -509,7 +556,7 @@ class Parser:
                 property = self.pExpression(eatLBs=True)
                 self.eat("Delimiter", "]")
                 ast_node = {
-                    "type": "Index",
+                    "type": "PropertyAccess",
                     "property": property,
                     "value": ast_node,
                     "positions": {
@@ -599,7 +646,6 @@ class Parser:
             right = self.pExpression(level, require=False, exclude=exclude)
 
             if not left and not right:
-                # print('"'+op.value+'"', len(op.value))
                 # Just an operator by itself.
                 self.err_handler.throw(
                     "Syntax",
@@ -803,8 +849,14 @@ class Parser:
         starter = None
         name = None
         parameters = []
+        is_static = False
         if not special:
-            starter = self.eat(TokenTypes["Keyword"], "function").start
+            if self.compare("Keyword", "static"):
+                starter = self.eat("Keyword", "static").start
+                self.eat(TokenTypes["Keyword"], "function")
+                is_static = True
+            else:
+                starter = self.eat("Keyword", "function").start
         if self.compare("Identifier"):
             name = self.eat(TokenTypes["Identifier"])
         if not starter:
@@ -848,7 +900,7 @@ class Parser:
                     self.eat("Operator")
                     self.eatLBs()
                     var_default = self.pExpression()
-                    # TODO: Add modes to not parse , or something
+                # TODO: Add modes to not parse , or something
                 self.eatLBs()
 
                 parameters.append(
@@ -921,6 +973,7 @@ class Parser:
             "is_anonymous": name is None,
             "parameters": parameters,
             "special": special,
+            "is_static": is_static,
             "body": body,
             "as": AS,
             "inline": inline,
@@ -1100,7 +1153,13 @@ class Parser:
     # ClassDefinition:
     #     class [identifier] [ extends [identifier] ] ClassScope
     def pClassDefinition(self):
-        starter = self.eat(TokenTypes["Keyword"], "class")
+        if self.compare("Keyword", "static"):
+            starter = self.eat("Keyword", "static")
+            self.eat(TokenTypes["Keyword"], "class")
+            is_static = True
+        else:
+            is_static = False
+            starter = self.eat("Keyword", "class")
         name = None
         extends = []
         AS = None
@@ -1124,6 +1183,7 @@ class Parser:
         return {
             "type": "ClassDefinition",
             "name": name,
+            "is_static": is_static,
             "is_anonymous": name is None,
             "extends": extends,
             "body": body,
@@ -1424,37 +1484,51 @@ class Parser:
     def pAssignment(self):
         letkw = self.eat("Keyword", "let")
         # TODO: use a loop here to parse multiple assignments separated by commas.
-        is_static = False
-        var_type = None
-        var_name = None
-        value = None
-        if self.compare("Keyword", "static"):
-            self.eat("Keyword")
-            is_static = True
-        if self.compare("Delimiter", "["):
-            var_type = self.pArray()
-            var_name = self.eat("Identifier")
-        else:
-            temp = self.eat("Identifier")
-            if self.compare("Identifier"):
-                var_type = temp
+        assignments = []
+        while True:
+            is_static = False
+            var_type = None
+            var_name = None
+            value = None
+            if self.compare("Keyword", "static"):
+                self.eat("Keyword")
+                is_static = True
+            if self.compare("Delimiter", "["):
+                var_type = self.pArray()
                 var_name = self.eat("Identifier")
             else:
-                var_name = temp
-        # let static Number y = 9
-        # let static [Number, String] = 7
-        if self.compare("Operator", "="):
-            self.eat("Operator", "=")
-            value = self.pExpression()
+                temp = self.eat("Identifier")
+                if self.compare("Identifier"):
+                    var_type = temp
+                    var_name = self.eat("Identifier")
+                else:
+                    var_name = temp
+            # let static Number y = 9
+            # let static [Number, String] = 7
+            if self.compare("Operator", "="):
+                self.eat("Operator", "=")
+                value = self.pExpression()
+            assignments.append(
+                {
+                    "is_static": is_static,
+                    "var_type": var_type,
+                    "var_name": var_name.value,
+                    "value": value,
+                    "positions": {
+                        "start": var_name.start,
+                        "end": value["positions"]["end"] if value else var_name.end,
+                    },
+                }
+            )
+            if not self.compare("Delimiter", ","):
+                break
+            self.eat("Delimiter", ",")
         return {
-            "type": "Assignment",
-            "is_static": is_static,
-            "var_type": var_type,
-            "var_name": var_name.value,
-            "value": value,
+            "type": "Assignments",
+            "assignments": assignments,
             "positions": {
                 "start": letkw.start,
-                "end": value["positions"]["end"] if value else var_name.end,
+                "end": assignments[-1]["positions"]["end"],
             },
         }
 
@@ -1469,7 +1543,8 @@ class Parser:
 
         if self.compare("Keyword", "throw"):
             return self.pThrow()
-
+        if self.compare("Keyword", "static") and self.compare("Keyword", "function", 1):
+            return self.pFunctionDefinition()
         if self.compare("Keyword", "function"):
             return self.pFunctionDefinition()
 
@@ -1499,6 +1574,9 @@ class Parser:
 
         if self.compare("Keyword", "extending"):
             return self.pExtendingStatement()
+
+        if self.compare("Keyword", "static") and self.compare("Keyword", "class", 1):
+            return self.pClassDefinition()
 
         if self.compare("Keyword", "class"):
             return self.pClassDefinition()

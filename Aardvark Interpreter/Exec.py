@@ -323,8 +323,30 @@ class Executor:
         val = scope.get(varname, None)
         success = val != None
         if not getattr(val, "is_defined", True):
-            if success:
-                message = 'Uninitialized variable "{name}"'
+            if success and error:
+                message = 'Uninitialized variable "{name}". Add `?` to render uninitialized variables as null.'
+                line = self.codelines[start["line"] - 1]
+                did_you_mean = (
+                    line[: start["col"] + len(varname) - 1]
+                    + "?"
+                    + line[start["col"] + len(varname) - 1 :]
+                )
+                return self.errorhandler.throw(
+                    "Value",
+                    message.format(name=varname),
+                    {
+                        "lineno": start["line"],
+                        "marker": {"start": start["col"], "length": len(varname)},
+                        "underline": {
+                            "start": start["col"] - 2,
+                            "end": start["col"] + len(varname),
+                        },
+                        "did_you_mean": Error.Highlight(
+                            did_you_mean, {"linenums": False}
+                        ),
+                        "traceback": self.traceback,
+                    },
+                )
             success = False
         if success:
             return pyToAdk(val)
@@ -376,17 +398,17 @@ class Executor:
                     scope, expr["value"], expr["positions"]["start"], undefinedError
                 )
             case {"type": "PropertyAccess"}:
-                # TODO: make it work with the x.$y and x.(y)! See TODO in Parser.
                 obj = pyToAdk(self.ExecExpr(expr["value"], scope, undefinedError))
                 objname = (
                     obj.name
                     if "name" in dir(obj)
                     else Error.getAstText(expr["value"], self.codelines)
                 )
+                property = self.ExecExpr(expr["property"], scope, undefinedError)
                 return self.getVar(
                     obj,
-                    expr["property"],
-                    expr["tokens"]["property"].start,
+                    property,
+                    expr["property"]["positions"]["start"],
                     undefinedError,
                     message=f'Undefined property "{{name}}" of "{objname}"',
                 )
@@ -593,16 +615,21 @@ class Executor:
                     compare = self.ExecExpr(expr["compare"], scope)
                     if self.switch == compare:
                         return self.Exec(expr["body"], casescope)
-            case {"type": "Assignment"}:
-                value = self.ExecExpr(expr["value"], scope) if expr["value"] else None
-                self.defineVar(
-                    expr["var_name"],
-                    value,
-                    scope,
-                    expr["is_static"],
-                    expr,
-                    is_defined=value != None,
-                )
+            case {"type": "Assignments"}:
+                for assignment in expr["assignments"]:
+                    value = (
+                        self.ExecExpr(assignment["value"], scope)
+                        if assignment["value"]
+                        else None
+                    )
+                    self.defineVar(
+                        assignment["var_name"],
+                        value,
+                        scope,
+                        assignment["is_static"],
+                        expr,
+                        is_defined=value != None,
+                    )
                 return value
             case {"type": "SwitchStatement"}:
                 switchscope = Scope({}, parent=scope)

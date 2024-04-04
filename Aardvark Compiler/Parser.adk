@@ -1,10 +1,10 @@
 from Data include OrderOfOps
-include Data
 include Lexer
 
 class Parser as this {
     let Number pos = 0
     $constructor(lexer, errorHandler=null) {
+        this.pos = 0
         this.code = lexer.data
         this.codelines = this.code.split("\n")
         this.tokens = lexer.output
@@ -940,7 +940,7 @@ class Parser as this {
         start = this.eat('Keyword', 'class').start
         name = AS = null
         Extends = []
-        if this.compare('Identifier') {#TODO: Parser.py hangs here.
+        if this.compare('Identifier') {
             name = this.eat()
             name = name.value 
         }
