@@ -37,7 +37,6 @@ class Parser:
         self.pos = 0
         self.err_handler = err_handler
         self.lexer = lexer
-        self.debug = False
         self.pyError = {}
 
     ## UTILITY

@@ -376,8 +376,9 @@ class Executor:
     def enterScope(self, var, scope, main):
         match var:
             case {"type": "PropertyAccess"}:
+                property = self.ExecExpr(var["property"], main)
                 scope = self.enterScope(var["value"], scope, main)
-                return self.getVar(scope, var["property"], var["positions"]["start"])
+                return self.getVar(scope, property, var["positions"]["start"])
             case {"type": "Index"}:
                 property = self.ExecExpr(var["property"], main)
                 scope = self.enterScope(var["value"], scope, main)

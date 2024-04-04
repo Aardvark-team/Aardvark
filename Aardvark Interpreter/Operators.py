@@ -363,7 +363,7 @@ def assign(
     defscope = scope
     if var["type"] == "PropertyAccess":
         defscope = exec.enterScope(var["value"], scope, scope)
-        var = var["property"]
+        var = exec.ExecExpr(var["property"], scope)
         exec.defineVar(var, value, defscope, False, expr)
     elif var["type"] == "Index":
         defscope = exec.enterScope(var["value"], scope, scope)
