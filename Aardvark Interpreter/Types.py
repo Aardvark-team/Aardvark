@@ -293,6 +293,14 @@ class String(str, Type):
     def __round__(self):
         return self.lower()
 
+    def get(self, name, default=None):
+        if type(name) == Number or name.isdigit():
+            index = int(name)
+            if index >= len(self):
+                return default
+            return self[index]
+        return self.vars.get(name, default)
+
 
 class Number(Type):
     def __init__(

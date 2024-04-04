@@ -1,2 +1,2 @@
 #!/usr/bin/env sh
-adk run "$(dirname "$0")"/../Aardvark\ Compiler/main.adk
+python3 "$(dirname "$0")"/../Aardvark\ Interpreter/main.py run "$(dirname "$0")"/../Aardvark\ Compiler/main.adk
