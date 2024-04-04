@@ -890,7 +890,11 @@ class Parser:
                 else:
                     temp = self.eat("Identifier")
                     if self.compare("Identifier"):
-                        var_type = temp
+                        var_type = {
+                            "type": "VariableAccess",
+                            "value": temp.value,
+                            "positions": {"start": temp.start, "end": temp.end},
+                        }
                         var_name = self.eat("Identifier")
                     else:
                         var_name = temp
@@ -912,11 +916,7 @@ class Parser:
                         "is_ref": is_ref,
                         "is_static": is_static,
                         "positions": {
-                            "start": (
-                                var_type["positions"]["start"]
-                                if var_type
-                                else var_name.start
-                            ),
+                            "start": (var_type["positions"]["start"] if var_type else var_name.start),
                             "end": var_name.end,
                         },
                     }
