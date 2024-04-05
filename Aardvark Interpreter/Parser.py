@@ -1385,7 +1385,10 @@ class Parser:
 
     # Statement Switch
     def pSwitchCase(self):
-        starter = self.eat("Keyword", "match")
+        if self.compare("Keyword", "match"):
+            starter = self.eat("Keyword", "match")
+        else:
+            starter = self.eat("Keyword", "switch")
         value = self.pExpression()
         self.eat("Delimiter", "{")
         body = []
@@ -1585,6 +1588,8 @@ class Parser:
             return self.pClassDefinition()
 
         if self.compare("Keyword", "match"):
+            return self.pSwitchCase()
+        if self.compare("Keyword", "switch"):
             return self.pSwitchCase()
 
         if self.compare("Keyword", "break"):
