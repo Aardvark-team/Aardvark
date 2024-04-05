@@ -916,7 +916,11 @@ class Parser:
                         "is_ref": is_ref,
                         "is_static": is_static,
                         "positions": {
-                            "start": (var_type["positions"]["start"] if var_type else var_name.start),
+                            "start": (
+                                var_type["positions"]["start"]
+                                if var_type
+                                else var_name.start
+                            ),
                             "end": var_name.end,
                         },
                     }
@@ -1381,7 +1385,7 @@ class Parser:
 
     # Statement Switch
     def pSwitchCase(self):
-        starter = self.eat("Keyword", "switch")
+        starter = self.eat("Keyword", "match")
         value = self.pExpression()
         self.eat("Delimiter", "{")
         body = []
@@ -1580,7 +1584,7 @@ class Parser:
         if self.compare("Keyword", "class"):
             return self.pClassDefinition()
 
-        if self.compare("Keyword", "switch"):
+        if self.compare("Keyword", "match"):
             return self.pSwitchCase()
 
         if self.compare("Keyword", "break"):
@@ -1604,7 +1608,7 @@ class Parser:
             e = self.eat("Keyword", "case")
             self.err_handler.throw(
                 "Syntax",
-                "Unexpected case statement. Case statements are only valid within switch statements.",
+                "Unexpected case statement. Case statements are only valid within match statements.",
                 {
                     "lineno": e.line,
                     "marker": {"start": e.start["col"] + 1, "length": len(e.value)},

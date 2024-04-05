@@ -300,8 +300,8 @@ class Executor:
                         arg = args[i:]
                 else:
                     arg = self.ExecExpr(param.get("default"), parent)
-                if param["value_type"] != None:
-                    notImplemented(self.errorhandler, "Type Checking", param)
+                # if param["value_type"] != None:
+                #     notImplemented(self.errorhandler, "Type Checking", param)
                 functscope.vars[param["name"]] = arg
             ret = self.Exec(code, functscope)
             if not functscope._returned_value and expr["inline"]:

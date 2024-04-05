@@ -17,6 +17,12 @@ function generate_text(node, original_text) {
         case "NumberLiteral" {
             return String(node.value)
         }
+        case "StringLiteral" {
+            return "\"" + node.value.replace("\n", "\\n") + "\""
+        }
+        case "VariableAccess" {
+            return node.value
+        }
         case $defualt {
             # stdout.write(node, "\n")
             # stdout.write(original_text.slice(node.position.start.index, node.position.end.index+1), "\n")
@@ -33,14 +39,13 @@ function format_test(text) {
 
     parser = Parser.Parser(lexer, null)
     AST = parser.parse()
-    # stdout.write(AST, '\n')
-    generate_text(AST, text)
+    return generate_text(AST, text)
 }
 stdout.write(format_test("
 x=0
 y=1
 stdout.write('Hello World\n')
 function my_function() {
-    return 5
+return 5
 }
-"))
+"), '\n')

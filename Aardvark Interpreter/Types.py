@@ -167,7 +167,6 @@ class Scope(Object):
         self._has_been_broken = False
         self._has_been_continued = False
         self._completed = False
-        # print('Scope is', scope_type)
         self._scope_type = scope_type
         self.returnActions = []
 
@@ -309,7 +308,6 @@ class Number(Type):
         base=10,
         map=String("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"),
     ):
-        # print(value, type(value))
         if type(value) in [str, String]:
             try:
                 value = get_number(value, base, map)
@@ -896,8 +894,3 @@ def adkToPy(adk):
     elif isinstance(adk, Array):
         return adk.value
     # TODO: finish later
-
-
-# print(type(open('main.py')))
-# print(dir(io.TextIOWrapper))
-# File(io.TextIOWrapper)

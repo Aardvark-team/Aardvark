@@ -129,7 +129,7 @@ Keywords = {
     "function",
     "for",
     "while",
-    "switch",
+    "match",
     "case",
     "if",
     "else",  # Blocks

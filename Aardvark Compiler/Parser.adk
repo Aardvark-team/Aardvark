@@ -653,7 +653,7 @@ class Parser as this {
             old = this.pos
             try {
                 x = this.pBlock()
-                stdout.write(x, '\n')
+                # stdout.write(x, '\n')
                 body = x[0]
                 end = x[1]
             } catch {
@@ -667,7 +667,7 @@ class Parser as this {
             end = body.position.end
             inline = true
         }
-        stdout.write(starter.position.start, end)
+        # stdout.write(starter.position.start, end)
         return {
             type: 'FunctionDefinition',
             name: name,

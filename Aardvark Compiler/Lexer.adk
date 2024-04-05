@@ -2,6 +2,8 @@ include TokenTypes, Operators, Keywords, Quotes, Whitespaces, Booleans, Delimite
 include Errors
 
 class Token as this {
+    let String type
+
     $constructor(type, 
             start, 
             end,
@@ -22,11 +24,11 @@ class Token as this {
   $string() {
     return $"Token({this.type}, \"{this.value}\", from {this.start.line}:{this.start.column} to {this.end.line}:{this.end.column})"
   }
-    function compare(type, value, startcol) {
-        if (!type | this.type == type) & (!value | this.value == value) & (!startcol | this.start.column == startcol)
-            return true;
-        return false;
-    }
+  function compare(type, value, startcol) {
+      if (!type | this.type == type) & (!value | this.value == value) & (!startcol | this.start.column == startcol)
+          return true;
+      return false;
+  }
 }
 
 
@@ -102,7 +104,7 @@ class Lexer as this {
   function pos
     {index: this.index, line: this.line, column: this.column}
 
-  function tokenize(data='') {
+  function tokenize(data="") {
     #*
       Takes code and converts it to tokens.
     *#
@@ -113,7 +115,7 @@ class Lexer as this {
     this.output = []
     this.empty = true
     this.AtEnd = false
-    this.curChar = this.data[this.index]
+    this.curChar = this.data.(this.index)
     while this.index < this.data.length {
         # Operators
         for op in Operators {

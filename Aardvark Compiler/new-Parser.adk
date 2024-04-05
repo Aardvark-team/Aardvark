@@ -1,0 +1,244 @@
+from Data include OrderOfOps
+include Token, Lexer from Lexer
+include ErrorHandler from Errors
+
+
+static class Parser as this {
+    let String code
+    let [...String] code_lines
+    let [...Token] tokens
+    let Number pos = 0
+    let [ErrorHandler, null] error_handler
+    let Lexer lexer
+    $constructor(Lexer lexer, error_handler=null) {
+        this.code = lexer.data # The code used by the lexer.
+        this.code_lines = this.code.split("\n")
+        this.tokens = lexer.output # The tokens emitted by the lexer.
+        this.error_handler = error_handler
+        this.lexer = lexer
+    }
+    #* Utility *#
+    # Gets the token `n` after the current token.
+    function peek(n=0)
+        return this.tokens.(this.pos + n) if (self.pos + n < this.tokens.length) else null
+    
+    # Compare the next token with type, value
+    function compare(token_type="any", value=null, n=0) {
+        if this.is_EOF() return false
+        let current_token = this.peek(n)
+        return true if current_token & (token_type == "any" | current_token.type == token_type) & (value == null | value == current_token.value) else false
+    }
+
+    # Advance to the next token.
+    function advance(n=1) this.pos += n
+
+    # Eat all consecutive linebreaks
+    function eat_line_breaks() while this.compare('LineBreak') this.advance()
+
+    # Is at the end of the file
+    function is_EOF() this.pos >= this.tokens.length
+
+    # Throw EOF error
+    function throw_EOF_error(expected_token_type="any", expected_token_value=null) {
+        let current_line = this.code_lines.(-1)
+        
+        # Show the expected token if there is one.
+        let suggestion = expected_token_value?$"<{expected_token_type}>"
+
+        self.error_handler.Throw(
+            "EOF",
+            "Unexpected EOF.",
+            {
+                line_number: this.code_lines.length - 1,
+                did_you_mean: (current_line + suggestion) if expected_token_type != "any" else null
+            }
+        )
+    }
+    # Consume the current token if type and value match, else throw an error
+    function eat(token_type="any", value=null) {
+        # If it matches, eat and return it.
+        if this.compare(token_type, value) {
+            let current_token = this.peek()
+            this.advance()
+            return current_token
+        }
+        
+        # If we're at the end of the file, throw an error.
+        if this.is_EOF()
+            return this.throw_EOF_error(token_type, value);
+
+        # Otherwise, throw an error because it didn't match.
+        self.error_handler.Throw(
+            "Token",
+            $"Token {value?$' of type {token_type}'} expected, but not found.",
+            {
+                line_number: this.peek().position.line
+            }
+        )
+    }
+    
+    # Actually parse it
+    function parse_primary(Boolean require=false) {
+        let current_token = this.peek()
+        let Object ast_node
+        if !current_token | this.is_EOF()
+            return this.EOFError('Value') if require else null;
+        
+        # Template Strings
+        else if this.compare('Operator', '$') & this.peek(1).compare('String', null, 2) {
+            let start = this.eat()
+            let string = this.eat()
+
+            let template_string = string.value
+            let text = ""
+            let index = 0
+            let replacements = []
+            while index < template_string.length {
+                # Handles {{
+                if template_string[index] == "{" & index + 1 < template_string.length & template_string[index + 1] == "{" {
+                    index += 2
+                    text += "{"
+                }
+                # If we hit a {
+                else if template_string[index] == "{" {
+                    index += 1
+                    let starti = index
+                    let inner = ""
+                    let opener_count = 1
+                    
+                    # Loop until the string ends or the { is closed
+                    while index < template_string.length & opener_count != 0 {
+                        if template_string[index] == "{" opener_count += 1
+                        else if template_string[index] == "}" opener_count -= 1
+                        inner += template_string[index]
+                        index += 1
+                    }
+
+                    if opener_count > 0 {
+                        # Throw error, replacement never closed
+                        this.throw_EOF_error('Delimiter', '}')
+                    }
+
+                    if inner == "" {
+                        # Throw error, empty replacement
+                        this.throw_EOF_error('')
+                    }
+                    # Cut off the }
+                    inner = inner.slice(0, -1)
+                    # Tokenize the code inside {}
+                    let inner_toks = this.lexer.tokenize(inner)
+                    # Save current state
+                    let saved_tokens = this.tokens
+                    let saved_pos = this.pos
+                    # Reset State to parse
+                    this.tokens = inner_toks
+                    this.pos = 0
+                    # Parse
+                    inner_ast = this.pExpression()
+                    # Restore State
+                    this.tokens = saved_tokens
+                    this.pos = saved_pos
+
+                    replacements.add({"from": starti, "to": index, "value": inner_ast, "string": inner})
+                }
+                else
+                    text += template_string[index]
+
+                index += 1
+            }
+            ast_node = {
+                type: "TemplateString",
+                position: {start: start.start, end: string.end},
+                value: string.value,
+                replacements: replacements
+            }
+        }
+        else if current_token.type in ["String", "Number", "Boolean"] {
+            this.eat()
+            let value
+            if current_token.type == "String"
+                value = current_token.value
+            else if current_token.type == "Boolean"
+                value = current_token.value == "true"
+            else
+                value = Number(current_token.value)
+            ast_node = {
+                type: current_token.type + 'Literal',
+                position: current_token.position,
+                value: value
+            }
+        }
+        else if this.compare('Delimiter', '{') 
+            ast_node = this.parse_object()
+
+        else if this.compare('Delimiter', '[') 
+            ast_node = this.parse_array()
+        
+        # Variables
+        else if tok.type == "Identifier" {
+            this.eat()
+            if current_token.value == "set" & this.compare("Delimiter", "{")
+                ast_node = this.parse_set();
+            else 
+                ast_node = {
+                    type: 'VariableAccess',
+                    value: tok.value,
+                    position: tok.position
+                }
+        }
+        # Statements surrounded by ()
+        else if this.compare('Delimiter', '(') {
+            this.eat()
+            this.eatLBs()
+            ast_node = this.parse_statement(eatLBs=true)
+            this.eatLBs()
+            this.eat('Delimiter', ')')
+        }
+
+        else if this.compare('Keyword', 'static') {
+            let next_token = this.peek()
+            if next_token.compare('Keyword', 'function')
+                ast_node = this.parse_function_definition()
+            else if next_token.compare('Keyword', 'class')
+                ast_node = this.parse_class_definition()
+            else
+                this.error_handler.Throw('SyntaxError', 'Expected "function" or "class" after "static"')
+        }
+        else if this.compare('Keyword', 'function')
+            ast_node = this.parse_function_definition()
+        
+        else if this.compare('Keyword', 'class')
+            ast_node = this.parse_class_definition()
+
+        else if this.compare('Keyword', 'if')
+            ast_node = this.parse_if_statement()
+        
+        else if this.compare('Keyword', 'while')
+            ast_node = this.parse_while_statement()
+
+        else if this.compare('Keyword', 'for')
+            ast_node = this.parse_for_statement()
+        
+        else if this.compare('Keyword', 'return')
+            ast_node = this.parse_return_statement()
+        
+        else if this.compare('Keyword', 'break')
+            ast_node = this.parse_break_statement()
+        
+        else if this.compare('Keyword', 'continue')
+            ast_node = this.parse_continue_statement()
+        
+        else if this.compare('Keyword', 'match')
+            ast_node = this.parse_match_statement()
+
+        else if this.compare('Keyword', 'defer')
+            ast_node = this.parse_defer_statement()
+        
+
+
+    }
+    function parse_statement(require=false) {
+        this.eatLBs()
+        if this.compare('Keyword')
+    }
+}
