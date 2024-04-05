@@ -21,6 +21,7 @@ from Types import (
     Array,
     File,
     Class,
+    _Undefined,
 )
 import importlib
 
@@ -244,15 +245,13 @@ class Executor:
         self.filestack[file] = executor.Global
         return executor.Global
 
-    def defineVar(
-        self, name, value, scope, is_static=False, expr=None, is_defined=True
-    ):
+    def defineVar(self, name, value, scope, is_static=False, expr=None):
         if name in scope.getAll() and name not in list(scope.vars.keys()):
             self.defineVar(name, value, scope.parent)
         elif (
             name in list(scope.vars.keys())
             and getattr(scope[name], "is_static", False)
-            and getattr(scope[name], "is_defined", True)
+            and type(scope[name]) != _Undefined
         ):
             start = expr["positions"]["start"]
             self.errorhandler.throw(
@@ -272,7 +271,6 @@ class Executor:
             if getattr(scope[name], "is_static", None) == True:
                 is_static = True
             scope[name] = pyToAdk(value)
-            scope[name].is_defined = is_defined
             scope[name].is_static = is_static
 
     def makeFunct(self, expr, parent):
@@ -288,11 +286,11 @@ class Executor:
                 functscope[AS] = x
             for i in range(len(params)):
                 param = params[i]
-                if i > len(args) - 1 and kwargs.get(param["name"], False):
+                if i > len(args) - 1 and param["name"] in kwargs:
                     arg = kwargs[param["name"]]
-                elif kwargs.get(param["name"], False):
+                elif param["name"] in kwargs:
                     raise ValueError(
-                        "Cannot recieve positional argument and keyword argument for the same parameter!!"
+                        "Cannot receive positional argument and keyword argument for the same parameter!!"
                     )
                 elif i < len(args):
                     arg = args[i]
@@ -303,6 +301,7 @@ class Executor:
                 # if param["value_type"] != None:
                 #     notImplemented(self.errorhandler, "Type Checking", param)
                 functscope.vars[param["name"]] = arg
+                functscope.vars[param["name"]].is_static = False  # Should this be True?
             ret = self.Exec(code, functscope)
             if not functscope._returned_value and expr["inline"]:
                 functscope._returned_value = ret
@@ -322,7 +321,7 @@ class Executor:
     ):
         val = scope.get(varname, None)
         success = val != None
-        if not getattr(val, "is_defined", True):
+        if type(val) == _Undefined:
             if success and error:
                 message = 'Uninitialized variable "{name}". Add `?` to render uninitialized variables as null.'
                 line = self.codelines[start["line"] - 1]
@@ -621,7 +620,7 @@ class Executor:
                     value = (
                         self.ExecExpr(assignment["value"], scope)
                         if assignment["value"]
-                        else None
+                        else _Undefined()
                     )
                     self.defineVar(
                         assignment["var_name"],
@@ -629,7 +628,6 @@ class Executor:
                         scope,
                         assignment["is_static"],
                         expr,
-                        is_defined=value != None,
                     )
                 return value
             case {"type": "SwitchStatement"}:

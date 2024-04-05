@@ -26,7 +26,9 @@ static class Parser as this {
     function compare(token_type="any", value=null, n=0) {
         if this.is_EOF() return false
         let current_token = this.peek(n)
-        return true if current_token & (token_type == "any" | current_token.type == token_type) & (value == null | value == current_token.value) else false
+        if current_token & (token_type == "any" | current_token.type == token_type) & (value == null | value == current_token.value)
+            return true
+        else return false
     }
 
     # Advance to the next token.
@@ -107,9 +109,9 @@ static class Parser as this {
                     let opener_count = 1
                     
                     # Loop until the string ends or the { is closed
-                    while index < template_string.length & opener_count != 0 {
-                        if template_string[index] == "{" opener_count += 1
-                        else if template_string[index] == "}" opener_count -= 1
+                    while index < template_string.length & opener_count > 0 {
+                        if template_string[index] == "{" opener_count++
+                        else if template_string[index] == "}" opener_count--
                         inner += template_string[index]
                         index += 1
                     }
@@ -189,9 +191,9 @@ static class Parser as this {
         # Statements surrounded by ()
         else if this.compare('Delimiter', '(') {
             this.eat()
-            this.eatLBs()
-            ast_node = this.parse_statement(eatLBs=true)
-            this.eatLBs()
+            this.eat_line_breaks()
+            ast_node = this.parse_statement(eat_line_breaks=true)
+            this.eat_line_breaks()
             this.eat('Delimiter', ')')
         }
 
@@ -204,41 +206,147 @@ static class Parser as this {
             else
                 this.error_handler.Throw('SyntaxError', 'Expected "function" or "class" after "static"')
         }
-        else if this.compare('Keyword', 'function')
-            ast_node = this.parse_function_definition()
-        
-        else if this.compare('Keyword', 'class')
-            ast_node = this.parse_class_definition()
+        else if this.compare('Keyword') match this.peek().value {
+            case 'function'
+                ast_node = this.parse_function_definition()
+            case 'class'
+                ast_node = this.parse_class_definition()
+            case 'if'
+                ast_node = this.parse_if_statement()
+            case 'while'
+                ast_node = this.parse_while_statement()
+            case 'for'
+                ast_node = this.parse_for_statement()
+            case 'match'
+                ast_node = this.parse_match_statement()
+            case 'await'
+                ast_node = this.parse_await_statement()
+            case 'let'
+                ast_node = this.parse_assignment()
+        }
 
-        else if this.compare('Keyword', 'if')
-            ast_node = this.parse_if_statement()
-        
-        else if this.compare('Keyword', 'while')
-            ast_node = this.parse_while_statement()
-
-        else if this.compare('Keyword', 'for')
-            ast_node = this.parse_for_statement()
-        
-        else if this.compare('Keyword', 'return')
-            ast_node = this.parse_return_statement()
-        
-        else if this.compare('Keyword', 'break')
-            ast_node = this.parse_break_statement()
-        
-        else if this.compare('Keyword', 'continue')
-            ast_node = this.parse_continue_statement()
-        
-        else if this.compare('Keyword', 'match')
-            ast_node = this.parse_match_statement()
-
-        else if this.compare('Keyword', 'defer')
-            ast_node = this.parse_defer_statement()
-        
-
-
+        while ast_node {
+            # side-by-side multiply (i.e. 2x)
+            if this.compare("Identifier") & this.peek().start.column == ast_node.position.end.column + 1 {
+                let token = this.eat()
+                ast_node = {
+                    type: "Multiply",
+                    value: ast_node,
+                    variable: token.value,
+                    position: {
+                        start: ast_node.position.start,
+                        end: token.end
+                    }
+                }
+            }
+            # Function calls
+            if this.compare("Delimiter", '(') & this.peek().start.column == ast_node.position.end.column + 1 {
+                ast_node = this.pFunctionCall(ast_node)
+                continue
+            }
+            # Property access
+            if this.compare('Delimiter', '.') {
+                this.eat()
+                let property_name = this.eat('Identifier')
+                ast_node = {
+                    type: "PropertyAccess",
+                    property: property_name.value,
+                    value: ast_node,
+                    position: {
+                        start: ast_node.position.start,
+                        end: property_name.end
+                    }
+                }
+                continue;
+            }
+            # inline statements. Don't continue because nothing can come after it.
+            if this.compare('Keyword') match this.peek().value {
+                case 'if'
+                    ast_node = this.parse_if_statement(ast_node)
+                case 'while'
+                    ast_node = this.parse_while_statement(ast_node)
+                case 'for'
+                    ast_node = this.parse_for_statement(ast_node)
+            }
+            # Return if none were found
+            return ast_node
+        }
+        if require {
+            this.error_handler.Throw('SyntaxError', 'Expected statement')
+        }
+    }
+    function parse_expresion(level=keys(OrderOfOps).length-1, require=false, exclude=[], eat_line_breaks=false) {
+        let left = this.pPrimary(false) if level < 0 else this.pExpression(level - 1, false, exclude, eat_line_breaks)
+        let right
+        # if the next token is an operator, and the next token != '$' and level in OrderOfOps, and the value of the next token is in the current precedence level and the value of the next token is not in the exclude list.
+        this.eat_line_breaks() if eat_line_breaks;
+        if this.compare('Operator') & this.peek().value != '$' & level in OrderOfOps & this.peek().value in OrderOfOps[level] & !(this.peek().value in exclude) {
+            let operator = this.eat()
+            this.eat_line_breaks() if eat_line_breaks;
+            right = this.pExpression(level, false, eat_line_breaks)
+            if !left and !right {
+                this.error_handler.Throw('SyntaxError', 'Expected expression')
+                # Throw an error because its just an operator all by itself
+            }
+            return {
+                type: 'Operator',
+                left: left,
+                right: right,
+                operator: operator.value,
+                position: {
+                    start: left.position.start if left else op.start,
+                    end: right.position.end if right else op.end
+                }
+            }
+        }
+        if !left & require
+            left = (this.pPrimary(require)) if level < 0 else (this.pExpression(level - 1, require, exclude, eat_line_breaks));
+        return left
     }
     function parse_statement(require=false) {
-        this.eatLBs()
-        if this.compare('Keyword')
+        this.eat_line_breaks()
+        if this.compare('Keyword') match this.peek().value {
+            case 'return'
+                return this.parse_return_statement()
+            case 'break'
+                return this.parse_break_statement()
+            case 'continue'
+                return this.parse_continue_statement()
+            case 'defer'
+                return this.parse_defer_statement()
+            case 'yield'
+                return this.parse_yield_statement()
+            case 'include'
+                return this.parse_include_statement()
+        }
+        return this.parse_expresion(require=require)
     }
+    function parse_program() {
+        statements = []
+        while !this.is_EOF() {
+            if statements.length > 0 & this.peek(-1).type != 'LineBreak' this.eat('LineBreak')
+            this.eat_line_breaks()
+            if this.is_EOF() break;
+            statements.add(this.parse_statement(true))
+        }
+        return {
+            type: "Program",
+            body: statements,
+            position: {
+                start: 0 if statements.length == 0 else statements[0].position.start,
+                end: 0 if statements.length == 0 else statements[-1].position.end
+            }
+        }
+    }
+    function parse this.parse_program()
 }
+function test() {
+    let code = "let x = 5"
+    let error_handler = ErrorHandler(code, '<main>')
+    let lexer = Lexer(false, false, error_handler)
+    let tokens = lexer.tokenize(code)
+    let parser = Parser(lexer, error_handler)
+    let AST = parser.parse()
+    stdout.write(AST, '\n')
+}
+test()

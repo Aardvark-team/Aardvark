@@ -1,5 +1,5 @@
-ESC = ""
-rs = {all: ESC + "[0m"}
+let ESC = ""
+let rs = {all: ESC + "[0m"}
 
 function fg(r, g, b) {
     return $"{ESC}[38;2;{r};{g};{b}m"
@@ -9,7 +9,7 @@ function bg(r, g, b) {
     return $"{ESC}[48;2;{r};{g};{b}m"
 }
 
-ef = {
+let ef = {
     bold: ESC + "[1m",
     underline: ESC + "[4m",
     italic: ESC + "[3m",
@@ -18,12 +18,12 @@ ef = {
     hidden: ESC + "[8m",
     dim: ESC + "[2m",
     fast_blink: ESC + "[6m",
-    invert: ESC + "[7m"
+    invert: ESC + "[7m",
+    rs: rs.all
 }
 fg.rs = $"{ESC}[39m"
 bg.rs = $"{ESC}[49m"
-ef.rs = rs.all
-clear = ESC + "[2J"
+let clear = ESC + "[2J"
 
 # TODO: Add cursor control, clear screen
 # https://chat.openai.com/share/4cb9d592-2b7e-4d47-b75d-90f798c025b5

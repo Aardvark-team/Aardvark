@@ -3,7 +3,12 @@ include Errors
 
 class Token as this {
     let String type
-
+    let Number length
+    let Object start
+    let Object end
+    let String value
+    let String variation
+    let Object position
     $constructor(type, 
             start, 
             end,
@@ -33,6 +38,19 @@ class Token as this {
 
 
 class Lexer as this {
+  let Boolean useIndents
+  let Boolean tokenizeComments
+  let String data
+  let Number index
+  let Number line
+  let Number column
+  let [...Token] output
+  let Boolean empty
+  let Boolean AtEnd
+  let String curChar
+  let errorHandler # (null | ErrorHandler)
+  let Boolean raw
+
   $constructor(useIndents = false, tokenizeComments = false, errorHandler=null, raw=false) {
     this.useIndents = useIndents
     this.tokenizeComments = tokenizeComments
@@ -68,8 +86,8 @@ class Lexer as this {
   function isNumber(char)
     (char ? this.curChar) in '0123456789'
 
-  function addToken(type, start, end, value, variation)
-    this.output.add(Token(type, start, end, value, variation))
+  function addToken(type, start, end, value, variety)
+    this.output.add(Token(type, start, end, value, variety))
 
   function otherwise(char) {
     char = char ? this.curChar
@@ -159,12 +177,12 @@ class Lexer as this {
 
       #Numbers
       else if this.isNumber() {
-        start = this.pos()
-        base = 10
-        value = ''
-        seen_dot = false
-        seen_underscore = false
-        characters = BaseNumsOrder.slice(0, base)
+        let start = this.pos()
+        let base = 10
+        let value = ''
+        let seen_dot = false
+        let seen_underscore = false
+        let characters = BaseNumsOrder.slice(0, base)
         while (characters.contains(this.curChar) | '._'.contains(this.curChar)) & !this.AtEnd {
           if seen_dot & this.curChar == '.'
             this.throwError('SyntaxError', 'A Number may not have two decimal points!', {

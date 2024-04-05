@@ -5,7 +5,7 @@ include Parser from Parser
 include Errors
 include Validator
 stdout.write('Loaded.\n')
-testStr1 = `
+let testStr1 = `
 y = 2
 x = 54.78y
 stdout.write("Hello World\\"test", '\n')
@@ -20,32 +20,32 @@ function x() {
 }
 `
 # First line
-testStr2 = `stdout.write($"string{hello}\n")`
-testStr3 = `16_fff`
-error_test = 'stdout.write(5 * 32, \'\\n\') # Comment\nstdout.writeLines(12_12_23)
+let testStr2 = `stdout.write($"string{hello}\n")`
+let testStr3 = `16_fff`
+let error_test = 'stdout.write(5 * 32, \'\\n\') # Comment\nstdout.writeLines(12_12_23)
 while 5 < 4 stdout.write("bye\\n")
 # Last line here.'
 
-code = testStr1
+let code = testStr1
 
 stdout.write('Lexing....\n')
 
-errorHandler = Errors.ErrorHandler(code, '<main>')
-lexer = Lexer(false, false, errorHandler)
-toks = lexer.tokenize(code)
+let errorHandler = Errors.ErrorHandler(code, '<main>')
+let lexer = Lexer(false, false, errorHandler)
+let toks = lexer.tokenize(code)
 
 # stdout.write(tok, '\n') for tok in toks
 
 # stdout.write(prettify(toks), '\n')
 stdout.write('Parsing...\n')
 
-parser = Parser(lexer, errorHandler)
-data = parser.parse()
+let parser = Parser(lexer, errorHandler)
+let data = parser.parse()
 
 
-open('out.txt', 'w').write(String(data))
+# open('out.txt', 'w').write(String(data))
 stdout.write(data, '\n')
 
-validator = Validator.Validator(errorHandler)
+let validator = Validator.Validator(errorHandler)
 validator.validate(data)
 # stdout.write(prettify(data), '\n')

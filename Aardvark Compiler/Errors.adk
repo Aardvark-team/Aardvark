@@ -1,12 +1,7 @@
 include Lexer
-include ansi
+from ansi include fg, bg, ef, rs
 
-fg = ansi.fg
-bg = ansi.bg
-ef = ansi.ef
-rs = ansi.rs
-
-styles = {
+let styles = {
     "String": rs.all + fg(152, 195, 121),
     "Function": rs.all + fg(97, 175, 239),
     "Number": rs.all + fg(229, 192, 123),
@@ -26,14 +21,14 @@ function genLine(linenum, digits)
 
 
 function Highlight(code, opts={}) {
-    lexer = Lexer.Lexer(false, true, null, true)
-    tokens = lexer.tokenize(code)
-    line = opts.startline?1
-    output = (styles.background if opts.background? else "") + styles.default
+    let lexer = Lexer.Lexer(false, true, null, true)
+    let tokens = lexer.tokenize(code)
+    let line = opts.startline?1
+    let output = (styles.background if opts.background? else "") + styles.default
     if opts.linenums?true
         output += genLine(line, opts.leftpadding?4)
-    toknum = 0
-    last = 0
+    let toknum = 0
+    let last = 0
     for token in tokens {
         if token.start.index > last + 1
             output += styles.default + code.slice(last+1, token.start.index)

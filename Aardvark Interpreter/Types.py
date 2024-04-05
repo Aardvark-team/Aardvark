@@ -250,7 +250,15 @@ class Scope(Object):
         pass
 
 
-class __Null(Type):
+class _Undefined(Type):
+    def __repr__(self):
+        return "null"
+
+    def __str__(self):
+        return "null"
+
+
+class _Null(Type):
     def __repr__(self):
         return "null"
 
@@ -262,6 +270,15 @@ class __Null(Type):
 
     def __call__(self):
         return self
+
+    def __eq__(self, other):
+        return type(other) == _Null
+
+    def __ne__(self, other):
+        return type(other) != _Null
+
+    def __setattr__(self, name: str, value):
+        return super().__setattr__(name, value)
 
 
 class String(str, Type):
@@ -809,13 +826,13 @@ class Error(Type):
 
 
 # TODO: Add: Stream, Bitarray
-Null = __Null()
+Null = _Null()
 
 Types = [
     Object,
     Scope,
     Type,
-    __Null,
+    _Null,
     Number,
     String,
     Function,
@@ -825,6 +842,7 @@ Types = [
     File,
     Class,
     Error,
+    _Undefined,
 ]
 
 
