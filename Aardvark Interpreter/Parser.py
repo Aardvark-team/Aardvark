@@ -274,12 +274,16 @@ class Parser:
                     starti = ind
                     inner = ""
                     ind += 1
+                    opener_count = 1
 
-                    while ind < len(templ_val) and templ_val[ind] != "}":
+                    while ind < len(templ_val) and opener_count > 0:
+                        if templ_val[ind] == "{":
+                            opener_count += 1
+                        elif templ_val[ind] == "}":
+                            opener_count -= 1
                         inner += templ_val[ind]
                         ind += 1
-
-                    if ind == len(templ_val):
+                    if opener_count > 0:
                         self.err_handler.throw(
                             "Syntax",
                             f"Template string never closed.",
