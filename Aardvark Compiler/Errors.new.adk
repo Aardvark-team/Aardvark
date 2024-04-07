@@ -1,0 +1,120 @@
+function min(array) {
+    min = array.(0)
+
+    for item in array {
+        if item < min {
+            min = item
+        }
+    }
+
+    return min
+}
+
+function max(array) {
+    max = array.(0)
+
+    for item in array {
+        if item > max {
+            max = item
+        }
+    }
+
+    return max
+}
+
+function padstr(string, length, char = " ") {
+    string = String(string)
+
+    if string.length >= length {
+        return string
+    }
+    return (char * (length - string.length)) + string
+}
+
+function format(source, message, error_type, filename, location, markers) {
+    let min_line = min(markers.map(function(item) item.line))
+    let max_line = max(markers.map(function(item) item.line))
+    let max_length = String(max_line).length + 1
+    let lines = source.split("\n")
+    let formatted = ""
+
+    formatted += $"{' ' * max_length}──> {error_type} in {filename}:{location.line+1}:{location.col+1}\n"
+
+    for line in range(min_line, max_line + 1) {
+        let matching_markers = markers.filter(function(marker) marker.line == line)
+
+        if matching_markers.length == 0 {
+            continue
+        }
+        
+        formatted += $"{' ' * max_length} │\n"
+        formatted += $"{padstr(line + 1, max_length)} │ {lines[line]}\n"
+        
+        for offset in range(0, matching_markers.length + 1) {
+            if offset == 0 {
+                let out = ""
+
+                for marker in matching_markers {
+                    out += " " * (marker.col - out.length)
+                    out += "-" * (marker.length - 1)
+                    out += "┬"
+                }
+
+                formatted += $"{' ' * max_length} │ {out}\n"
+                continue
+            }
+
+            let current_marker = matching_markers.length - offset
+            let out = ""
+
+            for marker_index in range(0, matching_markers.length) {
+                let marker = matching_markers.(marker_index)
+
+                out += " " * (marker.col - out.length)
+                out += " " * (marker.length - 1)
+
+                if marker_index > current_marker {
+                    out += " "
+                } else if current_marker == marker_index {
+                    out += "╰── " + marker.message
+                } else {
+                    out += "│"
+                }
+            }
+
+            formatted += $"{' ' * max_length} . {out}\n"
+        }
+    }
+
+    formatted += $"{' ' * max_length} │\n"
+    formatted += $"{' ' * max_length}──> {message}\n"
+
+    return formatted
+}
+
+stdout.write(format("Hello,
+
+
+World", "Invalid sentence.", "SyntaxError", "<main>", {
+    line: 0,
+    col: 0
+}, [
+    {
+        line: 0,
+        col: 0,
+        length: 1,
+        message: "Consider using a lowercase h"
+    },
+    {
+        line: 0,
+        col: 6,
+        length: 1,
+        message: "Remove this newline"
+    },
+    {
+        line: 3,
+        col: 0,
+        length: 5,
+        message: "Dunno"
+    }
+]))
