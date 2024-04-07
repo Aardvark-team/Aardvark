@@ -257,6 +257,9 @@ class _Undefined(Type):
     def __str__(self):
         return "null"
 
+    def __bool__(self):
+        return False
+
 
 class _Null(Type):
     def __repr__(self):
@@ -554,6 +557,7 @@ class Array(Type, list):
             "reduce": self._reduce,
             "slice": lambda start, end, step=1: Array(self.value[start:end:step]),
             "sort": self._sort,
+            "copy": lambda: Array(self.value.copy()),
             # methods and attributes here
         }
 
@@ -561,7 +565,7 @@ class Array(Type, list):
         self._remove(other)
 
     def __str__(self):
-        return f"[{', '.join([str(val) for val in self.value])}]"
+        return f"[{', '.join([str(val) if type(val) != str else f'"{val}"' for val in self.value])}]"
 
     def __repr__(self):
         return str(self)

@@ -703,17 +703,23 @@ class Parser:
             self.eatLBs()
 
             name = None
+            name_pos = None
 
             if self.compare("Operator", "..."):
                 self.eat("Operator")
                 obj[("...",)] = ("...", self.pExpression(eatLBs=True))
                 continue
-            elif self.compare("Identifier"):
-                name = self.eat("Identifier").value
+            elif self.compare("Identifier") or self.compare("String"):
+                if self.compare("String"):
+                    tok = self.eat("String")
+                else:
+                    tok = self.eat("Identifier")
+                name = tok.value
+                name_pos = tok
             elif self.compare("Number"):
-                name = float(self.eat("Number").value)
-            elif self.compare("String"):
-                name = self.eat("String").value
+                tok = self.eat("Number")
+                name = float(tok.value)
+                name_pos = tok
             elif no_error:
                 return False
             else:
@@ -740,7 +746,11 @@ class Parser:
                 value = self.pStatement(eatLBs=True)
                 self.eatLBs()
             else:
-                value = name
+                value = {
+                    "type": "VariableAccess",
+                    "value": name,
+                    "positions": {"start": name_pos.start, "end": name_pos.end},
+                }
             obj[name] = value
         if self.compare("Delimiter", ","):
             self.eat("Delimiter")

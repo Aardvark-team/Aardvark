@@ -116,7 +116,8 @@ let Keywords = set{
     'let', # Statements
     'as',
     'from', # other
-    'defer'
+    'defer',
+    "layout"
 }
 let BaseNumsOrder = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVQXYZ"
 let Quotes = set{'"', "'", "`"}

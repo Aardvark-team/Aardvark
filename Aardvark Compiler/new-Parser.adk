@@ -20,7 +20,7 @@ static class Parser as this {
     #* Utility *#
     # Gets the token `n` after the current token.
     function peek(n=0)
-        return this.tokens.(this.pos + n) if (self.pos + n < this.tokens.length) else null
+        return this.tokens.(this.pos + n) if (this.pos + n < this.tokens.length) else null
     
     # Compare the next token with type, value
     function compare(token_type="any", value=null, n=0) {
@@ -33,6 +33,25 @@ static class Parser as this {
 
     # Advance to the next token.
     function advance(n=1) this.pos += n
+
+    # Helper function for error throwing.
+    function Throw(type, message, options={}, note="", kill=true, position=null) {
+        if !(options.underline? | options.marker?) {
+            options.underline = {
+                start: position.start.column + 1,
+                end: position.end.column + 1
+            }
+            options.marker = {
+                start: position.start.column + 1,
+                length: 1 + position.end.column - position.start.column
+            }
+        }
+        if !(options.lineno? | options.line_number? | options.linestart?) {
+            options.line_number = position.start.line
+        }
+        this.error_handler.Throw(type, message, options, note, kill)
+    }
+
 
     # Eat all consecutive linebreaks
     function eat_line_breaks() while this.compare('LineBreak') this.advance()
@@ -47,7 +66,7 @@ static class Parser as this {
         # Show the expected token if there is one.
         let suggestion = expected_token_value?$"<{expected_token_type}>"
 
-        self.error_handler.Throw(
+        this.error_handler.Throw(
             "EOF",
             "Unexpected EOF.",
             {
@@ -70,7 +89,7 @@ static class Parser as this {
             return this.throw_EOF_error(token_type, value);
 
         # Otherwise, throw an error because it didn't match.
-        self.error_handler.Throw(
+        this.error_handler.Throw(
             "Token",
             $"Token {value?$' of type {token_type}'} expected, but not found.",
             {
@@ -97,23 +116,24 @@ static class Parser as this {
             let replacements = []
             while index < template_string.length {
                 # Handles {{
-                if template_string[index] == "{" & index + 1 < template_string.length & template_string[index + 1] == "{" {
+                if template_string.(index) == "{" & index + 1 < template_string.length & template_string.(index + 1) == "{" {
                     index += 2
                     text += "{"
                 }
                 # If we hit a {
-                else if template_string[index] == "{" {
-                    index += 1
-                    let starti = index
+                else if template_string.(index) == "{" {
+                    index++
+                    let start_index = index
                     let inner = ""
                     let opener_count = 1
                     
                     # Loop until the string ends or the { is closed
                     while index < template_string.length & opener_count > 0 {
-                        if template_string[index] == "{" opener_count++
-                        else if template_string[index] == "}" opener_count--
-                        inner += template_string[index]
-                        index += 1
+                        if template_string.(index) == "{" opener_count++
+                        else if template_string.(index) == "}" opener_count--
+                        if opener_count == 0 break
+                        inner += template_string.(index)
+                        index++
                     }
 
                     if opener_count > 0 {
@@ -128,12 +148,12 @@ static class Parser as this {
                     # Cut off the }
                     inner = inner.slice(0, -1)
                     # Tokenize the code inside {}
-                    let inner_toks = this.lexer.tokenize(inner)
+                    let inner_tokens = this.lexer.tokenize(inner)
                     # Save current state
                     let saved_tokens = this.tokens
                     let saved_pos = this.pos
                     # Reset State to parse
-                    this.tokens = inner_toks
+                    this.tokens = inner_tokens
                     this.pos = 0
                     # Parse
                     inner_ast = this.pExpression()
@@ -141,12 +161,12 @@ static class Parser as this {
                     this.tokens = saved_tokens
                     this.pos = saved_pos
 
-                    replacements.add({"from": starti, "to": index, "value": inner_ast, "string": inner})
+                    replacements.add({"from": start_index, "to": index, "value": inner_ast, "string": inner})
                 }
                 else
-                    text += template_string[index]
+                    text += template_string.(index)
 
-                index += 1
+                index++
             }
             ast_node = {
                 type: "TemplateString",
@@ -177,15 +197,15 @@ static class Parser as this {
             ast_node = this.parse_array()
         
         # Variables
-        else if tok.type == "Identifier" {
+        else if current_token.type == "Identifier" {
             this.eat()
             if current_token.value == "set" & this.compare("Delimiter", "{")
                 ast_node = this.parse_set();
             else 
                 ast_node = {
                     type: 'VariableAccess',
-                    value: tok.value,
-                    position: tok.position
+                    value: current_token.value,
+                    position: current_token.position
                 }
         }
         # Statements surrounded by ()
@@ -204,7 +224,7 @@ static class Parser as this {
             else if next_token.compare('Keyword', 'class')
                 ast_node = this.parse_class_definition()
             else
-                this.error_handler.Throw('SyntaxError', 'Expected "function" or "class" after "static"')
+                this.Throw('SyntaxError', 'Expected "function" or "class" after "static"', position=next_token.position)
         }
         else if this.compare('Keyword') match this.peek().value {
             case 'function'
@@ -223,9 +243,11 @@ static class Parser as this {
                 ast_node = this.parse_await_statement()
             case 'let'
                 ast_node = this.parse_assignment()
+            case 'layout'
+                ast_node = this.parse_layout()
         }
 
-        while ast_node {
+        while ast_node?false {
             # side-by-side multiply (i.e. 2x)
             if this.compare("Identifier") & this.peek().start.column == ast_node.position.end.column + 1 {
                 let token = this.eat()
@@ -272,20 +294,19 @@ static class Parser as this {
             return ast_node
         }
         if require {
-            this.error_handler.Throw('SyntaxError', 'Expected statement')
+            this.Throw('SyntaxError', 'Expected expression or statement', position=this.peek().position)
         }
     }
-    function parse_expresion(level=keys(OrderOfOps).length-1, require=false, exclude=[], eat_line_breaks=false) {
-        let left = this.pPrimary(false) if level < 0 else this.pExpression(level - 1, false, exclude, eat_line_breaks)
-        let right
+    function parse_expression(level=keys(OrderOfOps).length-1, require=false, exclude=[], eat_line_breaks=false) {
+        let left = this.parse_primary(false) if level < 0 else this.parse_expression(level - 1, false, exclude, eat_line_breaks)
         # if the next token is an operator, and the next token != '$' and level in OrderOfOps, and the value of the next token is in the current precedence level and the value of the next token is not in the exclude list.
         this.eat_line_breaks() if eat_line_breaks;
-        if this.compare('Operator') & this.peek().value != '$' & level in OrderOfOps & this.peek().value in OrderOfOps[level] & !(this.peek().value in exclude) {
+        if this.compare('Operator') & this.peek().value != '$' & level in OrderOfOps & this.peek().value in OrderOfOps.(level) & !(this.peek().value in exclude) {
             let operator = this.eat()
             this.eat_line_breaks() if eat_line_breaks;
-            right = this.pExpression(level, false, eat_line_breaks)
+            let right = this.parse_expression(level, false, eat_line_breaks)
             if !left and !right {
-                this.error_handler.Throw('SyntaxError', 'Expected expression')
+                this.Throw('SyntaxError', "🤨 That's just an operator with nothing for it to operator on.", position=operator.position)
                 # Throw an error because its just an operator all by itself
             }
             return {
@@ -300,7 +321,7 @@ static class Parser as this {
             }
         }
         if !left & require
-            left = (this.pPrimary(require)) if level < 0 else (this.pExpression(level - 1, require, exclude, eat_line_breaks));
+            left = (this.parse_primary(require)) if level < 0 else (this.parse_expression(level - 1, require, exclude, eat_line_breaks));
         return left
     }
     function parse_statement(require=false) {
@@ -319,7 +340,7 @@ static class Parser as this {
             case 'include'
                 return this.parse_include_statement()
         }
-        return this.parse_expresion(require=require)
+        return this.parse_expression(require=require)
     }
     function parse_program() {
         statements = []
@@ -333,15 +354,164 @@ static class Parser as this {
             type: "Program",
             body: statements,
             position: {
-                start: 0 if statements.length == 0 else statements[0].position.start,
-                end: 0 if statements.length == 0 else statements[-1].position.end
+                start: 0 if statements.length == 0 else statements.0.position.start,
+                end: 0 if statements.length == 0 else statements.(-1).position.end
             }
         }
     }
     function parse this.parse_program()
+    function parse_function_call(ast_node) {
+
+    }
+    function parse_object() {
+        let opening_curly_brace = this.eat("Delimiter", "{")
+        let pairs = []
+        let expansions = []
+        # While there is no }
+        while (this.peek() & !this.compare("Delimiter", "}") & !this.compare("Delimiter", ",") & this.peek(1).value == "}") {
+            this.eat_line_breaks()
+            if pairs.length > 0 this.eat("Delimiter", ",")
+            this.eat_line_breaks()
+
+            # Expansion with ...
+            if this.compare("Operator", "...") {
+                this.eat()
+                expansions.add(require=true)
+            } else {
+                let keys
+                let key_position
+                if this.compare("Identifier") | this.compare("String") {
+                    let token = this.eat()
+                    key = token.value
+                    key_position = token.position
+                } else if this.compare("Number") {
+                    let token = this.eat()
+                    key = Number(token.value)
+                    key_position = token.position
+                } else {
+                    # If it wasn't an identifier, string, or number, it isn't valid
+                    this.Throw("SyntaxError", "Expected key", position=this.peek().position)
+                }
+                this.eat_line_breaks()
+                let value
+                # There is a :, then the value is on the other side
+                if this.compare("Operator", ":") {
+                    this.eat()
+                    this.eat_line_breaks()
+                    value = this.parse_expression(require=true)
+                } else # Otherwise, the value is a variable access to the key value
+                    value = {
+                        type: "VariableAccess",
+                        value: key,
+                        position: key_position
+                    }
+                pairs.add({
+                    type: "KeyValuePair",
+                    key,
+                    value,
+                    position: {
+                        start: key_position.start,
+                        end: value.position.end
+                    }
+                })
+            }
+        }
+        if this.compare("Delimiter", ",")
+            this.eat()
+        let closing_curly_brace = this.eat("Delimiter", "}")
+        return {
+            type: "Object",
+            pairs,
+            expansions,
+            position: {
+                start: opening_curly_brace.position.start,
+                end: closing_curly_brace.position.end
+            }
+        }
+    }
+    function parse_layout_type() {
+        let layout_keyword = this.eat("Keyword", `layout`)
+        this.eat("Delimiter", `(`)
+        let type = this.parse_expression(require=true)
+        this.eat("Delimiter", `)`)
+        this.eat_line_breaks()
+        let layout = this.parse_object()
+        return {
+            type: "LayoutType",
+            layout_type: type,
+            layout,
+            position: {
+                start: layout_keyword.position.start,
+                end: layout.position.end
+            }
+        }
+    }
+    function parse_typed_variable() {
+        #* Valid forms:
+        Number x
+        x y
+        layout(Number) {} x
+        String this.y
+        x
+        y
+        this.y
+        a.b c.d
+        *#
+        # This may be the type or the variable, we don't know until we know IF there is a second expression.
+        let first = this.parse_primary(require=true)
+        if !["VariableAccess", "PropertyAccess", "LayoutType", "Array"].contains(first.type) {
+            this.Throw("SyntaxError", "Invalid syntax. Expected type or variable.", position=first.position)
+        }
+
+        let second = this.parse_primary(require=false)
+        if second & !["VariableAccess", "PropertyAccess"].contains(second.type) {
+            this.Throw("SyntaxError", "Invalid syntax. Expected variable.", position=second.position)
+        }
+        return {
+            type: "TypedVariable",
+            given_type: first if second else null,
+            variable: second?first,
+            position: {
+                start: first.position.start,
+                end: second.position.end if second else first.position.end
+            }
+        }
+
+
+    }
+    function parse_assignment() {
+        let let_keyword = this.eat("Keyword", "let")
+        assignments = []
+        while true {
+            if assignments.length > 0
+                this.eat("Delimiter", ",")
+            let variable = this.parse_typed_variable()
+            this.eat("Operator", "=")
+            let value = this.parse_expression(require=false)
+            assignments.add({
+                type: "Assignment",
+                given_type: variable.given_type,
+                variable: variable.variable,
+                value,
+                position: {
+                    start: variable.position.start,
+                    end: value.position.end
+                }
+            })
+            if !this.compare("Delimiter", ",") break
+        }
+        return {
+            type: "Assignment",
+            assignments,
+            position: {
+                start: let_keyword.position.start,
+                end: assignments.(-1).position.end
+            }
+        }
+    }
 }
 function test() {
-    let code = "let x = 5"
+    let code = "let +"
     let error_handler = ErrorHandler(code, '<main>')
     let lexer = Lexer(false, false, error_handler)
     let tokens = lexer.tokenize(code)

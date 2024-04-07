@@ -86,7 +86,7 @@ function printError(type, pos, msg, didyoumean, traceback, code, color=fg(255, 3
     marker_symbol = '^'
     underline_symbol = "―"
     space_symbol = ' '
-    underline = (underline_start - 2) * space_symbol + underline_symbol * (underline_end - underline_start + 1)
+    underline = (underline_start - 2) * space_symbol + underline_symbol * (1 + underline_end - underline_start)
     marker = (marker_pos - 2) * space_symbol + marker_symbol * marker_length
     underline_str = ""
     i = 0
@@ -151,7 +151,7 @@ class ErrorHandler as this {
         # upercase throw to not conflict with throw keyword
         if this.silenced return
         options.filename = this.filename
-        options.lineno = options.lineno?options.line_number
+        options.lineno = options.lineno?options.line_number?
         options.linestart = options.linestart?(options.lineno?1 - (1 if options.lineno?1 > 1 else 0))
         options.lineend = options.lineend?(options.lineno?1 + 2)
         printError(

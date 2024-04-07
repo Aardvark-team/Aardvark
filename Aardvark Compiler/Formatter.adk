@@ -3,7 +3,7 @@ include Errors
 include Parser
 
 function generate_text(node, original_text) {
-    switch node.type {
+    match node.type {
         case "Program" {
             text = ""
             for node in node.body {

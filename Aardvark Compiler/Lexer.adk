@@ -184,7 +184,7 @@ class Lexer as this {
         let seen_underscore = false
         let characters = BaseNumsOrder.slice(0, base)
         while (characters.contains(this.curChar) | '._'.contains(this.curChar)) & !this.AtEnd {
-          if seen_dot & this.curChar == '.'
+          if seen_dot & this.curChar == '.' & this.peek() in characters
             this.throwError('SyntaxError', 'A Number may not have two decimal points!', {
               lineno: this.pos().line,
               marker: {start: this.pos().column, length: 1},
@@ -208,6 +208,10 @@ class Lexer as this {
           }
           value = value + this.curChar
           this.advance()
+        }
+        if value.(-1) == "." {
+          value = value.slice(0, -1)
+          this.advance(-1)
         }
         this.advance(-1)
         this.addToken('Number', start, this.pos(), value, base)
