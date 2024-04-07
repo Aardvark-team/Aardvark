@@ -262,6 +262,7 @@ class Parser:
             replacements = []
             text = ""
             ind = 0
+            print(templ_val)
             while ind < len(templ_val):
                 if (
                     templ_val[ind] == "{"
@@ -281,6 +282,8 @@ class Parser:
                             opener_count += 1
                         elif templ_val[ind] == "}":
                             opener_count -= 1
+                        if opener_count == 0:
+                            break
                         inner += templ_val[ind]
                         ind += 1
                     if opener_count > 0:
@@ -329,8 +332,9 @@ class Parser:
                     self.err_handler.codelines = [inner]
                     self.tokens = inner_toks
                     self.pos = 0
-
+                    print(inner_toks)
                     inner_ast = self.pExpression(require=True)
+                    print(inner_ast)
 
                     shift_ast_columns(inner_ast, templ.start["col"] + ind)
 
@@ -707,8 +711,8 @@ class Parser:
                 self.eat("Operator")
                 obj[("...",)] = ("...", self.pExpression(eatLBs=True))
                 continue
-            elif self.compare(TokenTypes["Identifier"]):
-                name = self.eat(TokenTypes["Identifier"]).value
+            elif self.compare("Identifier"):
+                name = self.eat("Identifier").value
             elif self.compare("Number"):
                 name = float(self.eat("Number").value)
             elif self.compare("String"):

@@ -235,28 +235,9 @@ class Lexer:
                     value += self.curChar
                     self.advance()
                 self.advance(-1)
-                if value[-1] == "." and self.errorhandler:
-                    if self.strict:
-                        didyoumean = (
-                            self.data.split("\n")[self.line - 1][
-                                : self.column - len(value)
-                            ]
-                            + value[:-1]
-                            + self.data.split("\n")[self.line - 1][self.column :]
-                        )
-                        self.errorhandler.throw(
-                            "Syntax",
-                            "Numbers cannot end with a .",
-                            {
-                                "lineno": self.line,
-                                "marker": {"start": self.column, "length": 1},
-                                "underline": {
-                                    "start": self.column - len(value),
-                                    "end": self.column + 1,
-                                },
-                                "did_you_mean": didyoumean,
-                            },
-                        )
+                if value[-1] == ".":
+                    value = value[:-1]
+                    self.advance(-1)
                 self.addToken(
                     "Number",
                     start,

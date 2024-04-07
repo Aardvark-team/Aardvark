@@ -317,7 +317,7 @@ class Executor:
         varname,
         start=None,
         error=True,
-        message='Undefined variable "{name}"',
+        message='Undefined variable "{name}".',
     ):
         val = scope.get(varname, None)
         success = val != None
