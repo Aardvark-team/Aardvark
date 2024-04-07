@@ -246,7 +246,7 @@ add_to_bash_profile() {
     for file in "${profile_files[@]}"; do
     profile_path="$HOME/$file"
     if [[ -f "$profile_path" ]]; then
-        printf $1 >> "$profile_path"
+        printf "$1" >> "$profile_path"
         info "Added to $profile_path"
         file_found=1
     fi
@@ -256,7 +256,7 @@ add_to_bash_profile() {
     if [[ $file_found -eq 0 ]]; then
         add_line_based_on_version "$shell_version" "$config_file" "$1"
         profile_path="$HOME/.bash_profile"
-        printf $1 >> "$profile_path"
+        printf "$1" >> "$profile_path"
         info "No existing profile file found. Created and added line to $profile_path"
     fi
 }
