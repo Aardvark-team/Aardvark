@@ -262,7 +262,6 @@ class Parser:
             replacements = []
             text = ""
             ind = 0
-            print(templ_val)
             while ind < len(templ_val):
                 if (
                     templ_val[ind] == "{"
@@ -332,9 +331,7 @@ class Parser:
                     self.err_handler.codelines = [inner]
                     self.tokens = inner_toks
                     self.pos = 0
-                    print(inner_toks)
                     inner_ast = self.pExpression(require=True)
-                    print(inner_ast)
 
                     shift_ast_columns(inner_ast, templ.start["col"] + ind)
 
