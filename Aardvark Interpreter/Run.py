@@ -108,7 +108,7 @@ def run(text, file="<main>", printToks=False, printAST=False, Global=None, safe=
 
 
 def runFile(file, *args, **kwargs):
-    with open(file) as f:
+    with open(file, encoding="utf-8") as f:
         text = f.read()
         return run(text, file, *args, **kwargs)
 
