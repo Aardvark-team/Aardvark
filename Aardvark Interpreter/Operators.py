@@ -5,7 +5,6 @@ import math
 import sys
 
 Operators = {}
-# stdout.write(+ 1)
 
 
 def missingOperand(left, errorhandler, line, ast, placeholder):
@@ -70,16 +69,26 @@ def unexpectedOperand(left, errorhandler, line, ast):
     )
 
 
-def operator(*names):
+class Operator:
+    def __init__(self, handler, left, right):
+        self.handler = handler
+        self.left = left
+        self.right = right
+
+    def __call__(self, *args, **kwargs):
+        return self.handler(*args, **kwargs)
+
+
+def operator(*names, left=None, right=None):
     def decor(funct):
         for name in names:
-            Operators[name] = funct
+            Operators[name] = Operator(funct, left, right)
         return funct
 
     return decor
 
 
-@operator("+")
+@operator("+", left=True, right=True)
 def add(x, y, errorhandler, line, ast, scope, exec):
     # print("OP", x, '+', y)
     if x == Null:
@@ -94,7 +103,7 @@ def add(x, y, errorhandler, line, ast, scope, exec):
     return x + y
 
 
-@operator("-")
+@operator("-", left=None, right=True)
 def sub(x, y, errorhandler, line, ast, scope, exec):
     # This function also handles negative numbers, it sees -5 as 0-5
     if x == Null and type(y).__name__ != "Number":
@@ -113,7 +122,7 @@ def sub(x, y, errorhandler, line, ast, scope, exec):
     return x - y
 
 
-@operator("*")
+@operator("*", left=True, right=True)
 def mult(x, y, errorhandler, line, ast, scope, exec):
     if x == Null:
         return missingOperand(
@@ -127,7 +136,7 @@ def mult(x, y, errorhandler, line, ast, scope, exec):
     return x * y
 
 
-@operator("/")
+@operator("/", left=True, right=True)
 def div(x, y, errorhandler, line, ast, scope, exec):
     if x == Null:
         return missingOperand(
@@ -141,12 +150,12 @@ def div(x, y, errorhandler, line, ast, scope, exec):
     return x / y
 
 
-@operator("==")
+@operator("==", left=True, right=True)
 def logicalequals(x, y, errorhandler, line, ast, scope, exec):
     return x == y
 
 
-@operator("<")
+@operator("<", left=True, right=True)
 def logicallessthan(x, y, errorhandler, line, ast, scope, exec):
     if x == Null:
         return missingOperand(
@@ -160,7 +169,7 @@ def logicallessthan(x, y, errorhandler, line, ast, scope, exec):
     return x < y
 
 
-@operator(">")
+@operator(">", left=True, right=True)
 def logicamorethan(x, y, errorhandler, line, ast, scope, exec):
     if x == Null:
         return missingOperand(
@@ -174,7 +183,7 @@ def logicamorethan(x, y, errorhandler, line, ast, scope, exec):
     return x > y
 
 
-@operator(">=")
+@operator(">=", left=True, right=True)
 def logicamorethanequal(x, y, errorhandler, line, ast, scope, exec):
     if x == Null:
         return missingOperand(
@@ -188,7 +197,7 @@ def logicamorethanequal(x, y, errorhandler, line, ast, scope, exec):
     return x >= y
 
 
-@operator("<=")
+@operator("<=", left=True, right=True)
 def logicallessthanequal(x, y, errorhandler, line, ast, scope, exec):
     if x == Null:
         return missingOperand(
@@ -203,12 +212,12 @@ def logicallessthanequal(x, y, errorhandler, line, ast, scope, exec):
     return x <= y
 
 
-@operator("!=")
+@operator("!=", left=True, right=True)
 def logicalnotequal(x, y, errorhandler, line, ast, scope, exec):
     return x != y
 
 
-@operator("~")
+@operator("~", left=False, right=True)
 def roundop(x, y, errorhandler, line, ast, scope, exec):
     if x != Null:
         return unexpectedOperand(True, errorhandler, line, ast)
@@ -220,14 +229,14 @@ def roundop(x, y, errorhandler, line, ast, scope, exec):
     return round(y)
 
 
-@operator("?")
+@operator("?", left=True, right=True)
 def Exists(x, y, errorhandler, line, ast, scope, exec):
     if x == Null:
         return y
     return x
 
 
-@operator("!", "not")
+@operator("!", "not", left=False, right=True)
 def notop(x, y, errorhandler, line, ast, scope, exec):
     if x != Null:
         return unexpectedOperand(True, errorhandler, line, ast)
@@ -235,7 +244,7 @@ def notop(x, y, errorhandler, line, ast, scope, exec):
     return not y
 
 
-@operator("%")
+@operator("%", left=True, right=True)
 def modulo(x, y, errorhandler, line, ast, scope, exec):
     if x == Null:
         return missingOperand(
@@ -249,7 +258,7 @@ def modulo(x, y, errorhandler, line, ast, scope, exec):
     return x % y
 
 
-@operator("&", "and")
+@operator("&", "and", left=True, right=True)
 def logicaland(x, y, errorhandler, line, ast, scope, exec):
     if x == Null:
         return missingOperand(
@@ -267,7 +276,7 @@ def logicaland(x, y, errorhandler, line, ast, scope, exec):
     return x and y
 
 
-@operator("|", "or")
+@operator("|", "or", left=True, right=True)
 def logicalor(x, y, errorhandler, line, ast, scope, exec):
     if x == Null:
         return missingOperand(
@@ -285,7 +294,7 @@ def logicalor(x, y, errorhandler, line, ast, scope, exec):
     return x or y
 
 
-@operator("x|", "xor")
+@operator("x|", "xor", left=True, right=True)
 def logicalxor(x, y, errorhandler, line, ast, scope, exec):
     if x == Null:
         return missingOperand(
@@ -303,7 +312,7 @@ def logicalxor(x, y, errorhandler, line, ast, scope, exec):
     return (x or y) and not (x and y)
 
 
-@operator("in")
+@operator("in", left=True, right=True)
 def inop(x, y, errorhandler, line, ast, scope, exec):
     if y == Null:
         return missingOperand(
@@ -323,7 +332,7 @@ def inop(x, y, errorhandler, line, ast, scope, exec):
 # how do I run code here? oh it's compiled already? aha
 # now you can try.
 # ./adk by itself does a live thing kinda like when you run python3 by itself.
-@operator("~=")
+@operator("~=", left=True, right=True)
 def aboutequal(x, y, errorhandler, line, ast, scope, exec):
     if x == Null:
         return missingOperand(
@@ -336,7 +345,7 @@ def aboutequal(x, y, errorhandler, line, ast, scope, exec):
     return round(x) == round(y)
 
 
-@operator("...")
+@operator("...", left=None, right=None)
 def spread(x, y, errorhandler, line, ast, scope, exec):
     start = ast["positions"]["start"]
     end = ast["positions"]["end"]
@@ -354,7 +363,7 @@ def spread(x, y, errorhandler, line, ast, scope, exec):
     )
 
 
-@operator("=")
+@operator("=", left=True, right=True)
 def assign(
     x, y, errorhandler, line, expr, scope, exec, predone=False, allowLiteral=False
 ):
@@ -406,49 +415,49 @@ def assign(
     return value
 
 
-@operator("+=")
+@operator("+=", left=True, right=True)
 def plusequals(x, y, errorhandler, line, expr, scope, exec):
     left = exec.ExecExpr(x, scope)
     right = exec.ExecExpr(y, scope)
     return assign(x, left + right, errorhandler, line, expr, scope, exec, True)
 
 
-@operator("-=")
+@operator("-=", left=True, right=True)
 def minusequals(x, y, errorhandler, line, expr, scope, exec):
     left = exec.ExecExpr(x, scope)
     right = exec.ExecExpr(y, scope)
     return assign(x, left - right, errorhandler, line, expr, scope, exec, True)
 
 
-@operator("*=")
+@operator("*=", left=True, right=True)
 def multequals(x, y, errorhandler, line, expr, scope, exec):
     left = exec.ExecExpr(x, scope)
     right = exec.ExecExpr(y, scope)
     return assign(x, left * right, errorhandler, line, expr, scope, exec, True)
 
 
-@operator("/=")
+@operator("/=", left=True, right=True)
 def divideequals(x, y, errorhandler, line, expr, scope, exec):
     left = exec.ExecExpr(x, scope)
     right = exec.ExecExpr(y, scope)
     return assign(x, left / right, errorhandler, line, expr, scope, exec, True)
 
 
-@operator("^=")
+@operator("^=", left=True, right=True)
 def exponetequals(x, y, errorhandler, line, expr, scope, exec):
     left = exec.ExecExpr(x, scope)
     right = exec.ExecExpr(y, scope)
     return assign(x, left**right, errorhandler, line, expr, scope, exec, True)
 
 
-@operator("%=")
+@operator("%=", left=True, right=True)
 def moduloequals(x, y, errorhandler, line, expr, scope, exec):
     left = exec.ExecExpr(x, scope)
     right = exec.ExecExpr(y, scope)
     return assign(x, left % right, errorhandler, line, expr, scope, exec, True)
 
 
-@operator("++")
+@operator("++", left=True, right=True)
 def plusplus(x, y, errorhandler, line, expr, scope, exec):
     if x:
         left = exec.ExecExpr(x, scope)
@@ -459,7 +468,7 @@ def plusplus(x, y, errorhandler, line, expr, scope, exec):
     return assign(y, right + 1, errorhandler, line, expr, scope, exec, True)
 
 
-@operator("--")
+@operator("--", left=True, right=True)
 def minusminus(x, y, errorhandler, line, expr, scope, exec):
     if x:
         left = exec.ExecExpr(x, scope)

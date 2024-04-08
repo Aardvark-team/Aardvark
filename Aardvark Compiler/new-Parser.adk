@@ -305,7 +305,7 @@ static class Parser as this {
         while this.compare('Operator') & level in OrderOfOps & this.peek().value in OrderOfOps.(level) & !(this.peek().value in exclude) {
             let operator = this.eat()
             this.eat_line_breaks() if eat_line_breaks;
-            let right = this.parse_expression(level - 1, false, eat_line_breaks)
+            let right = this.parse_expression(level - 1, false, exclude, eat_line_breaks)
             if !left and !right {
                 this.Throw('SyntaxError', "🤨 That's just an operator with nothing for it to operator on.", position=operator.position)
                 # Throw an error because its just an operator all by itself

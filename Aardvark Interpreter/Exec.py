@@ -3,6 +3,7 @@ import Lexer
 import Parser
 import sys
 import inspect
+from Data import OrderOfOps
 from Operators import Operators
 import random
 import math

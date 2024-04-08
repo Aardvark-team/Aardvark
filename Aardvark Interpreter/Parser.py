@@ -627,7 +627,7 @@ class Parser:
     def pExpression(
         self, level=len(OrderOfOps) - 1, require=False, exclude=[], eatLBs=False
     ):
-        # print("pExpression", level, self.peek())
+        # TODO: only make a list of values and operators and handle it at execution using Operators.py
         if level < 0:
             left = self.pPrimary(require=False, exclude=exclude)
         else:
@@ -648,7 +648,6 @@ class Parser:
             if eatLBs:
                 self.eatLBs()
             right = self.pExpression(level - 1, require=False, exclude=exclude)
-
             if not left and not right:
                 # Just an operator by itself.
                 self.err_handler.throw(
