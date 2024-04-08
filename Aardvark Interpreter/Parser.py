@@ -1,4 +1,4 @@
-from Data import TokenTypes, OrderOfOps
+from Data import TokenTypes, OrderOfOps, get_precedence
 import Error
 from sty import fg
 from Types import Null
@@ -624,10 +624,10 @@ class Parser:
             )
 
     # Expression:
-    # if !false & !false {}
     def pExpression(
         self, level=len(OrderOfOps) - 1, require=False, exclude=[], eatLBs=False
     ):
+        # print("pExpression", level, self.peek())
         if level < 0:
             left = self.pPrimary(require=False, exclude=exclude)
         else:
@@ -636,18 +636,18 @@ class Parser:
             )
         if eatLBs:
             self.eatLBs()
-        if (
-            self.peek()
-            and self.compare(TokenTypes["Operator"])
-            and not self.peek().value == "$"
+        if "$" not in exclude:
+            exclude.append("$")
+        while (
+            self.compare("Operator")
             and level in OrderOfOps
             and self.peek().value in OrderOfOps[level]
             and self.peek().value not in exclude
         ):
-            op = self.eat(TokenTypes["Operator"])
+            op = self.eat("Operator")
             if eatLBs:
                 self.eatLBs()
-            right = self.pExpression(level, require=False, exclude=exclude)
+            right = self.pExpression(level - 1, require=False, exclude=exclude)
 
             if not left and not right:
                 # Just an operator by itself.
@@ -664,7 +664,7 @@ class Parser:
                     },
                 )
 
-            return {
+            left = {
                 "type": "Operator",
                 "left": left,
                 "right": right,

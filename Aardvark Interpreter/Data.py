@@ -88,7 +88,14 @@ OrderOfOps = {
     11: [],
     12: [],
     13: [],
-}  # USE: https://stackoverflow.com/questions/28256/equation-expression-parser-with-precedence
+}
+
+
+def get_precedence(operator):
+    for i in OrderOfOps:
+        if operator in OrderOfOps[i]:
+            return i
+
 
 Quotes = {'"', "'", "`"}
 
@@ -152,8 +159,5 @@ Keywords = {
     "let",
     "static",
 }
-# for x in Operators:
-#     print(x)
-
 
 # https://replit.com/@Programit/Redesign
