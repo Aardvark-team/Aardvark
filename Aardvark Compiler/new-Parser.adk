@@ -59,7 +59,7 @@ static class Parser as this {
             location: position.start,
             markers: [{
                 line: position.start.line - 1, # The error formatter starts line counting at 0.
-                column: position.start.column - 1,
+                column: position.start.column - 1, # The error formatter starts column counting at 0.
                 length: position.end.column - position.start.column,
                 message: "Here"
             }]
@@ -67,7 +67,7 @@ static class Parser as this {
     }
 
 
-    # Eat all consecutive linebreaks
+    # Eat all consecutive line breaks
     function eat_line_breaks() while this.compare('LineBreak') this.advance()
 
     # Is at the end of the file
@@ -105,7 +105,7 @@ static class Parser as this {
         # Otherwise, throw an error because it didn't match.
         this.Throw(
             "Token",
-            $"Token {value?$' of type {token_type}'} expected, but not found.",
+            $"Token {value ? $'of type {token_type}'} expected, but not found.",
             position = this.peek().position
         )
     }
@@ -328,8 +328,8 @@ static class Parser as this {
                 right: right,
                 operator: operator.value,
                 position: {
-                    start: left.position.start if left else op.start,
-                    end: right.position.end if right else op.end
+                    start: left.position.start if left else operator.start,
+                    end: right.position.end if right else operator.end
                 }
             }
         }
@@ -391,20 +391,8 @@ static class Parser as this {
                 this.eat()
                 expansions.add(require=true)
             } else {
-                let key
-                let key_position
-                if this.compare("Identifier") | this.compare("String") {
-                    let token = this.eat()
-                    key = token.value
-                    key_position = token.position
-                } else if this.compare("Number") {
-                    let token = this.eat()
-                    key = Number(token.value)
-                    key_position = token.position
-                } else {
-                    # If it wasn't an identifier, string, or number, it isn't valid
-                    this.Throw("SyntaxError", "Expected key", position=this.peek().position)
-                }
+                # TODO: handle types in the Object!
+                let key = parse_typed_variable([], ["NumberLiteral", "StringLiteral"], "object key")
                 this.eat_line_breaks()
                 let value
                 # There is a :, then the value is on the other side
@@ -416,14 +404,14 @@ static class Parser as this {
                     value = {
                         type: "VariableAccess",
                         value: key,
-                        position: key_position
+                        position: key.position
                     }
                 pairs.add({
                     type: "KeyValuePair",
                     key,
                     value,
                     position: {
-                        start: key_position.start,
+                        start: key.position.start,
                         end: value.position.end
                     }
                 })
@@ -459,8 +447,8 @@ static class Parser as this {
             }
         }
     }
-    function is_valid_type(expression) {
-        if expression == null
+    function is_valid_type(expression, accept=[]) {
+        if expression == null | accept.contains(expression.type)
             return true
         if ["VariableAccess", "PropertyAccess", "LayoutType", "Array"].contains(expression.type) | (expression.type == "Operator" & ["|", "or"].contains(expression.operator))
         match expression.type {
@@ -477,10 +465,10 @@ static class Parser as this {
         }
         return false
     }
-    function is_valid_variable_definition(expression) {
-        if expression == null
+    function is_valid_variable_definition(expression, accept=[]) {
+        if expression == null | accept.contains(expression.type)
             return true
-        if ["VariableAccess", "PropertyAccess", "Array", "Object", "KeyValuePair"].contains(expression.type) match expression.type {
+        else if ["VariableAccess", "PropertyAccess", "Array", "Object", "KeyValuePair"].contains(expression.type) match expression.type {
             case "VariableAccess"
                 return true
             case "PropertyAccess"
@@ -494,7 +482,7 @@ static class Parser as this {
         }
         return false
     }
-    function parse_typed_variable() {
+    function parse_typed_variable(accept_type=[], accept_var=[], name="variable") {
         #* Valid forms:
         Number x
         x y
@@ -508,12 +496,12 @@ static class Parser as this {
         # This may be the type or the variable, we don't know until we know IF there is a second expression.
         let first = this.parse_primary(require=true)
         let second = this.parse_primary(require=false)
-        if second & !is_valid_type(first) {
+        if second & !is_valid_type(first, accept_type) {
             this.Throw("SyntaxError", "Invalid syntax. Expected type.", position=first.position)
-        } else if !second & !is_valid_variable_definition(first) {
-            this.Throw("SyntaxError", "Invalid syntax. Expected variable.", position=first.position)
-        } else if second & !is_valid_variable_definition(second) {
-            this.Throw("SyntaxError", "Invalid syntax. Expected variable.", position=second.position)
+        } else if !second & !is_valid_variable_definition(first, accept_var) {
+            this.Throw("SyntaxError", $"Invalid syntax. Expected {name}.", position=first.position)
+        } else if second & !is_valid_variable_definition(second, accept_var) {
+            this.Throw("SyntaxError", $"Invalid syntax. Expected {name}.", position=second.position)
         }
         return {
             type: "TypedVariable",
@@ -559,7 +547,7 @@ static class Parser as this {
     }
 }
 function test() {
-    let code = "let 5 = x"
+    let code = "let Number | String x = 5"
     let error_handler = ErrorHandler(code, '<main>')
     let lexer = Lexer(false, false, error_handler)
     let tokens = lexer.tokenize(code)
