@@ -36,31 +36,34 @@ static class Parser as this {
 
     # Helper function for error throwing.
     function Throw(type, message, options={}, note="", kill=true, position=null) {
-        # if !(options.underline? | options.marker?) {
-        #     options.underline = {
-        #         start: position.start.column + 1,
-        #         end: position.end.column + 1
-        #     }
-        #     options.marker = {
-        #         start: position.start.column + 1,
-        #         length: 1 + position.end.column - position.start.column
-        #     }
-        # }
-        # if !(options.lineno? | options.line_number? | options.linestart?) {
-        #     options.line_number = position.start.line
-        # }
-        # this.error_handler.Throw(type, message, options, note, kill)
+        let legacy_errors = false
+        if legacy_errors {
+            if !(options.underline? | options.marker?) {
+                options.underline = {
+                    start: position.start.column + 1,
+                    end: position.end.column + 1
+                }
+                options.marker = {
+                    start: position.start.column + 1,
+                    length: 1 + position.end.column - position.start.column
+                }
+            }
+            if !(options.lineno? | options.line_number? | options.linestart?) {
+                options.line_number = position.start.line
+            }
+            this.error_handler.Throw(type, message, options, note, kill)
+        }
         this.error_handler.ThrowNew({
             error_type: type,
             message,
             location: position.start,
             markers: [{
-                line: position.start.line,
-                column: position.start.column,
+                line: position.start.line - 1, # The error formatter starts line counting at 0.
+                column: position.start.column - 1,
                 length: position.end.column - position.start.column,
                 message: "Here"
             }]
-        })
+        }, kill)
     }
 
 

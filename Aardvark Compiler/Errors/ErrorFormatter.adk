@@ -36,7 +36,7 @@ function format(source_lines, message, error_type, filename, location, markers, 
     let max_length = String(max_line).length + 1
     let formatted = ""
 
-    formatted += $"{color}{' ' * max_length}──> {error_type} in {filename}:{location.line+1}:{location.column+1}{fg.rs}\n"
+    formatted += $"{' ' * max_length}──> {color}{error_type} in {filename}:{location.line+1}:{location.column+1}{fg.rs}\n"
 
     for line in range(min_line, max_line + 1) {
         let matching_markers = markers.filter(function(marker) marker.line == line)
@@ -84,7 +84,7 @@ function format(source_lines, message, error_type, filename, location, markers, 
     }
 
     formatted += $"{' ' * max_length} │\n"
-    formatted += $"{' ' * max_length}──> {message}\n"
+    formatted += $"{' ' * max_length}──> {color}{message}{fg.rs}\n"
 
     return formatted
 }
