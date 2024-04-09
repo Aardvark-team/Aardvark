@@ -1,0 +1,140 @@
+include fg from ansi
+
+
+static function min(array) {
+    let minimum = array.0
+
+    for item in array 
+        if item < minimum 
+            minimum = item
+
+    return minimum
+}
+
+static function max(array) {
+    let maximum = array.0
+
+    for item in array 
+        if item > maximum
+            maximum = item
+
+    return maximum
+}
+
+static function padstr(string, length, char = " ") {
+    string = String(string)
+
+    if string.length >= length
+        return string
+
+    return (char * (length - string.length)) + string
+}
+
+function format(source_lines, message, error_type, filename, location, markers, color=fg(255, 30, 10)) {
+    let min_line = min(markers.map(function(item) item.line))
+    let max_line = max(markers.map(function(item) item.line))
+    let max_length = String(max_line).length + 1
+    let formatted = ""
+
+    formatted += $"{color}{' ' * max_length}──> {error_type} in {filename}:{location.line+1}:{location.column+1}{fg.rs}\n"
+
+    for line in range(min_line, max_line + 1) {
+        let matching_markers = markers.filter(function(marker) marker.line == line)
+
+        if matching_markers.length == 0
+            continue
+        
+        formatted += $"{' ' * max_length} │\n"
+        formatted += $"{padstr(line + 1, max_length)} │ {source_lines[line]}\n"
+        
+        for offset in range(0, matching_markers.length + 1) {
+            if offset == 0 {
+                let out = ""
+
+                for marker in matching_markers {
+                    out += " " * (marker.column - out.length)
+                    out += "─" * (marker.length - 1)
+                    out += "┬"
+                }
+
+                formatted += $"{' ' * max_length} │ {out}\n"
+                continue
+            }
+
+            let current_marker = matching_markers.length - offset
+            let out = ""
+
+            for marker_index in range(0, matching_markers.length) {
+                let marker = matching_markers.(marker_index)
+
+                out += " " * (marker.column - out.length)
+                out += " " * (marker.length - 1)
+
+                if marker_index > current_marker {
+                    out += " "
+                } else if current_marker == marker_index {
+                    out += "╰── " + marker.message
+                } else {
+                    out += "│"
+                }
+            }
+
+            formatted += $"{' ' * max_length} . {out}\n"
+        }
+    }
+
+    formatted += $"{' ' * max_length} │\n"
+    formatted += $"{' ' * max_length}──> {message}\n"
+
+    return formatted
+}
+if is_main {
+    stderr.write(format("let my_number = 1234\nlet my_string = 'string'\nstdout.write(my_number + my_string, '\\n')".split("\n"), "+ is undefined for types `Number` and `String`", "TypeError", "<main>", {
+        line: 2,
+        column: 16
+    }, [
+        {
+            line: 0,
+            column: 4,
+            length: 9,
+            message: "left side declared here"
+        },
+        {
+            line: 0,
+            column: 16,
+            length: 4,
+            message: "Number"
+        },
+        {
+            line: 1,
+            column: 4,
+            length: 9,
+            message: "right side declared here"
+        },
+        {
+            line: 1,
+            column: 16,
+            length: 8,
+            message: "String"
+        },
+        {
+            line: 2,
+            column: 13,
+            length: 9,
+            message: "Type `Number`"
+        },
+        {
+            line: 2,
+            column: 23,
+            length: 1,
+            message: "Addition"
+        },
+        {
+            line: 2,
+            column: 25,
+            length: 9,
+            message: "Type `String`"
+        }
+    ]))
+    exit(1)
+}

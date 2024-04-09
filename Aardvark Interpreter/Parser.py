@@ -812,11 +812,12 @@ class Parser:
                             "lineno": KorV["positions"]["start"]["line"],
                             "marker": {
                                 "start": KorV["positions"]["start"]["col"],
-                                "length": len(KorV["value"]),
+                                "length": KorV["positions"]["end"]["col"]
+                                - KorV["positions"]["start"]["col"],
                             },
                             "underline": {
                                 "start": KorV["positions"]["start"]["col"],
-                                "end": value["positions"]["end"]["col"],
+                                "end": KorV["positions"]["end"]["col"],
                             },
                         },
                     )

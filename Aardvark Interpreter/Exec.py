@@ -188,17 +188,17 @@ class Executor:
             self.Global.set("open", adk_open)
         self.Global["include"] = self.include
         self.Global["is_main"] = is_main
-        # TODO: implement more builtins.
         self.errorhandler = errorhandler
+        self.filestack[self.path] = self.Global
 
     def include(self, name):
         locs = []
-        path = Path(Path(self.path).parent, name)
+        path = Path(Path(self.path).parent, name).resolve()
         locs.append(str(path))
         locs.append(str(path) + ".adk")
-
         # allow importing folders that contain an index.adk
         locs.append(os.path.join(str(path), "index.adk"))
+        locs.append(os.path.join(str(path), "main.adk"))
 
         if "/" not in name and "\\" not in name:
             for dir in searchDirs:
@@ -231,7 +231,6 @@ class Executor:
                 #   'traceback': self.traceback
                 # })
             i += 1
-        self.filestack[self.path] = self.Global
         if file in self.filestack:
             return self.filestack[file]
         errorhandler = Error.ErrorHandler(text, file, py_error=True)
