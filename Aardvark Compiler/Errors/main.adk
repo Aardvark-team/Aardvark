@@ -112,8 +112,13 @@ class ErrorHandler as this {
         )
         exit(1) if kill
     }
-    function ThrowNew(options) {
-        let error = format(Highlight(this.code, options).split("\n"), options.message, options.error_type="SyntaxError", options.filename?"<main>", options.location, options.markers, options.color?fg(255, 30, 10), options.symbol?'ⓧ')
+    function ThrowNew(options, kill) {
+        # TODO: finalize arguments here before changing everything.
+        let error = format(Highlight(this.code, {
+            linenums: false
+        }).split("\n"), options.message?"This isn't valid.", options.error_type?"SyntaxError", options.filename?"<main>", options.location, options.markers?[], options.color?fg(255, 30, 10), options.symbol?'ⓧ')
+        stderr.write(error)
+        exit(1) if kill
     }
     function getLine(linenum) {
         return this.codelines[linenum-1]
