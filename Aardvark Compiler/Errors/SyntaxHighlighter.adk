@@ -39,6 +39,8 @@ function Highlight(code, opts={}) {
             line++
             if opts.linenums?true
                 output += styles.default + "\n" + genLine(line, opts.leftpadding?4)
+            else
+                output += styles.default + "\n"
         }
         else if token.type == "Identifier" & toknum < lexer.output.length - 1 & lexer.output[toknum + 1].type == "Delimiter" & lexer.output[toknum + 1].value == "("
             output += styles.Function + token.value

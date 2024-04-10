@@ -46,7 +46,8 @@ let Operators = set{
   '$', #special functions
   '++',
   '--',
-  "$="
+  "$=",
+  "..."
 }
 
 let OrderOfOps = {
@@ -115,7 +116,10 @@ let Keywords = set{
     'as',
     'from', # other
     'defer',
-    "layout"
+    "layout",
+    "break",
+    "continue",
+    "private"
 }
 let BaseNumsOrder = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVQXYZ"
 let Quotes = set{'"', "'", "`"}

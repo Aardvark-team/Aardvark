@@ -584,7 +584,8 @@ class Parser as this {
         }
     }
     function pFunctionDefinition(special=false) {
-        name = starter = null
+        name = null
+        starter = null
         parameters = []
         if !special 
             starter = this.eat('Keyword', 'function')
@@ -634,7 +635,8 @@ class Parser as this {
             if this.compare('Delimiter', ',') this.eat();    
             this.eat('Delimiter', ')')
         }
-        return_type = AS = null
+        return_type = null
+        AS = null
         if this.compare('Operator', '->') {
             this.eat()
             return_type = this.pExpression()
@@ -888,24 +890,29 @@ class Parser as this {
                 if names.length != 0 
                     this.eat()
                 name = null
-                if this.compare('String') | this.compare('Identifier')
-                    name = end = this.eat()
+                if this.compare('String') | this.compare('Identifier') {
+                    name = this.eat()
+                    end = name
+                }
                 else 
                     throw Error('Invalud Syntax. Expected String or Identifier after ",".')
                 AS = null
-                if this.compare('Keyword', 'as')
-                    end = AS = this.eat() if this.compare('String') | this.compare('Identifier') else throw Error('Invalid Syntax')
+                if this.compare('Keyword', 'as') {
+                    AS = this.eat() if this.compare('String') | this.compare('Identifier') else throw Error('Invalid Syntax')
+                    end = AS
+                }
                 names.add({
                     object: name.value,
                     local: AS.value ? name.value
                 })
             }
             if this.compare('Keyword', 'from') {
-                end = lib_name = this.eat() if this.compare('Indentifier') | this.compare('String') else this.throwError('SyntaxError', 'Expected Identifier or String for library name!', {
+                lib_name = this.eat() if this.compare('Indentifier') | this.compare('String') else this.throwError('SyntaxError', 'Expected Identifier or String for library name!', {
                     lineno: this.peek().start.line,
                     marker: {start: this.peek().start.column, length: this.peek().value.length},
                     underline: {start: start.start.column, end: this.peek().end.column}
                 }, 'You can use include as a function to include arbitrary libraries.')
+                end = lib_name
                 return {
                     type: 'IncludeStatement',
                     includes: [
@@ -938,7 +945,8 @@ class Parser as this {
     }
     function pClassDefinition() {
         start = this.eat('Keyword', 'class').start
-        name = AS = null
+        name = null
+        AS = null
         Extends = []
         if this.compare('Identifier') {
             name = this.eat()

@@ -33,10 +33,10 @@ static function padstr(string, length, char = " ") {
 function format(source_lines, message, error_type, filename, location, markers, color=fg(255, 30, 10)) {
     let min_line = min(markers.map(function(item) item.line))
     let max_line = max(markers.map(function(item) item.line))
-    let max_length = String(max_line).length + 1
+    let max_line_number_length = String(max_line).length + 1
     let formatted = ""
 
-    formatted += $"{' ' * max_length}──> {color}{error_type} in {filename}:{location.line+1}:{location.column+1}{fg.rs}\n"
+    formatted += $"{' ' * max_line_number_length}──> {color}{error_type} in {filename}:{location.line+1}:{location.column+1}{fg.rs}\n"
 
     for line in range(min_line, max_line + 1) {
         let matching_markers = markers.filter(function(marker) marker.line == line)
@@ -44,8 +44,8 @@ function format(source_lines, message, error_type, filename, location, markers, 
         if matching_markers.length == 0
             continue
         
-        formatted += $"{' ' * max_length} │\n"
-        formatted += $"{padstr(line + 1, max_length)} │ {source_lines[line]}\n"
+        formatted += $"{' ' * max_line_number_length} │\n"
+        formatted += $"{padstr(line + 1, max_line_number_length)} │ {source_lines[line]}\n"
         
         for offset in range(0, matching_markers.length + 1) {
             if offset == 0 {
@@ -57,7 +57,7 @@ function format(source_lines, message, error_type, filename, location, markers, 
                     out += "┬"
                 }
 
-                formatted += $"{' ' * max_length} │ {out}\n"
+                formatted += $"{' ' * max_line_number_length} │ {out}\n"
                 continue
             }
 
@@ -79,58 +79,60 @@ function format(source_lines, message, error_type, filename, location, markers, 
                 }
             }
 
-            formatted += $"{' ' * max_length} . {out}\n"
+            formatted += $"{' ' * max_line_number_length} . {out}\n"
         }
     }
 
-    formatted += $"{' ' * max_length} │\n"
-    formatted += $"{' ' * max_length}──> {color}{message}{fg.rs}\n"
+    formatted += $"{' ' * max_line_number_length} │\n"
+    formatted += $"{' ' * max_line_number_length}──> {color}{message}{fg.rs}\n"
 
     return formatted
 }
 if is_main {
-    stderr.write(format("let my_number = 1234\nlet my_string = 'string'\nstdout.write(my_number + my_string, '\\n')".split("\n"), "+ is undefined for types `Number` and `String`", "TypeError", "<main>", {
+    include Highlight from SyntaxHighlighter
+    let code = Highlight("\n\n\n\n\n\n\n\n\n\nlet my_number = 1234\nlet my_string = 'string'\nstdout.write(my_number + my_string, '\\n')", {linenums: false})
+    stderr.write(format(code.split("\n"), "+ is undefined for types `Number` and `String`", "TypeError", "<main>", {
         line: 2,
         column: 16
     }, [
         {
-            line: 0,
+            line: 10,
             column: 4,
             length: 9,
             message: "left side declared here"
         },
         {
-            line: 0,
+            line: 10,
             column: 16,
             length: 4,
             message: "Number"
         },
         {
-            line: 1,
+            line: 11,
             column: 4,
             length: 9,
             message: "right side declared here"
         },
         {
-            line: 1,
+            line: 11,
             column: 16,
             length: 8,
             message: "String"
         },
         {
-            line: 2,
+            line: 12,
             column: 13,
             length: 9,
             message: "Type `Number`"
         },
         {
-            line: 2,
+            line: 12,
             column: 23,
             length: 1,
             message: "Addition"
         },
         {
-            line: 2,
+            line: 12,
             column: 25,
             length: 9,
             message: "Type `String`"

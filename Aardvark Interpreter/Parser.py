@@ -482,7 +482,7 @@ class Parser:
                     tok = self.eat("Number")
                     property = {
                         "type": "NumberLiteral",
-                        "value": tok.value,
+                        "value": float(tok.value),
                         "positions": {
                             "start": tok.start,
                             "end": tok.end,

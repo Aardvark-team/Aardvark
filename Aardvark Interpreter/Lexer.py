@@ -383,7 +383,6 @@ class Lexer:
                         columnend=self.column,
                         value=value,
                     )
-
             if self.AtEnd:
                 break
             self.advance()  # Next character and continue the loop

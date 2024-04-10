@@ -1,0 +1,82 @@
+from ansi include fg, bg, ef, rs
+include Highlight, styles from SyntaxHighlighter
+
+function getTraceLine(index, line) {
+    header = "    at "
+    fileloc = $" ― {line.filename}:{line.line}:{line.col}"
+
+    if index == 0
+        return header + line.name + fileloc
+
+    return " " * header.length + line.name + fileloc
+}
+
+function printError(type, pos, msg, didyoumean, traceback, code, color=fg(255, 30, 10), symbol="ⓧ", note="") {
+    stdout.flush()
+    stderr.flush()
+    padding = pos.lineend.digits.length + 1
+    # To dynamically adjust padding based on line num size
+    lineno = pos.lineno
+    pos.linestart = Math.max(pos.linestart, 0)
+    code = Highlight(
+        code, {startline: pos.linestart, leftpadding: padding, background: opts.background?false}
+    )
+
+    underline_start = (pos.underline?).start?0
+    underline_end = (pos.underline?).end?0
+    marker_pos = (pos.marker?).start?1
+    marker_length = (pos.marker?).length?0
+    marker_symbol = '^'
+    underline_symbol = "―"
+    space_symbol = ' '
+    underline = (underline_start - 2) * space_symbol + underline_symbol * (1 + underline_end - underline_start)
+    marker = (marker_pos - 2) * space_symbol + marker_symbol * marker_length
+    underline_str = ""
+    i = 0
+    while i < Math.max(underline.length, marker.length) {
+        m = marker[i] if i < marker.length else space_symbol
+        u = underline[i] if i < underline.length else space_symbol
+        if m == marker_symbol 
+            underline_str += m
+        else if u == underline_symbol
+            underline_str += u
+        else
+            underline_str += space_symbol
+        i++
+    }
+
+    underline_str = underline_str.rstrip()
+    error_underline = " " * (padding + 3) + ef.bold + color + underline_str + underline_symbol + ">" + ef.rs + " " + color + msg
+    code_lines = code.split("\n")
+    code_lines[lineno - 1] = code_lines[lineno - 1] + "\n" + error_underline + styles.default
+
+    linestart = pos.linestart - (1 if pos.linestart > 0 else 0)
+    lineend = pos.lineend + (1 if pos.lineend + 1 < code_lines.length else 0)
+
+    if didyoumean {
+        lines_mean = code_lines.copy()
+        lines_mean[lineno - 1] = ' ' * (padding - String(lineno).length) + styles.default + String(lineno) + " │ " + Highlight(didyoumean, {linenums: false})
+        
+        didyoumean = "\n".join(lines_mean.slice(linestart, lineend))
+    }
+    if note
+        note = $"\n{color}NOTE: {note}{fg.rs}"
+    code = "\n".join(code_lines.slice(linestart, lineend))
+
+    if traceback {
+        i = 0
+        traced = getTraceLine(i-1, traceback[i-1]) while i++ < traceback.length
+
+        traceback = "\n".join(traced) + "\n\n"
+    } else
+        traceback = ""
+
+    if didyoumean
+        didyoumean = "\n" + fg(2, 85, 255) + "ⓘ  Did you mean:" + styles.default + "\n" + didyoumean + fg.rs
+    else
+        didyoumean = fg.rs
+    output = $"{color}{symbol}  {type} in {pos.filename}:{pos.lineno}:{marker_pos?underline_start}\n{traceback}{styles.default}{code}{didyoumean}{note}\n"
+
+    stderr.write(output)
+    stderr.flush()
+}

@@ -18,10 +18,18 @@ function generate_text(node, original_text) {
             return String(node.value)
         }
         case "StringLiteral" {
-            return "\"" + node.value.replace("\n", "\\n") + "\""
+            let quote = node.tokens.value.variation
+            return quote + node.value.replace("\n", "\\n") + quote
         }
         case "VariableAccess" {
             return node.value
+        }
+        case "FunctionCall" {
+            let object = generate_text(node.object, original_text)
+            let arguments = node.arguments.map(function (x) generate_text(x, original_text))
+            let keyword_arguments = node.keywordArguments.map(function (x) generate_text(x, original_text))
+            let spreads = node.spreads.map(function (x) generate_text(x, original_text))
+            let full_text = $"{object}({', '.join(arguments)}, {', '.join(keyword_arguments)}, {', '.join(spreads)})"
         }
         case $defualt {
             # stdout.write(node, "\n")

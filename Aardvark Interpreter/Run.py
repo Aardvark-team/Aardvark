@@ -155,8 +155,9 @@ def highlighted_input(
             if (
                 len(attribTokens) >= 1
                 and attribTokens[-1].type == Data.TokenTypes["Identifier"]
-                and (len(attribTokens) < 2 or 
-                    attribTokens[-2].value != "."
+                and (
+                    len(attribTokens) < 2
+                    or attribTokens[-2].value != "."
                     or attribTokens[-2].type != Data.TokenTypes["Delimiter"]
                 )
             ):
@@ -171,8 +172,7 @@ def highlighted_input(
                 if val:
                     current = val
             auto_complete_scope = current
-            
-        
+
         if len(tokens) >= 1 and tokens[-1].type == Data.TokenTypes["Identifier"]:
             for vname in auto_complete_scope.vars:
                 if vname.startswith(tokens[-1].value) and vname != tokens[-1].value:
@@ -181,7 +181,7 @@ def highlighted_input(
                         0,
                         (added, color_gray + added + fg.rs + f"\33[{len(added)}D"),
                     )
-                    
+
         if len(last_completions) != len(valid_completions):
             picked_completion = 0
         else:
@@ -209,7 +209,7 @@ def highlighted_input(
             flush=True,
         )
         key = getch()
-        time.sleep(0.02) # Why?
+        time.sleep(0.02)  # Why?
         key_code = ord(key)
         if key_code == 27:
             escape_code = [27]
@@ -229,7 +229,7 @@ def highlighted_input(
         # ARROW KEYS NOT TRIGGERING
         # It registers as [A and [B
         elif key_code == 38:
-            print('\n\nHere\n\n')
+            print("\n\nHere\n\n")
             currentCycle += 1
             buff = cycleArray[len(cycleArray) - (currentCycle - 1)]
             if buff != "":
@@ -242,7 +242,6 @@ def highlighted_input(
             else:
                 buff = cycleArray[len(cycleArray) - (currentCycle - 1)]
 
-        
         elif key.isprintable() and key_code not in [91, 65, 66]:
             # Doesn't allow me to print [, A, or B
             buff += key
@@ -280,7 +279,14 @@ def highlighted_input(
     return buff, input_history + [buff]
 
 
-def runLive(debugmode=False, noret=False, printToks=False, printAST=False, experimental=False, safe=False):
+def runLive(
+    debugmode=False,
+    noret=False,
+    printToks=False,
+    printAST=False,
+    experimental=False,
+    safe=False,
+):
     print(f"Aardvark {version} \n[Python {python}]\n{sys.platform.upper()}")
     saved_scope = None
     input_history = []
@@ -309,15 +315,18 @@ def runLive(debugmode=False, noret=False, printToks=False, printAST=False, exper
         # multiline support
         openc = text.count("{") - text.count("}")
         while openc > 0:
-            newl, input_history = highlighted_input(
-                "... " + " " * openc * 2,
-                saved_scope if saved_scope else createGlobals(safe),
-                input_history,
-            )
+            if experimental:
+                newl, input_history = highlighted_input(
+                    "... " + " " * openc * 2,
+                    saved_scope if saved_scope else createGlobals(safe),
+                    input_history,
+                )
+            else:
+                newl = input("... " + " " * openc * 2)
             openc += newl.count("{") - newl.count("}")
             text += "\n" + newl
 
-        errorhandler = ErrorHandler(text, file, py_error=True)
+        # errorhandler = ErrorHandler(text, file, py_error=True)
 
         x = run(
             text,
@@ -325,7 +334,7 @@ def runLive(debugmode=False, noret=False, printToks=False, printAST=False, exper
             printToks,
             printAST,
             Global=saved_scope if saved_scope else None,
-            safe=safe
+            safe=safe,
         )
         if not noret:
             print(x["return"])
