@@ -213,7 +213,7 @@ class Executor:
             if file.is_dir():
                 file = file.joinpath(file.name + ".adk")
             if file.exists():
-                text = file.read_text()
+                text = file.read_text(encoding="utf-8")
                 break
             if i > len(locs) - 2:
                 raise ValueError(f"Could not find library or file {name}.")
@@ -702,7 +702,21 @@ class Executor:
                         return None
             case {"type": "IncludeStatement"}:
                 file = expr["lib_name"]
-                fscope = self.include(file)
+                try:
+                    fscope = self.include(file)
+                except ValueError:
+                    self.errorhandler.throw('Include', f'Could not find library or file {expr["lib_name"]}.', {
+                      'lineno': expr['positions']['start']['line'],
+                      'underline': {
+                        'start': expr['positions']['start']['col'],
+                        'end': expr['positions']['end']['line']
+                      },
+                      'marker': {
+                        'start': expr['tokens']['lib_name'].start['col'],
+                        'length': len(expr["lib_name"])
+                      },
+                      'traceback': self.traceback
+                    })
                 if expr["included"] == "ALL":
                     name = Path(expr["local_name"]).name.split(".")[0]
                     self.defineVar(name, fscope, scope)
