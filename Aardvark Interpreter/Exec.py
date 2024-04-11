@@ -598,6 +598,7 @@ class Executor:
                 casescope = Scope({}, parent=scope)
                 if expr["special"]:
                     self.defineVar(expr["special"], self.switch, casescope)
+                    scope._has_been_broken = True
                     return self.Exec(expr["body"], casescope)
                 elif expr["compare"]["type"] == "SPMObject":
                     compare, define = self.ExecExpr(expr["compare"], scope)
@@ -610,10 +611,12 @@ class Executor:
                         for i in define[d]:
                             value = value[i]
                         self.defineVar(d, value, casescope)
+                    scope._has_been_broken = True
                     return self.Exec(expr["body"], casescope)
                 else:
                     compare = self.ExecExpr(expr["compare"], scope)
                     if self.switch == compare:
+                        scope._has_been_broken = True
                         return self.Exec(expr["body"], casescope)
             case {"type": "Assignments"}:
                 for assignment in expr["assignments"]:
@@ -631,9 +634,11 @@ class Executor:
                     )
                 return value
             case {"type": "SwitchStatement"}:
-                switchscope = Scope({}, parent=scope)
+                switchscope = Scope({}, parent=scope, scope_type="match")
                 self.switch = self.ExecExpr(expr["value"], scope)
-                self.Exec(expr["body"], scope)
+                self.Exec(expr["body"], switchscope)
+                if getattr(self, "switch", False):
+                    del self.switch
             case {"type": "FunctionDefinition"}:
                 funct = self.makeFunct(expr, scope)
                 return funct

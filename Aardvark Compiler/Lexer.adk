@@ -136,17 +136,16 @@ class Lexer as this {
     this.curChar = this.data.(this.index)
     while this.index < this.data.length {
         # Operators
-        for op in Operators {
-            for i in op {
-                if i in NotIncluded & this.detect(op) {
-                    start = this.pos()
-                    this.advance(op.length - 1)
-                    this.addToken("Operator", start, this.pos(), op)
-                    this.advance()
-                    break
-                }
-            }
-        }
+        let Operators_array_sorted = Array(Operators)
+        Operators_array_sorted.sort(function (a, b) b.length - a.length)
+        for operator in Operators_array_sorted
+          if this.detect(operator) {
+            let start = this.pos()
+            this.advance(operator.length - 1)
+            this.addToken("Operator", start, this.pos(), operator)
+            this.advance()
+            break
+          }
 
         # Newlines (\n or ;)
       if this.isNewline() {

@@ -293,8 +293,8 @@ class String(str, Type):
             "slice": lambda start, end, step=1: String(
                 self[start : (end if end > 0 else len(value) + end) : step]
             ),
-            "startsWith": lambda prefix: self.startswith(x),
-            "endsWith": lambda suffix: self.endswith(x),
+            "startsWith": lambda prefix: self.startswith(prefix),
+            "endsWith": lambda suffix: self.endswith(suffix),
             "replace": lambda x, y="": self.replace(x, y),
             "contains": lambda x: x in self,
             "join": self.join,

@@ -697,9 +697,11 @@ class Parser:
                 if no_error and not self.compare("Delimiter", ","):
                     return False
                 else:
-                    self.eat(TokenTypes["Delimiter"], ",")
+                    self.eat("Delimiter", ",")
 
             self.eatLBs()
+            if self.compare("Delimiter", "}"):
+                break
 
             name = None
             name_pos = None
@@ -1380,7 +1382,7 @@ class Parser:
             compare = self.pSPMObject()
         elif self.compare("Operator", "$"):
             self.eat("Operator")
-            special = self.eat("Identifier")
+            special = self.eat("Identifier").value
         else:
             compare = self.pExpression()
         # ADD the case in y, case == 5 later
