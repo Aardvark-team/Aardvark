@@ -1,0 +1,12 @@
+include Errors
+from nlp include findClosest
+
+
+static class Scope as this {
+    let Object value
+    let Scope? parent
+    $constructor(initial={}, parent?) {
+        this.parent = parent
+        this.value = initial
+    }
+}

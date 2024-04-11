@@ -25,6 +25,7 @@ from Types import (
     _Undefined,
 )
 import importlib
+from bitarray import bitarray
 
 # from bitarray import bitarray
 from pathlib import Path
@@ -137,7 +138,7 @@ def createGlobals(safe=False):
             "File": File,
             "Object": Object,
             "Error": Types.Error,
-            #'BitArray': bitarray,
+            "Bits": bitarray,
             "link": LinkFunct,
             "exit": sys.exit,
             "keys": lambda x: Array(x.vars.keys()),
@@ -705,18 +706,22 @@ class Executor:
                 try:
                     fscope = self.include(file)
                 except ValueError:
-                    self.errorhandler.throw('Include', f'Could not find library or file {expr["lib_name"]}.', {
-                      'lineno': expr['positions']['start']['line'],
-                      'underline': {
-                        'start': expr['positions']['start']['col'],
-                        'end': expr['positions']['end']['line']
-                      },
-                      'marker': {
-                        'start': expr['tokens']['lib_name'].start['col'],
-                        'length': len(expr["lib_name"])
-                      },
-                      'traceback': self.traceback
-                    })
+                    self.errorhandler.throw(
+                        "Include",
+                        f'Could not find library or file {expr["lib_name"]}.',
+                        {
+                            "lineno": expr["positions"]["start"]["line"],
+                            "underline": {
+                                "start": expr["positions"]["start"]["col"],
+                                "end": expr["positions"]["end"]["line"],
+                            },
+                            "marker": {
+                                "start": expr["tokens"]["lib_name"].start["col"],
+                                "length": len(expr["lib_name"]),
+                            },
+                            "traceback": self.traceback,
+                        },
+                    )
                 if expr["included"] == "ALL":
                     name = Path(expr["local_name"]).name.split(".")[0]
                     self.defineVar(name, fscope, scope)

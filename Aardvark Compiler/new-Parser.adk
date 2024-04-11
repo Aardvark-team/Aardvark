@@ -561,7 +561,7 @@ static class Parser as this {
         return false
     }
     function is_valid_variable_definition(expression, accept=[], accept_operators=[]) {
-        let valid_operators = accept_operators
+        let valid_operators = accept_operators + ["?"]
         if expression == null | accept.contains(expression.type)
             return true
         else if ["VariableAccess", "PropertyAccess", "Array", "Object", "KeyValuePair"].contains(expression.type) | (expression.type == "Operator" & valid_operators.contains(expression.operator))
