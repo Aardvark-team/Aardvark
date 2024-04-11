@@ -919,6 +919,9 @@ class Parser:
                         var_name = self.eat("Identifier")
                     else:
                         var_name = temp
+                if self.compare("Operator", "?"):
+                    self.eat("Operator")
+                    is_optional = True
                 self.eatLBs()
                 if self.compare("Operator", "="):
                     self.eat("Operator")
@@ -936,6 +939,7 @@ class Parser:
                         "absorb": absorb,
                         "is_ref": is_ref,
                         "is_static": is_static,
+                        "is_optional": is_optional,
                         "positions": {
                             "start": (
                                 var_type["positions"]["start"]
