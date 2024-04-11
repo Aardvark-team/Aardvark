@@ -22,6 +22,6 @@
     },
     "enforced-style": {
         "require-manual-types": true,
-        "require-return-in-function": true
+        "require-function-return-type-annotation": true
     }
 }
