@@ -25,5 +25,7 @@ fg.rs = $"{ESC}[39m"
 bg.rs = $"{ESC}[49m"
 let clear = ESC + "[2J"
 
-# TODO: Add cursor control, clear screen
+# TODO: Add more style options, cursor control, clear screen
 # https://chat.openai.com/share/4cb9d592-2b7e-4d47-b75d-90f798c025b5
+# https://stackoverflow.com/questions/4842424/list-of-ansi-color-escape-sequences
+# https://notes.burke.libbey.me/ansi-escape-codes/

@@ -48,10 +48,10 @@ class Lexer as this {
   let Boolean empty
   let Boolean AtEnd
   let String curChar
-  let errorHandler # (null | ErrorHandler)
+  let error_handler # (null | ErrorHandler)
   let Boolean raw
 
-  $constructor(useIndents = false, tokenizeComments = false, errorHandler=null, raw=false) {
+  $constructor(useIndents = false, tokenizeComments = false, error_handler=null, raw=false) {
     this.useIndents = useIndents
     this.tokenizeComments = tokenizeComments
     this.data = ""
@@ -63,12 +63,12 @@ class Lexer as this {
     this.empty = true
     this.AtEnd = false
     this.curChar = ""
-    this.errorHandler = errorHandler
+    this.error_handler = error_handler
     this.raw = raw
   }
   function throwError(type, message, options={}, note="", kill=true) {
-    if this.errorHandler == null return false
-    else return this.errorHandler.Throw(type, message, options, note, kill)
+    if this.error_handler == null return false
+    else return this.error_handler.Throw(type, message, options, note, kill)
   }
 
   function isWhitespace(char)
