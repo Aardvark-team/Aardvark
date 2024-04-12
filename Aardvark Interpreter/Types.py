@@ -313,7 +313,7 @@ class String(str, Type):
         return self.lower()
 
     def get(self, name, default=None):
-        if type(name) == Number or name.isdigit():
+        if type(name) in [Number, int] or name.isdigit():
             index = int(name)
             if index >= len(self):
                 return default
@@ -604,7 +604,7 @@ class Array(Type, list):
         self.vars["length"] = len(self)
 
     def __setitem__(self, name, value):
-        if type(name) == Number or name.isdigit():
+        if type(name) in [Number, int] or name.isdigit():
             index = int(name)
             if index >= len(self.value):
                 return None
@@ -613,7 +613,7 @@ class Array(Type, list):
         return self.set(name, value)
 
     def get(self, name, default=None):
-        if type(name) == Number or name.isdigit():
+        if type(name) in [Number, int] or name.isdigit():
             index = int(name)
             if index >= len(self.value):
                 return default
