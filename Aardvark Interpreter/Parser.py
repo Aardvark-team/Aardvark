@@ -1517,9 +1517,16 @@ class Parser:
         assignments = []
         while True:
             is_static = False
+            is_private = False
             var_type = None
             var_name = None
             value = None
+            if self.compare("Keyword", "static"):
+                self.eat("Keyword")
+                is_static = True
+            if self.compare("Keyword", "private"):
+                self.eat("Keyword")
+                is_private = True
             if self.compare("Keyword", "static"):
                 self.eat("Keyword")
                 is_static = True
@@ -1532,8 +1539,12 @@ class Parser:
             else:
                 temp = self.eat("Identifier")
                 if self.compare("Identifier") or (
-                    self.peek(1) and self.peek(1).type == TokenTypes["Identifier"]
+                    self.peek()
+                    and self.peek(1).value == "?"
+                    and self.peek(1)
+                    and self.peek(1).type == TokenTypes["Identifier"]
                 ):
+                    print("FOUND TYPE", temp)
                     var_type = {
                         "type": "VariableAccess",
                         "value": temp.value,
@@ -1557,8 +1568,10 @@ class Parser:
                         "end": op.end,
                     },
                 }
+            print("EAT ID")
             if not var_name:
                 var_name = self.eat("Identifier")
+            print("made IT")
             # let static Number y = 9
             # let static [Number, String] = 7
             if self.compare("Operator", "="):
@@ -1567,6 +1580,7 @@ class Parser:
             assignments.append(
                 {
                     "is_static": is_static,
+                    "is_private": is_private,
                     "var_type": var_type,
                     "var_name": var_name.value,
                     "value": value,
