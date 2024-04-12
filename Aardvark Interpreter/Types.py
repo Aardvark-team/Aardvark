@@ -271,8 +271,8 @@ class _Null(Type):
     def __bool__(self):
         return False
 
-    def __call__(self):
-        return self
+    # def __call__(self):
+    #     return self
 
     def __eq__(self, other):
         return type(other) == _Null

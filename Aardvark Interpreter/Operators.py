@@ -477,3 +477,27 @@ def minusminus(x, y, errorhandler, line, expr, scope, exec):
     # Otherwise return the new value
     right = exec.ExecExpr(y, scope)
     return assign(y, right - 1, errorhandler, line, expr, scope, exec, True)
+
+
+@operator("@", left=False, right=True)
+def reference(x, y, errorhandler, line, expr, scope, exec):
+    if x:
+        return unexpectedOperand(x, errorhandler, line, expr)
+    errorhandler.throw(
+        "Unimplemented",
+        "The @ operator is not yet implemented.",
+        {
+            "lineno": expr["positions"]["start"]["line"],
+            "underline": {
+                "start": expr["positions"]["start"]["col"],
+                "end": expr["positions"]["end"]["col"],
+            },
+            "marker": {
+                "start": expr["positions"]["start"]["col"],
+                "length": expr["positions"]["end"]["col"]
+                - expr["positions"]["start"]["col"],
+            },
+            "traceback": exec.traceback,
+        },
+    )
+    return

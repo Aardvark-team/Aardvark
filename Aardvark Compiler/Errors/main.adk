@@ -3,7 +3,6 @@ include Highlight, styles from SyntaxHighlighter
 include format from ErrorFormatter
 include printError from OldErrors
 
-
 class ErrorHandler as this {
     $constructor(code, filename, silenced = false) {
         this.code = code
@@ -67,7 +66,6 @@ function ErrorType(t='error') match t {
     }
 }
 
-# type, pos, msg, didyoumean, traceback, code
 if is_main {
     stdout.write('Running...\n')
     printError(

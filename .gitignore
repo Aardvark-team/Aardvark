@@ -34,3 +34,6 @@ venv/bin/*
 **/replit.nix
 **/*.nix
 **/*.replit
+*/.DS_Store
+.DS_Store
+.vscode/*

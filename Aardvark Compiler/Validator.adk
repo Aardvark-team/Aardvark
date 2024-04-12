@@ -3,15 +3,7 @@ from nlp include findClosest
 
 # This file will validate the AST
 
-class Instruction as this {
-  $constructor(op, operands=[]) {
-    this.op = op
-    this.operands = operands
-  }
-  $string {
-    return $"{this.op} {' '.join()}"
-  }
-}
+
 class Scope as this {
   $constructor(initial={}, parent=null) {
     this.parent = parent

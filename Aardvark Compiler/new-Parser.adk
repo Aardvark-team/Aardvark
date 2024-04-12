@@ -538,10 +538,10 @@ static class Parser as this {
         }
     }
     function is_valid_type(expression, accept=[], accept_operators=[]) {
-        let valid_operators = accept_operators + ["|", "or"]
+        let valid_operators = Set(accept_operators + ["|", "or", "?"])
         if expression == null | accept.contains(expression.type)
             return true
-        else if ["VariableAccess", "PropertyAccess", "LayoutType", "Array"].contains(expression.type) | (expression.type == "Operator" & valid_operators.contains(expression.operator))
+        else if ["VariableAccess", "PropertyAccess", "LayoutType", "Array", "Object", "KeyValuePair"].contains(expression.type) | (expression.type == "Operator" & valid_operators.contains(expression.operator))
         match expression.type {
             case "VariableAccess"
                 return true
@@ -550,14 +550,18 @@ static class Parser as this {
             case "LayoutType"
                 return true
             case "Array"
-                return !expression.items.map(function (x) is_valid_type(x, [], ["..."])).contains(false)
+                return !expression.items.map(function (x) is_valid_type(x, [], Array(accept_operators)+["..."])).contains(false)
+            case "KeyValuePair"
+                return is_valid_type(expression.key)
+            case "Object"
+                return !expression.pairs.map(is_valid_type).contains(false)
             case "Operator"
                 return is_valid_type(expression.left) & is_valid_type(expression.right)
         }
         return false
     }
     function is_valid_variable_definition(expression, accept=[], accept_operators=[]) {
-        let valid_operators = accept_operators
+        let valid_operators = accept_operators + ["?"]
         if expression == null | accept.contains(expression.type)
             return true
         else if ["VariableAccess", "PropertyAccess", "Array", "Object", "KeyValuePair"].contains(expression.type) | (expression.type == "Operator" & valid_operators.contains(expression.operator))
@@ -825,8 +829,14 @@ static class Parser as this {
         }
     }
 }
+let parser_tests = {
+    "function_definition": "static function x(Number x, y, {a, b, c:d}, [a, b, c], this.y, ...args) -> Number {}",
+    "if_statement": "if x == 5 { x } else { y }",
+    "object_type": "let {Number x, String y} x",
+    "optional_type": "let String? x"
+}
 function test() {
-    let code = "static function x(Number x, y, {a, b, c:d}, [a, b, c], this.y, ...args) -> Number {}"
+    let code = parser_tests.optional_type
     # TODO: allow typed arrays in params: [String a, b, Number c]
     let error_handler = ErrorHandler(code, '<main>')
     let lexer = Lexer(false, false, error_handler)

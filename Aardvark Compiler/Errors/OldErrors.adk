@@ -80,3 +80,43 @@ function printError(type, pos, msg, didyoumean, traceback, code, color=fg(255, 3
     stderr.write(output)
     stderr.flush()
 }
+function ErrorType(t='error') match t {
+    case 'error' return {
+        color: fg(255, 30, 10),
+        symbol: "ⓧ"
+    }
+    case 'warning' return {
+        color: fg(235, 175, 10),
+        symbol: '⚠'
+    } 
+    case 'suggestion' return {
+        color: fg(10, 50, 255),
+        symbol: '❖'
+    }
+}
+
+# type, pos, msg, didyoumean, traceback, code
+if is_main {
+    stdout.write('Running...\n')
+    printError(
+        "SyntaxError",
+        {
+            linestart: 1,  # Line of the code's start
+            lineend: 3,  # Line of the code's end
+            lineno: 2,  # Line the error is on
+            filename: "main.adk",  # File the error is in.
+            marker: {start: 9, length: 6},
+            underline: {start: 1, end: 30}
+        },
+        '".write" is invalid. No object to get attribute of.',
+        'stdout.write("Hello World\\n")',
+        [
+            {"name": "this()", "line": 2, "col": 4, "filename": "main.adk"},
+            {"name": "is_an()", "line": 5, "col": 3, "filename": "other.adk"},
+            {"name": "example()", "line": 8, "col": 8, "filename": "test.adk"},
+        ],
+        '# print Hello World\nstdout|.write("Hello World\\n")\n#after',
+        note="Was this a typo?",
+        ...ErrorType('error')
+    )
+}

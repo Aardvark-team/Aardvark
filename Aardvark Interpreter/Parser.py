@@ -888,6 +888,7 @@ class Parser:
                 is_ref = False
                 is_static = False
                 var_default = None
+                is_optional = False
                 self.eatLBs()
                 if len(parameters) > 0:
                     self.eat(TokenTypes["Delimiter"], ",")
@@ -904,6 +905,9 @@ class Parser:
                 if self.compare("Delimiter", "["):
                     var_type = self.pArray()
                     var_name = self.eat("Identifier")
+                if self.compare("Delimiter", "("):
+                    var_type = self.pExpression(require=True)
+                    var_name = self.eat("Identifier")
                 else:
                     temp = self.eat("Identifier")
                     if self.compare("Identifier"):
@@ -915,6 +919,9 @@ class Parser:
                         var_name = self.eat("Identifier")
                     else:
                         var_name = temp
+                if self.compare("Operator", "?"):
+                    self.eat("Operator")
+                    is_optional = True
                 self.eatLBs()
                 if self.compare("Operator", "="):
                     self.eat("Operator")
@@ -932,6 +939,7 @@ class Parser:
                         "absorb": absorb,
                         "is_ref": is_ref,
                         "is_static": is_static,
+                        "is_optional": is_optional,
                         "positions": {
                             "start": (
                                 var_type["positions"]["start"]
@@ -1506,26 +1514,61 @@ class Parser:
 
     def pAssignment(self):
         letkw = self.eat("Keyword", "let")
-        # TODO: use a loop here to parse multiple assignments separated by commas.
         assignments = []
         while True:
             is_static = False
+            is_private = False
             var_type = None
             var_name = None
             value = None
             if self.compare("Keyword", "static"):
                 self.eat("Keyword")
                 is_static = True
+            if self.compare("Keyword", "private"):
+                self.eat("Keyword")
+                is_private = True
+            if self.compare("Keyword", "static"):
+                self.eat("Keyword")
+                is_static = True
             if self.compare("Delimiter", "["):
                 var_type = self.pArray()
-                var_name = self.eat("Identifier")
+            elif self.compare("Delimiter", "("):
+                var_type = self.pExpression(require=True)
+            elif self.compare("Delimiter", "{"):
+                var_type = self.pObject()
             else:
                 temp = self.eat("Identifier")
-                if self.compare("Identifier"):
-                    var_type = temp
-                    var_name = self.eat("Identifier")
+                if self.compare("Identifier") or (
+                    self.peek()
+                    and self.peek(1).value == "?"
+                    and self.peek(1)
+                    and self.peek(1).type == TokenTypes["Identifier"]
+                ):
+                    var_type = {
+                        "type": "VariableAccess",
+                        "value": temp.value,
+                        "positions": {"start": temp.start, "end": temp.end},
+                    }
                 else:
                     var_name = temp
+            if not var_name and self.compare("Identifier"):
+                var_name = self.eat("Identifier")
+            if self.compare("Operator", "?"):
+                op = self.eat("Operator", "?")
+                var_type = {
+                    "type": "Operator",
+                    "operator": "?",
+                    "left": var_type,
+                    "right": None,
+                    "positions": {
+                        "start": (
+                            var_type["positions"]["start"] if var_type else op.start
+                        ),
+                        "end": op.end,
+                    },
+                }
+            if not var_name:
+                var_name = self.eat("Identifier")
             # let static Number y = 9
             # let static [Number, String] = 7
             if self.compare("Operator", "="):
@@ -1534,6 +1577,7 @@ class Parser:
             assignments.append(
                 {
                     "is_static": is_static,
+                    "is_private": is_private,
                     "var_type": var_type,
                     "var_name": var_name.value,
                     "value": value,

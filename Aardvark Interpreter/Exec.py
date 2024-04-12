@@ -25,6 +25,7 @@ from Types import (
     _Undefined,
 )
 import importlib
+from bitarray import bitarray
 
 # from bitarray import bitarray
 from pathlib import Path
@@ -137,7 +138,7 @@ def createGlobals(safe=False):
             "File": File,
             "Object": Object,
             "Error": Types.Error,
-            #'BitArray': bitarray,
+            "Bits": bitarray,
             "link": LinkFunct,
             "exit": sys.exit,
             "keys": lambda x: Array(x.vars.keys()),
@@ -166,9 +167,17 @@ def createGlobals(safe=False):
 
 class Executor:
     def __init__(
-        self, path, code, ast, errorhandler, filestack={}, is_main=False, safe=False
+        self,
+        path,
+        code,
+        ast,
+        errorhandler,
+        filestack={},
+        is_main=False,
+        safe=False,
+        included_by=None,
     ):
-        self.path = path
+        self.path = Path(path)
         self.code = code
         self.codelines = code.split("\n")
         self.ast = ast
@@ -176,6 +185,8 @@ class Executor:
         self.switch = None
         self.filestack = filestack
         self.Global = createGlobals(safe)
+        self.included_by = included_by
+        self.safe = safe
         if not safe:
 
             def adk_open(path, *args, **kwargs):
@@ -189,14 +200,14 @@ class Executor:
         self.Global["include"] = self.include
         self.Global["is_main"] = is_main
         self.errorhandler = errorhandler
-        self.filestack[self.path] = self.Global
+        self.filestack[str(self.path)] = self.Global
 
     def include(self, name):
         locs = []
         path = Path(Path(self.path).parent, name).resolve()
         locs.append(str(path))
         locs.append(str(path) + ".adk")
-        # allow importing folders that contain an index.adk
+        # allow importing folders that contain an main.adk
         locs.append(os.path.join(str(path), "index.adk"))
         locs.append(os.path.join(str(path), "main.adk"))
 
@@ -217,32 +228,30 @@ class Executor:
                 break
             if i > len(locs) - 2:
                 raise ValueError(f"Could not find library or file {name}.")
-                break
-                # self.errorhandler.throw('Include', f'Could not find library or file {name}.', {
-                #   'lineno': expr['positions']['start']['line'],
-                #   'underline': {
-                #     'start': expr['positions']['start']['col'],
-                #     'end': expr['positions']['end']['line']
-                #   },
-                #   'marker': {
-                #     'start': expr['tokens']['lib_name'].start['col'],
-                #     'length': len(name)
-                #   },
-                #   'traceback': self.traceback
-                # })
             i += 1
-        if file in self.filestack:
-            return self.filestack[file]
+        file.resolve()
+        # print(f"{self.path.name} included {file.name}")
+        if str(file) in self.filestack:
+            return self.filestack[str(file)]
         errorhandler = Error.ErrorHandler(text, file, py_error=True)
         lexer = Lexer.Lexer("#", "#*", "*#", errorhandler, False)
         toks = lexer.tokenize(text)
         parser = Parser.Parser(errorhandler, lexer)
         ast = parser.parse()
         executor = Executor(
-            file, text, ast["body"], errorhandler, filestack=self.filestack
+            file,
+            text,
+            ast["body"],
+            errorhandler,
+            filestack=self.filestack,
+            safe=self.safe,
+            included_by=self,
         )
         executor.run()
-        self.filestack[file] = executor.Global
+        self.filestack[str(file)] = executor.Global
+        # if file.name.split(".")[0] == "SyntaxHighlighter":
+        #     if self.filestack[str(file)]["Highlight"] == None:
+        #         print(self.included_by)
         return executor.Global
 
     def defineVar(self, name, value, scope, is_static=False, expr=None):
@@ -500,6 +509,7 @@ class Executor:
                         "&",
                         "or",
                         "and",
+                        "@",
                     ]:
                         left = expr["left"]
                         right = expr["right"]
@@ -705,18 +715,22 @@ class Executor:
                 try:
                     fscope = self.include(file)
                 except ValueError:
-                    self.errorhandler.throw('Include', f'Could not find library or file {expr["lib_name"]}.', {
-                      'lineno': expr['positions']['start']['line'],
-                      'underline': {
-                        'start': expr['positions']['start']['col'],
-                        'end': expr['positions']['end']['line']
-                      },
-                      'marker': {
-                        'start': expr['tokens']['lib_name'].start['col'],
-                        'length': len(expr["lib_name"])
-                      },
-                      'traceback': self.traceback
-                    })
+                    self.errorhandler.throw(
+                        "Include",
+                        f'Could not find library or file {expr["lib_name"]}.',
+                        {
+                            "lineno": expr["positions"]["start"]["line"],
+                            "underline": {
+                                "start": expr["positions"]["start"]["col"],
+                                "end": expr["positions"]["end"]["line"],
+                            },
+                            "marker": {
+                                "start": expr["tokens"]["lib_name"].start["col"],
+                                "length": len(expr["lib_name"]),
+                            },
+                            "traceback": self.traceback,
+                        },
+                    )
                 if expr["included"] == "ALL":
                     name = Path(expr["local_name"]).name.split(".")[0]
                     self.defineVar(name, fscope, scope)
