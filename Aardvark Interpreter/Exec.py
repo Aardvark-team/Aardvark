@@ -175,7 +175,7 @@ class Executor:
         path: str,
         code: str,
         ast,
-        errorhandler: ErrorHandler,
+        errorhandler: "ErrorHandler",
         filestack={},
         is_main=False,
         safe=False,
@@ -895,7 +895,7 @@ class Executor:
         return self.Exec(self.ast, self.Global)
 
 
-def notImplemented(errorhandler: ErrorHandler, item, expr):
+def notImplemented(errorhandler: "ErrorHandler", item, expr):
     start = expr["positions"]["start"]
     end = expr["positions"]["end"]
     errorhandler.throw(
