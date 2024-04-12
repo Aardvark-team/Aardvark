@@ -104,6 +104,11 @@ def createGlobals(safe=False):
                 if type(obj) == Object and getattr(obj, "_class", False)
                 else type(obj).__name__
             ),
+            "type_of": lambda obj: (
+                obj._class.name
+                if type(obj) == Object and getattr(obj, "_class", False)
+                else type(obj).__name__
+            ),
             "keys": lambda x: list(x.getAll().keys()),
             "dir": lambda x=None: x.getAll() if x else Globals.vars,
             "sort": lambda iterable, reverse=False, key=(lambda x: x): sorted(
