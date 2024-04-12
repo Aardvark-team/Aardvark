@@ -27,10 +27,18 @@ from Types import (
 import importlib
 from bitarray import bitarray
 
+
 # from bitarray import bitarray
 from pathlib import Path
 from Utils import prettify_ast
 import os
+
+
+class AardvarkArgumentError(ValueError):
+    def __init__(self, message, *args) -> None:
+        super().__init__(message, *args)
+        self.message = message
+
 
 searchDirs = [
     os.environ["AARDVARK_INSTALL"] + "/lib/",
@@ -298,7 +306,8 @@ class Executor:
                 if i > len(args) - 1 and param["name"] in kwargs:
                     arg = kwargs[param["name"]]
                 elif param["name"] in kwargs:
-                    raise ValueError(
+                    arg = kwargs[param["name"]]
+                    raise AardvarkArgumentError(
                         "Cannot receive positional argument and keyword argument for the same parameter!!"
                     )
                 elif i < len(args):
@@ -474,10 +483,29 @@ class Executor:
                             args = [*args, *arg]
                     else:
                         args.append(self.ExecExpr(arg, scope))
-                ret = funct(
-                    *args,
-                    **kwargs,
-                )
+                try:
+                    ret = funct(
+                        *args,
+                        **kwargs,
+                    )
+                except AardvarkArgumentError as e:
+                    self.errorhandler.throw(
+                        "Argument",
+                        e.message,
+                        {
+                            "traceback": self.traceback,
+                            "lineno": expr["positions"]["start"]["line"],
+                            "marker": {
+                                "start": expr["positions"]["start"]["col"],
+                                "length": expr["positions"]["end"]["col"]
+                                - expr["positions"]["start"]["col"],
+                            },
+                            "underline": {
+                                "start": expr["positions"]["start"]["col"],
+                                "end": expr["positions"]["end"]["col"],
+                            },
+                        },
+                    )
                 self.traceback = self.traceback[:-1]
                 return ret
             case {"type": "Operator", "operator": "?"}:
