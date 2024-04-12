@@ -21,7 +21,9 @@
         "max-line-length": 120
     },
     "enforced-style": {
-        "require-manual-types": true,
-        "require-function-return-type-annotation": true
+        "require-type-annotations": true,
+        "require-function-return-type-annotation": true,
+        "force-pure-functions": false,
+        "allow-embeds": false
     }
 }

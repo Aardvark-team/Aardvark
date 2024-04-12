@@ -1,0 +1,82 @@
+## TODO!!!!
+
+# https://chat.openai.com/share/4cb9d592-2b7e-4d47-b75d-90f798c025b5
+# https://stackoverflow.com/questions/4842424/list-of-ansi-color-escape-sequences
+# https://notes.burke.libbey.me/ansi-escape-codes/
+
+class Four_Bit_Color as this {
+    let colors = {
+        "black": 0,
+        "red": 1,
+        "green": 2,
+        "yellow": 3,
+        "blue": 4,
+        "magenta": 5,
+        "cyan": 6,
+        "white": 7,
+        "default": 9
+    }
+    let bright = false
+    let color = 9
+    $constructor(color, bright) {
+        this.bright = bright
+        if typeof(color) == String {
+            color = this.colors.(color)
+        }
+        this.color = color
+    }
+    function foreground() {
+        return this.colors.(this.color) + (90 if this.bright else 30)
+    }
+    function background() {
+        return this.colors.(this.color) + (100 if this.bright else 40)
+    }
+}
+class Eight_Bit_Color as this {
+    function from_rgb(RGB_Color color) {
+        let red = RGB_Color.red
+        let green = RGB_Color.green
+        let blue = RGB_Color.blue
+
+        # Grey scale colors
+        if red == green & green == blue {
+            # Black
+            if red == 0
+                return 0
+            else if red < 8
+                return 16
+
+            # White
+            if red == 255
+                return 15
+            else if red > 248
+                return 231
+            # Other Grey scale
+            return Math.round(((r - 8) / 247) * 24) + 232
+        }
+        # All other colors
+        return 16
+        + (36 * Math.round(red / 255 * 5))
+        + (6 * Math.round(green / 255 * 5))
+        + Math.round(blue / 255 * 5);
+    }
+}
+class RGB_Color as this {
+    let red = 0
+    let green = 0
+    let blue = 0
+    $constructor(red, green, blue) {
+        this.red = red
+        this.green = green
+        this.blue = blue
+    }
+    function foreground() {
+        return $"38;2;{this.red};{this.green};{this.blue}"
+    }
+    function background() {
+        return $"48;2;{this.red};{this.green};{this.blue}"
+    }
+}
+class Color as this {
+
+}

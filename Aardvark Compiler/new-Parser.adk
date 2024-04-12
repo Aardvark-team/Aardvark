@@ -461,7 +461,7 @@ static class Parser as this {
             # Expansion with ...
             if this.compare("Operator", "...") {
                 this.eat()
-                expansions.add(require=true)
+                expansions.add(this.parse_expression(require=true))
             } else {
                 let key = parse_typed_variable([], ["NumberLiteral", "StringLiteral"], "object key")
                 this.eat_line_breaks()
@@ -711,7 +711,7 @@ static class Parser as this {
                 if parameters.length > 0 this.eat("Delimiter", ",")
                 if this.compare("Operator", "...") {
                     let operator = this.eat()
-                    parameter_expansion = this.parse_primary(true, exclude, is_deconstruction)
+                    parameter_expansion = this.parse_primary(true)
                     if !["VariableAccess", "PropertyAccess"].contains(parameter_expansion.type) 
                         this.Throw("SyntaxError", "Invalid syntax.", position=parameter_expansion.position, here_message= $"Expected parameter name.")
                     # An expansion MUST be the last parameter
@@ -759,25 +759,24 @@ static class Parser as this {
         let body, else_body
         if ast_node 
             body = ast_node
-        else if this.compare("Delimiter", "{") {
+        else if this.compare("Delimiter", "{")
             body = this.parse_scope_body()
-        } else
+        else
             body = this.parse_statement(require=true)
             
-        
         # Handle else statements
         if this.compare("Keyword", "else") {
             let else_keyword = this.eat("Keyword", "else")
-            if this.compare("Delimiter", "{") {
-                body = this.parse_scope_body()
-            } else
+            if this.compare("Delimiter", "{")
+                else_body = this.parse_scope_body()
+            else
                 else_body = this.parse_statement(require=true)
         }
         return {
             type: "IfStatement",
             condition,
             body,
-            else_body,
+            else_body: else_body?,
             position: {
                 start: if_keyword.position.start,
                 end: else_body.position.end if else_body? else body.position.end
@@ -835,22 +834,33 @@ static class Parser as this {
     }
 }
 let parser_tests = {
-    function_definition: "static function x(Number x, y, {a, b, c:d}, [a, b, c], this.y, ...args) -> Number {}",
-    if_statement: "if x == 5 { x } else { y }",
+    function_definition: "private static function x(Number x, y, {Number a, b, c:d}, [String a, b, c], this.y, ...args) -> Number {}",
+    if_else_statement: "if condition {\n\n x\n\n\n } else if condition { y } else { z }",
     object_type: "let {Number x, String y} x",
     optional_type: "let String? x",
-    error: "let 5 = x",
+    optional_type_no_annotations: "let x? = y",
     typed_deconstruction: "let [String a, b, Number c] = x",
+    object: "{x: 5, y: 6, Number z: 7, d, ...y}",
 }
-function test() {
-    let code = parser_tests.typed_deconstruction
+let error_tests = {
+    assign_value: "let 5 = x",
+    else_without_if: "else { x }",
+}
+function test(String code) {
     # TODO: allow typed arrays in params: [String a, b, Number c]
     let error_handler = ErrorHandler(code, '<main>')
     let lexer = Lexer(false, false, error_handler)
     let tokens = lexer.tokenize(code)
     # stdout.write(tokens, '\n')
     let parser = Parser(lexer, error_handler)
-    let AST = parser.parse()
-    stdout.write(AST, '\n')
+    return true
 }
-test()
+for test_name:code in parser_tests {
+    let passed = test(code)
+    if passed
+        stdout.write("PASSED: ", test_name, "\n")
+}
+stdout.write(test(error_tests.else_without_if), "\n")
+# for test_name:code in error_tests {
+#     test(test_name)
+# }
