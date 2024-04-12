@@ -1,0 +1,11 @@
+class MyNumber as this {
+    $constructor(value) {
+        this.value = value
+    }
+}
+
+extending +(MyNumber first, MyNumber second) {
+    return first.value + second.value
+}
+
+stdout.write(MyNumber(20) + MyNumber(30))

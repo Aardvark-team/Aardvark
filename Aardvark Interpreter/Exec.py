@@ -54,6 +54,7 @@ searchDirs = [
 
 current_dir = os.getcwd()
 
+adk_overloaded_classes = {}
 
 def mergeObjects(*args):
     vars = args[0].vars.copy()
@@ -553,6 +554,12 @@ class Executor:
                     else:
                         left = self.ExecExpr(expr["left"], scope)
                         right = self.ExecExpr(expr["right"], scope)
+
+                    if isinstance(left, Types.Object) and left._class:
+                        if overloads := adk_overloaded_classes.get(id(left._class)):
+                            if operator in overloads:
+                                return overloads[operator](left, right)
+
                     try:
                         return pyToAdk(
                             op(
@@ -829,8 +836,42 @@ class Executor:
                             catchscope[expr["catchvar"]] = error
                         self.Exec(expr["catchbody"], catchscope)
                 sys.stderr = stderr
-            # case {'type': 'ExtendingStatement'}:
-            #   pass
+            case {'type': 'ExtendingStatement', 'kind': 'operator'}:
+                ext_type, ext_name = expr["params"][0]
+                other_name = expr["params"][1][1]
+
+                to_overload = self.getVar(scope, ext_type.value, message=f"Cannot overload undeclared type '{ext_type.value}'")
+
+                if not isinstance(to_overload, Types.Class):
+                    self.errorhandler.throw("Exec", "Cannot overload non-class types", {
+                        "lineno": expr["positions"]["start"]["line"],
+                        "underline": {
+                            "start": expr["positions"]["start"]["col"],
+                            "end": expr["positions"]["end"]["col"],
+                        },
+                        "marker": {
+                            "start": expr["positions"]["start"]["col"],
+                            "length": expr["positions"]["end"]["col"]
+                            - expr["positions"]["start"]["col"]
+                            + 1,
+                        },
+                        "traceback": self.traceback,
+                    },)
+
+                def execute_inner(param1, param2):
+                    exec_scope = Scope({}, parent=scope, scope_type="function")
+                    exec_scope.set(ext_name.value, param1)
+                    exec_scope.set(other_name.value, param2)
+
+                    ret = self.Exec(expr["body"], exec_scope)
+                    
+                    if not exec_scope._returned_value:
+                        exec_scope._returned_value = ret
+                    
+                    return exec_scope._returned_value
+
+                adk_overloaded_classes[id(to_overload)] = adk_overloaded_classes.get(id(to_overload), {})
+                adk_overloaded_classes[id(to_overload)][expr["operator"]] = execute_inner
             case {"type": "BreakStatement"}:
                 success = scope.complete("loop")
                 if not success:

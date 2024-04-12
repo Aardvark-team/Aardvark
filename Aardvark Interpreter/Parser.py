@@ -1013,24 +1013,55 @@ class Parser:
     #    extending Object
     def pExtendingStatement(self):
         starter = self.eat("Keyword", "extending")
-        obj_name = self.eat("Identifier")
 
-        if self.compare("Delimiter", "{"):
-            obj = self.pObject()
-        elif self.compare("Delimiter", "["):
-            obj = self.pArray()
-        elif self.compare("Identifier", "set"):
-            self.eat("Identifier")
-            obj = self.pSet(self.peek())
-        else:
-            raise Exception(
-                "Syntax error: Unexpected token " + str(self.peek().type).upper()
-            )
+        if not self.compare("Operator"):
+            obj_name = self.eat("Identifier")
+
+            if self.compare("Delimiter", "{"):
+                obj = self.pObject()
+            elif self.compare("Delimiter", "["):
+                obj = self.pArray()
+            elif self.compare("Identifier", "set"):
+                self.eat("Identifier")
+                obj = self.pSet(self.peek())
+            else:
+                raise Exception(
+                    "Syntax error: Unexpected token " + str(self.peek().type).upper()
+                )
+            return {
+                "type": "ExtendingStatement",
+                "kind": "name",
+                "name": obj_name.value,
+                "object": obj,
+                "positions": {"start": starter.start, "end": obj["positions"]["end"]},
+            }
+        
+        operator = self.eat("Operator")
+        params = []
+
+        self.eat("Delimiter", "(")
+        params.append((self.eat("Identifier"), self.eat("Identifier")))
+        self.eat("Delimiter", ",")
+
+        second_type = None
+        if self.compare("Identifier") and self.peek(1).type == TokenTypes["Identifier"]:
+            second_type = self.eat("Identifier")
+        
+        params.append((second_type, self.eat("Identifier")))
+        self.eat("Delimiter", ")")
+        
+        body, end = self.eatBlockScope()
+
         return {
             "type": "ExtendingStatement",
-            "name": obj_name.value,
-            "object": obj,
-            "positions": {"start": starter.start, "end": obj["positions"]["end"]},
+            "kind": "operator",
+            "operator": operator.value,
+            "params": params,
+            "body": body,
+            "positions": {
+                "start": operator.start,
+                "end": end
+            }
         }
 
     # ReturnStatement:
