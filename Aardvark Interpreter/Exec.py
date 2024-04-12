@@ -26,6 +26,10 @@ from Types import (
 )
 import importlib
 from bitarray import bitarray
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from Error import ErrorHandler
 
 
 # from bitarray import bitarray
@@ -74,7 +78,7 @@ def LinkFunct(start, link="next", reverse=False):
     return l
 
 
-def get_call_scope(scope):
+def get_call_scope(scope: Scope):
     call_scope = ["scope " + str(id(scope))]
     if scope.parent:
         call_scope += get_call_scope(scope.parent)
@@ -181,10 +185,10 @@ def createGlobals(safe=False):
 class Executor:
     def __init__(
         self,
-        path,
-        code,
+        path: str,
+        code: str,
         ast,
-        errorhandler,
+        errorhandler: ErrorHandler,
         filestack={},
         is_main=False,
         safe=False,
@@ -295,7 +299,7 @@ class Executor:
             scope[name] = pyToAdk(value)
             scope[name].is_static = is_static
 
-    def makeFunct(self, expr, parent):
+    def makeFunct(self, expr, parent: Scope):
         special = expr["special"]
         name = "$" + expr["name"] if special else expr["name"]
         params = expr["parameters"]
@@ -336,8 +340,8 @@ class Executor:
 
     def getVar(
         self,
-        scope,
-        varname,
+        scope: Scope,
+        varname: str,
         start=None,
         error=True,
         message='Undefined variable "{name}".',
@@ -395,7 +399,7 @@ class Executor:
             )
         return Null
 
-    def enterScope(self, var, scope, main):
+    def enterScope(self, var, scope: Scope, main):
         match var:
             case {"type": "PropertyAccess"}:
                 property = self.ExecExpr(var["property"], main)
@@ -924,7 +928,7 @@ class Executor:
         return self.Exec(self.ast, self.Global)
 
 
-def notImplemented(errorhandler, item, expr):
+def notImplemented(errorhandler: ErrorHandler, item, expr):
     start = expr["positions"]["start"]
     end = expr["positions"]["end"]
     errorhandler.throw(
@@ -941,7 +945,7 @@ def notImplemented(errorhandler, item, expr):
     )
 
 
-def findClosest(var, scope):
+def findClosest(var: str, scope: Scope):
     lowest = 9999999999999999
     ret = "<identifier>"
     for item in list(scope.getAll().keys()):

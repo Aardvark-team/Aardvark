@@ -239,7 +239,7 @@ def print_error(
 
 
 class ErrorHandler:
-    def __init__(self, code, filename, py_error=False, silenced=False, mode="Error"):
+    def __init__(self, code: str, filename: str, py_error=False, silenced=False, mode="Error"):
         self.code = code
         self.codelines = code.split("\n")
         self.filename = filename
@@ -247,7 +247,7 @@ class ErrorHandler:
         self.silenced = silenced
         self.mode = mode
 
-    def throw(self, type, message, options={}):
+    def throw(self, type: str, message: str, options={}):
         if self.silenced:
             return
         options["filename"] = self.filename

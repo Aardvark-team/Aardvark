@@ -158,7 +158,7 @@ class Object(Type):
 
 
 class Scope(Object):
-    def __init__(self, vars, parent=None, scope_type=None):
+    def __init__(self, vars, parent: "Scope" | None = None, scope_type=None):
         self.vars = vars
         self.parent = parent or None
         self._index = 0  # for next() implementation.
