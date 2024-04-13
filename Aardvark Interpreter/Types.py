@@ -585,7 +585,7 @@ class Array(Type, list):
         self._remove(other)
 
     def __str__(self):
-        return f"[{', '.join([str(val) if type(val) != str else f'"{val}"' for val in self.value])}]"
+        return "[" + ', '.join([str(val) if type(val) != str else f'"{val}"' for val in self.value]) + "]"
 
     def __repr__(self):
         return str(self)
