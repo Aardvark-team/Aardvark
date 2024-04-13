@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 from Run import *
 import sys
-
+import os
+import subprocess
 
 if __name__ == "__main__":
     import ArgumentParser
@@ -16,6 +17,7 @@ if __name__ == "__main__":
     argp.switch("e", "Use experimental repl.")
     argp.switch("safe", "Use safe mode.")
     argp.switch("help", "Displays the help menu.")
+    argp.switch("canary", "Install the canary version of aardvark.")
 
     @argp.command()
     def main(ctx):
@@ -79,6 +81,25 @@ if __name__ == "__main__":
             print(f'ERROR: "{dirloc}" not found.')
         else:
             shutil.copytree(dirloc, searchDirs[0] + dir)
+
+    @argp.command("upgrade", "Upgrade aardvark")
+    def upgrade_command(ctx):
+        adk_folder = os.environ["AARDVARK_INSTALL"]
+
+        if ctx.getSwitch("canary"):
+            commmands = [
+                "git init",
+                "git remote add origin https://github.com/Aardvark-team/Aardvark/",
+                "git fetch origin",
+                "git reset --hard origin/main"
+            ]
+
+            for command in commmands:
+                subprocess.run(command, cwd=adk_folder, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+            print(fg.green + "Updated aardvark successfully!" + fg.rs)
+        else:
+            print(fg.red + "This installer can only download Aardvark canary for now." + fg.rs)
 
     @argp.command("[file]", "Default action if only a file is passed.")
     def run_file(ctx):
