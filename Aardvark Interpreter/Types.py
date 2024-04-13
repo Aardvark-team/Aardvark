@@ -77,6 +77,8 @@ class Object(Type):
         self._class = _class
         self.name = name
         self.vars = {}
+        self.getters = {}
+        self.setters = {}
         for i in inherit:
             self.vars[i] = pyToAdk(inherit[i])
         self._call = call
@@ -100,10 +102,22 @@ class Object(Type):
         # etc... Add later TODO
         self._index = 0
 
+    def define_getter(self, name: str, getter):
+        self.getters[name] = getter
+
+    def define_setter(self, name: str, setter):
+        self.setters[name] = setter
+
     def set(self, name, value):
-        self.vars[name] = value
+        if name in self.getters:
+            self.setters[name](value)
+        else:
+            self.vars[name] = value
 
     def get(self, name, default=None):
+        if name in self.getters:
+            return self.getters[name]()
+
         return self.vars.get(name, default)
 
     def __call__(self, *args, **kwargs):
@@ -169,6 +183,12 @@ class Scope(Object):
         self._completed = False
         self._scope_type = scope_type
         self.returnActions = []
+
+    def define_getter(self, name: str, getter):
+        pass
+
+    def define_setter(self, name: str, setter):
+        pass
 
     def set(self, name, value):
         self.vars[name] = value
@@ -752,6 +772,8 @@ class Class(Type):
         self.parent = parent
         self._as = AS
         self.vars = {}
+        self.getters = {}
+        self.setters = {}
         self.extends = extends
         # Just to make it act like a scope
         self._returned_value = Null
@@ -767,6 +789,12 @@ class Class(Type):
         if self._as:
             self.vars[self._as] = self
         build(self)
+
+    def define_getter(self, name, getter):
+        self.getters[name] = getter
+
+    def define_setter(self, name, setter):
+        self.setters[name] = setter
 
     def childstr(self):
         return f"<instance of {self.name}>"
@@ -791,6 +819,10 @@ class Class(Type):
             scope[self._as] = scope
         self.build(scope)
         obj.vars = scope.vars
+        for name, getter in self.getters.items():
+            obj.define_getter(name, getter)
+        for name, setter in self.setters.items():
+            obj.define_setter(name, setter)
         obj._call = obj.vars.get("$call")
         obj._setitem = obj.vars.get("$setitem")
         obj._getitem = obj.vars.get("$getitem")

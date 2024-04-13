@@ -273,7 +273,9 @@ class Executor:
         return executor.Global
 
     def defineVar(self, name, value, scope, is_static=False, expr=None):
-        if name in scope.getAll() and name not in list(scope.vars.keys()):
+        if type(scope) == Types.Object and name in scope.setters:
+            scope.setters[name](value)
+        elif name in scope.getAll() and name not in list(scope.vars.keys()):
             self.defineVar(name, value, scope.parent)
         elif (
             name in list(scope.vars.keys())
@@ -707,6 +709,18 @@ class Executor:
                 if expr["name"]:
                     self.defineVar(expr["name"], classcope, scope)
                 return classcope
+            case {"type": "GetterSetterDefinition", "kind": "getter"}:
+                prop_name = expr["function"]["name"]
+                expr["function"]["name"] = None
+                expr["function"]["special"] = False
+
+                scope.define_getter(prop_name, self.makeFunct(expr["function"], scope))
+            case {"type": "GetterSetterDefinition", "kind": "setter"}:
+                prop_name = expr["function"]["name"]
+                expr["function"]["name"] = None
+                expr["function"]["special"] = False
+
+                scope.define_setter(prop_name, self.makeFunct(expr["function"], scope))
             case {"type": "DeferStatement"}:
                 scope.addReturnAction(lambda: self.ExecExpr(expr["value"], scope))
             case {"type": "ReturnStatement"}:

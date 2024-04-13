@@ -156,6 +156,8 @@ Keywords = {
     "pause-until",
     "let",
     "static",
+    "get",
+    "set"
 }
 
 # https://replit.com/@Programit/Redesign

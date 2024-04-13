@@ -1,0 +1,13 @@
+class Foo {
+    get bar() {
+        stdout.write("getter called\n")
+        return 10
+    }
+
+    set bar(value) {
+        stdout.write($"tried to set bar to {value}\n")
+    }
+}
+
+stdout.write($"getter returned: {Foo().bar}\n")
+Foo().bar = 123
