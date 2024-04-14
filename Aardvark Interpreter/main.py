@@ -117,7 +117,7 @@ if __name__ == "__main__":
             tags.reverse()
             tags.insert(0, "canary")
 
-            last_char = ""
+            last_chars = []
             position = 0
             count = 2
             last_tag_count = 0
@@ -146,7 +146,9 @@ if __name__ == "__main__":
                 last_tag_count = len(curr_tags)
                 key = getch()
 
-                if key == b'\x03' or key == b'\x1B':
+                if type(key) == str: key = key.encode("utf-8")
+
+                if key == b'\x03':
                     print(fg.red + "Cancelled." + fg.rs)
                     break
 
@@ -161,13 +163,22 @@ if __name__ == "__main__":
                     print(fg.green + f"Updated to aardvark {target} successfully!" + fg.rs)
                     break
 
-                if last_char == b'\x00' and key == b'P':
-                    position += 1
+                if len(last_chars) > 0 and last_chars[0] in [b'\x00', b'\xe0']:
+                    if key == b'P':
+                        position += 1
 
-                if last_char == b'\x00' and key == b'H':
-                    position -= 1
+                    if key == b'H':
+                        position -= 1
 
-                last_char = key
+                if len(last_chars) >= 2 and last_chars[0] == b'[' and last_chars[1] == b'\x1B':
+                    if key == b'B':
+                        position += 1
+
+                    if key == b'A':
+                        position -= 1
+
+                last_chars.insert(0, key)
+                if len(last_chars) > 5: last_chars.pop(len(last_chars) - 1)
         else:
             commmands = [
                 "git init",
