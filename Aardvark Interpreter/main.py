@@ -95,7 +95,7 @@ if __name__ == "__main__":
             ]
 
             for command in commmands:
-                subprocess.run(command, cwd=adk_folder, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                subprocess.run(command, cwd=adk_folder, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
             print(fg.green + "Updated aardvark successfully!" + fg.rs)
         else:
