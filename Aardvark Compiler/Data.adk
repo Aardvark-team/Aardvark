@@ -119,7 +119,9 @@ let Keywords = set{
     "layout",
     "break",
     "continue",
-    "private"
+    "private",
+    "set",
+    "get"
 }
 let BaseNumsOrder = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVQXYZ"
 let Quotes = set{'"', "'", "`"}

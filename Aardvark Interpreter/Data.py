@@ -157,7 +157,7 @@ Keywords = {
     "let",
     "static",
     "get",
-    "set"
+    "set",
 }
 
 # https://replit.com/@Programit/Redesign
