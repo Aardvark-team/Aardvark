@@ -232,6 +232,9 @@ class Executor:
                 locs.append(os.path.join(current_dir, dir, name) + ".adk")
                 locs.append(dir + name)
                 locs.append(dir + name + ".adk")
+                locs.append(os.path.join(current_dir, dir, name, "index.adk"))
+                locs.append(os.path.join(current_dir, dir, name, "main.adk"))
+
         i = 0
         text = None
         while True:
