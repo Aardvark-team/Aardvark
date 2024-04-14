@@ -245,7 +245,7 @@ class Executor:
                 raise ValueError(f"Could not find library or file {name}.")
             i += 1
         file.resolve()
-        print(f"{self.path.name} included {file}")
+        # print(f"{self.path.name} included {file}")
         if str(file) in self.filestack:
             return self.filestack[str(file)]
         errorhandler = Error.ErrorHandler(text, file, py_error=True)
