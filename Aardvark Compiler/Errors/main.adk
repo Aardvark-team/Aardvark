@@ -3,14 +3,42 @@ include Highlight, styles from SyntaxHighlighter
 include format from ErrorFormatter
 include printError from OldErrors
 
+
+class ADK_Error as this {
+  $constructor(handler, options) {
+    this.options = options
+    this.message = options.message?
+    this.error_type = options.error_type?
+    this.error = format(
+        handler.highlighted_code_lines, 
+        options.message?"This isn't valid.", 
+        options.error_type?"SyntaxError", 
+        options.filename?"<main>", 
+        options.location, 
+        options.markers?[], 
+        options.color?fg(255, 30, 10), 
+        options.symbol?'ⓧ'
+    )
+  }
+  function Throw(kill=false) {
+    stdout.flush()
+    stderr.flush()
+    stderr.write(this.error)
+    stderr.flush()
+    exit(1) if kill
+  }
+}
+
 class ErrorHandler as this {
     $constructor(code, filename, silenced = false) {
         this.code = code
         this.codelines = code.split("\n")
+        this.highlighted_code_lines = Highlight(this.code, {
+            linenums: false
+        }).split("\n")
         this.filename = filename
         this.silenced = silenced
     }
-
 
     function Throw(type, message, options = {}, note="", kill=true) {
         # uppercase throw to not conflict with throw keyword
@@ -32,11 +60,11 @@ class ErrorHandler as this {
         )
         exit(1) if kill
     }
+    function create(options) {
+        return ADK_Error(this, options)
+    }
     function ThrowNew(options, kill) {
-        # TODO: finalize arguments here before changing everything.
-        let error = format(Highlight(this.code, {
-            linenums: false
-        }).split("\n"), options.message?"This isn't valid.", options.error_type?"SyntaxError", options.filename?"<main>", options.location, options.markers?[], options.color?fg(255, 30, 10), options.symbol?'ⓧ')
+        let error = this.create(options)
         stdout.flush()
         stderr.flush()
         stderr.write(error)

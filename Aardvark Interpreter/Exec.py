@@ -41,12 +41,14 @@ class AardvarkArgumentError(ValueError):
 
 
 searchDirs = [
-    os.environ["AARDVARK_INSTALL"] + "/lib/",
-    "../lib/",
     "/home/runner/Aardvark/lib/",
     "/home/runner/Aardvark-py/lib/",
     "/home/runner/Aardvark-py-API/lib/",
+    ".adk/lib/",
+    "lib/"
 ]
+if os.environ["AARDVARK_INSTALL"]:
+    searchDirs.append(os.environ["AARDVARK_INSTALL"] + "/lib/")
 
 current_dir = os.getcwd()
 

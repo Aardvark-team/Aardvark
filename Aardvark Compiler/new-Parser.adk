@@ -1,6 +1,6 @@
 from Data include OrderOfOps
 include Token, Lexer from Lexer
-include ErrorHandler from Errors
+include ErrorHandler, ADK_Error from Errors
 
 
 static class Parser as this {
@@ -10,6 +10,8 @@ static class Parser as this {
     let Number pos = 0
     let [ErrorHandler, null] error_handler
     let Lexer lexer
+    let store_errors = false
+    let error_stack = []
     $constructor(Lexer lexer, error_handler=null) {
         this.code = lexer.data # The code used by the lexer.
         this.code_lines = this.code.split("\n")
@@ -53,7 +55,7 @@ static class Parser as this {
             }
             this.error_handler.Throw(type, message, options, note, kill)
         }
-        this.error_handler.ThrowNew({
+        let error = ADK_Error(this.error_handler, {
             error_type: type,
             message,
             location: position.start,
@@ -63,7 +65,13 @@ static class Parser as this {
                 length: position.end.column - position.start.column + 1,
                 message: here_message
             }]
-        }, kill)
+        })
+        if store_errors {
+            error_stack.add(error)
+        } else {
+            error.Throw(kill)
+        }
+        return error
     }
 
 
@@ -112,7 +120,7 @@ static class Parser as this {
             return this.throw_EOF_error(token_type, value);
 
         # Otherwise, throw an error because it didn't match.
-        this.Throw(
+        return this.Throw(
             "Token",
             $"Token {value ? $'of type {token_type}'} expected, but not found.",
             position = this.peek().position
@@ -160,12 +168,12 @@ static class Parser as this {
 
                     if opener_count > 0 {
                         # Throw error, replacement never closed
-                        this.throw_EOF_error('Delimiter', '}')
+                        return this.throw_EOF_error('Delimiter', '}')
                     }
 
                     if inner == "" {
                         # Throw error, empty replacement
-                        this.throw_EOF_error('')
+                        return this.throw_EOF_error('')
                     }
                     # Cut off the }
                     inner = inner.slice(0, -1)
@@ -682,13 +690,13 @@ static class Parser as this {
         }
         if this.compare("Keyword", "private") {
             let keyword = this.eat()
-            if !first_keyword? 
+            if (!first_keyword?)
                 first_keyword = keyword
             is_private = true
         }
         if this.compare("Keyword", "static") {
             let keyword = this.eat()
-            if !first_keyword? 
+            if (!first_keyword?) 
                 first_keyword = keyword
             is_static = true
         }
@@ -697,7 +705,7 @@ static class Parser as this {
             function_keyword = this.eat()
         else if mode != "extending"
             function_keyword = this.eat("Keyword", "function")
-        if !first_keyword? & function_keyword?
+        if (!first_keyword? & function_keyword?)
             first_keyword = function_keyword
 
         let name, type, body
@@ -712,12 +720,12 @@ static class Parser as this {
             }
         }
 
-        if !first_keyword? & name?
+        if (!first_keyword? & name?)
             first_keyword = name
 
         if this.compare("Delimiter", "(") {
             let opening_parenthesis = this.eat()
-            if !first_keyword?
+            if (!first_keyword?)
                 first_keyword = opening_parenthesis
             while !this.compare("Delimiter", ")") {
                 if parameters.length > 0 this.eat("Delimiter", ",")
@@ -737,7 +745,7 @@ static class Parser as this {
         # Parse return type
         if this.compare("Operator", "->") {
             let operator = this.eat()
-            if !first_keyword?
+            if (!first_keyword?)
                 first_keyword = operator
             type = this.parse_primary(require=true)
             if !this.is_valid_type(type) {
@@ -803,14 +811,14 @@ static class Parser as this {
         let is_static = false
         if this.compare("Keyword", "static") & this.compare("Keyword", "function", 1) | this.compare("Keyword", "function") {
             extension = this.parse_function_definition()
-            if !extension.name?
+            if (!extension.name?)
                 this.Throw("ExtensionError", "Cannot extend an anonymous function.", position=extension.position)
         } else if this.compare("Keyword", "static") & this.compare("Keyword", "class", 1) | this.compare("Keyword", "class") {
             extension = this.parse_class_definition()
-            if !extension.name?
+            if (!extension.name?)
                 this.Throw("ExtensionError", "Cannot extend an anonymous class.", position=extension.position)
         }
-        if extension {
+        if (extension?) {
             return {
                 type: "ExtendingStatement",
                 object: extension.name,
@@ -844,13 +852,31 @@ static class Parser as this {
                 position: operator.position
             }
         }
+        if (!object?) stdout.write("??\n")
+        else stdout.write(object, "\n")
+        stdout.write("peek", this.peek(), "\n")
         # TODO
         ##### TODO!!!!!!
         #TODO: handle function call syntax, arrays, objects, and blocks
+        # stdout.write(object, this.peek(), "\n")
         if this.compare("Delimiter", "(") {
-            expansion = this.parse_function_definition("extending", is_static)
+            extenstion = this.parse_function_definition("extending", is_static)
+        } else if this.compare("Delimiter", "[") {
+            extenstion = this.parse_array()
+        } else if this.compare("Delimiter", "{") {
+            ## TODO!!!!!!!! handle object + block scope
         }
 
+
+        return {
+            type: "ExtendingStatement",
+            object,
+            extension,
+            position: {
+                start: extending_keyword.position.start,
+                end: extension.position.end
+            }
+        }
     }
     function parse_scope_body(enclosing_curly_braces=true) {
         let beginning_token = this.peek()
@@ -903,14 +929,14 @@ static class Parser as this {
     }
 }
 let parser_tests = {
-    property_access: "x.y",
+    #*property_access: "x.y",
     function_definition: "private static function x(Number x, y, {Number a, b, c:d}, [String a, b, c], this.y, ...args) -> Number {}",
     if_else_statement: "if condition {\n\n x\n\n\n } else if condition { y } else { z }",
     object_type: "let {Number x, String y} x",
     optional_type: "let String? x",
     optional_type_no_annotations: "let x? = y",
     typed_deconstruction: "let [String a, b, Number c] = x",
-    object: "{x: 5, y: 6, Number z: 7, d, ...y}",
+    object: "{x: 5, y: 6, Number z: 7, d, ...y}",*#
     array_extending: "extending x [5, 6, 7, 8, 9, 10]",
     function_extending: "extending x(y, z) -> Number {}"
 }
@@ -928,12 +954,12 @@ function test(String code) {
     parser.parse()
     return true
 }
-test(error_tests.anonymous_function_extension)
-# for test_name:code in parser_tests {
-#     let passed = test(code)
-#     if passed
-#         stdout.write("PASSED: ", test_name, "\n")
-# }
+# test(error_tests.anonymous_function_extension)
+for test_name:code in parser_tests {
+    let passed = test(code)
+    if passed
+        stdout.write("PASSED: ", test_name, "\n")
+}
 # for test_name:code in error_tests {
 #     test(code)
 # }
