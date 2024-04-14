@@ -4,6 +4,9 @@
 # https://stackoverflow.com/questions/4842424/list-of-ansi-color-escape-sequences
 # https://notes.burke.libbey.me/ansi-escape-codes/
 
+let colors = []
+
+
 class Four_Bit_Color as this {
     let colors = {
         "black": 0,
@@ -78,5 +81,11 @@ class RGB_Color as this {
     }
 }
 class Color as this {
-
+    let String name
+    let (Four_Bit_Color | Eight_Bit_Color | RGB_Color) color
+    $constructor(name, color) {
+        this.name = name
+        this.color = color
+        colors[name] = color
+    }
 }
