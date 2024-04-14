@@ -391,19 +391,17 @@ class Parser:
 
         elif tok.type == TokenTypes["Delimiter"] and tok.value == "[":
             ast_node = self.pArray()
+        elif self.compare("Keyword", "set") and self.compare("Delimiter", "{", 1):
+            self.eat("Keyword")
+            ast_node = self.pSet(tok)
 
         elif tok.type == TokenTypes["Identifier"]:
             self.eat(tok.type)
-
-            if tok.value == "set" and self.compare(TokenTypes["Delimiter"], "{"):
-                ast_node = self.pSet(tok)
-
-            else:
-                ast_node = {
-                    "type": "VariableAccess",
-                    "value": tok.value,
-                    "positions": {"start": tok.start, "end": tok.end},
-                }
+            ast_node = {
+                "type": "VariableAccess",
+                "value": tok.value,
+                "positions": {"start": tok.start, "end": tok.end},
+            }
 
         elif tok.type == TokenTypes["Delimiter"] and tok.value == "(":
             self.eat("Delimiter")
@@ -1035,7 +1033,7 @@ class Parser:
                 "object": obj,
                 "positions": {"start": starter.start, "end": obj["positions"]["end"]},
             }
-        
+
         operator = self.eat("Operator")
         params = []
 
@@ -1046,10 +1044,10 @@ class Parser:
         second_type = None
         if self.compare("Identifier") and self.peek(1).type == TokenTypes["Identifier"]:
             second_type = self.eat("Identifier")
-        
+
         params.append((second_type, self.eat("Identifier")))
         self.eat("Delimiter", ")")
-        
+
         body, end = self.eatBlockScope()
 
         return {
@@ -1058,10 +1056,7 @@ class Parser:
             "operator": operator.value,
             "params": params,
             "body": body,
-            "positions": {
-                "start": operator.start,
-                "end": end
-            }
+            "positions": {"start": operator.start, "end": end},
         }
 
     # ReturnStatement:
@@ -1206,15 +1201,17 @@ class Parser:
             if self.compare("Keyword", "get") or self.compare("Keyword", "set"):
                 keyw = self.eat("Keyword")
                 funct = self.pFunctionDefinition(True)
-                body.append({
-                    "type": "GetterSetterDefinition",
-                    "kind": keyw.value + "ter",
-                    "function": funct,
-                    "positions": {
-                        "start": keyw.start,
-                        "end": funct["positions"]["end"]
+                body.append(
+                    {
+                        "type": "GetterSetterDefinition",
+                        "kind": keyw.value + "ter",
+                        "function": funct,
+                        "positions": {
+                            "start": keyw.start,
+                            "end": funct["positions"]["end"],
+                        },
                     }
-                })
+                )
             body.append(self.pStatement())
 
         closer = self.eat("Delimiter", "}")

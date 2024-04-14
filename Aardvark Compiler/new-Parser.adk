@@ -218,18 +218,16 @@ static class Parser as this {
 
         else if this.compare('Delimiter', '[') & !exclude.contains('Array')
             ast_node = this.parse_array(is_deconstruction)
-        
+        else if this.compare("Keyword", "set") & this.compare("Delimiter", "{", 1)
+            ast_node = this.parse_set()
         # Variables
         else if current_token.type == "Identifier" & !exclude.contains('VariableAccess') {
             this.eat()
-            if current_token.value == "set" & this.compare("Delimiter", "{")
-                ast_node = this.parse_set();
-            else 
-                ast_node = {
-                    type: 'VariableAccess',
-                    value: current_token.value,
-                    position: current_token.position
-                }
+            ast_node = {
+                type: 'VariableAccess',
+                value: current_token.value,
+                position: current_token.position
+            }
         }
         # Statements surrounded by ()
         else if this.compare('Delimiter', '(') {
@@ -303,53 +301,12 @@ static class Parser as this {
             }
             # Function calls
             if this.compare("Delimiter", '(') & this.peek().start.column == ast_node.position.end.column + 1 & !exclude.contains('FunctionCall') {
-                ast_node = this.pFunctionCall(ast_node)
+                ast_node = this.parse_function_call(ast_node)
                 continue
             }
             # Property access
             if this.compare('Delimiter', '.') & this.peek().start.column == ast_node.position.end.column + 1 {
-                let dot = this.eat()
-                let property
-                if this.compare('Identifier') {
-                    let token = this.eat()
-                    property = {
-                        type: "StringLiteral",
-                        value: token.value,
-                        position: token.position
-                    }
-                }
-                else if this.compare('Number') {
-                    let token = this.eat()
-                    property = {
-                        type: "NumberLiteral",
-                        value: Number(token.value),
-                        position: token.position
-                    }
-                }
-                else if this.compare("String") {
-                    let token = this.eat()
-                    property = {
-                        type: "StringLiteral",
-                        value: token.value,
-                        position: token.position
-                    }
-                }
-                else if this.compare("Delimiter", "(") {
-                    let token = this.eat()
-                    property = this.parse_statement(eat_line_breaks=true)
-                    this.eat('Delimiter', ")")
-                } else {
-                    this.Throw("SyntaxError", "Expected property name", position=this.peek().position)
-                }
-                ast_node = {
-                    type: "PropertyAccess",
-                    property: property,
-                    value: ast_node,
-                    position: {
-                        start: ast_node.position.start,
-                        end: property.position.end
-                    }
-                }
+                ast_node = this.parse_property_access(ast_node)
                 continue;
             }
             # Tell the user that x[] should be x.()
@@ -433,6 +390,8 @@ static class Parser as this {
                 return this.parse_yield_statement()
             case 'include'
                 return this.parse_include_statement()
+            case 'extending'
+                return this.parse_extending_statement()
         }
         return this.parse_expression(require=require, is_deconstruction=false)
     }
@@ -447,6 +406,50 @@ static class Parser as this {
     function parse this.parse_program()
     function parse_function_call(ast_node) {
 
+    }
+    function parse_property_access(ast_node) {
+        let dot = this.eat()
+        let property
+        if this.compare('Identifier') {
+            let token = this.eat()
+            property = {
+                type: "StringLiteral",
+                value: token.value,
+                position: token.position
+            }
+        }
+        else if this.compare('Number') {
+            let token = this.eat()
+            property = {
+                type: "NumberLiteral",
+                value: Number(token.value),
+                position: token.position
+            }
+        }
+        else if this.compare("String") {
+            let token = this.eat()
+            property = {
+                type: "StringLiteral",
+                value: token.value,
+                position: token.position
+            }
+        }
+        else if this.compare("Delimiter", "(") {
+            let token = this.eat()
+            property = this.parse_statement(eat_line_breaks=true)
+            this.eat('Delimiter', ")")
+        } else {
+            this.Throw("SyntaxError", "Expected property name", position=this.peek().position)
+        }
+        return {
+            type: "PropertyAccess",
+            property: property,
+            value: ast_node,
+            position: {
+                start: ast_node.position.start,
+                end: property.position.end
+            }
+        }
     }
     function parse_object() {
         let opening_curly_brace = this.eat("Delimiter", "{")
@@ -669,8 +672,8 @@ static class Parser as this {
             }
         }
     }
-    function parse_function_definition(class_scope=false) {
-        let is_static = false
+    function parse_function_definition(mode="normal", found_static=false) {
+        let is_static = found_static
         let is_private = false
         let first_keyword
         if this.compare("Keyword", "static") {
@@ -690,23 +693,32 @@ static class Parser as this {
             is_static = true
         }
         let function_keyword
-        if class_scope & this.compare("Operator", "$")
+        if mode == "class_scope" & this.compare("Operator", "$")
             function_keyword = this.eat()
-        else 
+        else if mode != "extending"
             function_keyword = this.eat("Keyword", "function")
-        if !first_keyword?
+        if !first_keyword? & function_keyword?
             first_keyword = function_keyword
 
         let name, type, body
         let parameters = []
         let parameter_expansion
-        if this.compare("Identifier")
-            name = this.eat().value
-        
-        let current_token = this.peek()
+        if this.compare("Identifier") {
+            let token = this.eat("Identifier")
+            name = {
+                type: "VariableAccess",
+                name: token.value,
+                position: token.position
+            }
+        }
+
+        if !first_keyword? & name?
+            first_keyword = name
 
         if this.compare("Delimiter", "(") {
             let opening_parenthesis = this.eat()
+            if !first_keyword?
+                first_keyword = opening_parenthesis
             while !this.compare("Delimiter", ")") {
                 if parameters.length > 0 this.eat("Delimiter", ",")
                 if this.compare("Operator", "...") {
@@ -724,7 +736,9 @@ static class Parser as this {
         }
         # Parse return type
         if this.compare("Operator", "->") {
-            this.eat()
+            let operator = this.eat()
+            if !first_keyword?
+                first_keyword = operator
             type = this.parse_primary(require=true)
             if !this.is_valid_type(type) {
                 this.Throw("SyntaxError", "Invalid syntax.", position=type.position, here_message= $"Expected type.")
@@ -739,13 +753,13 @@ static class Parser as this {
             type: "FunctionDefinition",
             name: name?,
             parameters,
-            parameter_expansion,
+            parameter_expansion: parameter_expansion?,
             type: type?,
             body: body,
             is_static: is_static,
             is_private: is_private,
             position: {
-                start: first_keyword.position.start,
+                start: first_keyword.position.start if first_keyword? else body.position.start,
                 end: body.position.end
             }
 
@@ -782,6 +796,61 @@ static class Parser as this {
                 end: else_body.position.end if else_body? else body.position.end
             }
         }
+    }
+    function parse_extending_statement() {
+        let extending_keyword = this.eat("Keyword", "extending")
+        let object, extension
+        let is_static = false
+        if this.compare("Keyword", "static") & this.compare("Keyword", "function", 1) | this.compare("Keyword", "function") {
+            extension = this.parse_function_definition()
+            if !extension.name?
+                this.Throw("ExtensionError", "Cannot extend an anonymous function.", position=extension.position)
+        } else if this.compare("Keyword", "static") & this.compare("Keyword", "class", 1) | this.compare("Keyword", "class") {
+            extension = this.parse_class_definition()
+            if !extension.name?
+                this.Throw("ExtensionError", "Cannot extend an anonymous class.", position=extension.position)
+        }
+        if extension {
+            return {
+                type: "ExtendingStatement",
+                object: extension.name,
+                extension,
+                position: {
+                    start: extending_keyword.position.start,
+                    end: extension.position.end
+                }
+            }
+        }
+        if this.compare("Keyword", "static") {
+            this.eat()
+            is_static = true
+        }
+        if this.compare("Identifier") {
+            # Needs to handle x, x.y, x.(y)
+            let identifier = this.eat()
+            object = {
+                type: "VariableAccess",
+                value: identifier.value,
+                position: identifier.position
+            }
+            if this.compare('Delimiter', '.') & this.peek().start.column == ast_node.position.end.column + 1 {
+                object = this.parse_property_access(object)
+            }
+        } else if self.compare("Operator") {
+            let operator = this.eat()
+            object = {
+                type: "OperatorValue",
+                value: operator.value,
+                position: operator.position
+            }
+        }
+        # TODO
+        ##### TODO!!!!!!
+        #TODO: handle function call syntax, arrays, objects, and blocks
+        if this.compare("Delimiter", "(") {
+            expansion = this.parse_function_definition("extending", is_static)
+        }
+
     }
     function parse_scope_body(enclosing_curly_braces=true) {
         let beginning_token = this.peek()
@@ -834,6 +903,7 @@ static class Parser as this {
     }
 }
 let parser_tests = {
+    property_access: "x.y",
     function_definition: "private static function x(Number x, y, {Number a, b, c:d}, [String a, b, c], this.y, ...args) -> Number {}",
     if_else_statement: "if condition {\n\n x\n\n\n } else if condition { y } else { z }",
     object_type: "let {Number x, String y} x",
@@ -841,26 +911,29 @@ let parser_tests = {
     optional_type_no_annotations: "let x? = y",
     typed_deconstruction: "let [String a, b, Number c] = x",
     object: "{x: 5, y: 6, Number z: 7, d, ...y}",
+    array_extending: "extending x [5, 6, 7, 8, 9, 10]",
+    function_extending: "extending x(y, z) -> Number {}"
 }
 let error_tests = {
     assign_value: "let 5 = x",
     else_without_if: "else { x }",
+    anonymous_function_extension: "extending function {}"
 }
 function test(String code) {
-    # TODO: allow typed arrays in params: [String a, b, Number c]
     let error_handler = ErrorHandler(code, '<main>')
     let lexer = Lexer(false, false, error_handler)
     let tokens = lexer.tokenize(code)
     # stdout.write(tokens, '\n')
     let parser = Parser(lexer, error_handler)
+    parser.parse()
     return true
 }
-for test_name:code in parser_tests {
-    let passed = test(code)
-    if passed
-        stdout.write("PASSED: ", test_name, "\n")
-}
-stdout.write(test(error_tests.else_without_if), "\n")
+test(error_tests.anonymous_function_extension)
+# for test_name:code in parser_tests {
+#     let passed = test(code)
+#     if passed
+#         stdout.write("PASSED: ", test_name, "\n")
+# }
 # for test_name:code in error_tests {
-#     test(test_name)
+#     test(code)
 # }
