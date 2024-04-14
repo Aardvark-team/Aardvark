@@ -2,6 +2,7 @@
 from Run import *
 import sys
 import os
+import shutil
 import subprocess
 
 if __name__ == "__main__":
@@ -18,6 +19,7 @@ if __name__ == "__main__":
     argp.switch("safe", "Use safe mode.")
     argp.switch("help", "Displays the help menu.")
     argp.switch("canary", "Install the canary version of aardvark.")
+    argp.switch("pick", "Choose which version of aardvark to install.")
 
     @argp.command()
     def main(ctx):
@@ -98,8 +100,91 @@ if __name__ == "__main__":
                 subprocess.run(command, cwd=adk_folder, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
             print(fg.green + "Updated aardvark successfully!" + fg.rs)
+        elif ctx.getSwitch("pick"):
+            commmands = [
+                "git init",
+                "git remote add origin https://github.com/Aardvark-team/Aardvark/",
+                "git fetch origin",
+            ]
+
+            for command in commmands:
+                subprocess.run(command, cwd=adk_folder, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+            print(f"{ef.bold}? {ef.rs}Please choose a version from the following list:")
+            proc = subprocess.Popen("git tag --sort=creatordate", cwd=adk_folder, shell=True, stdout=subprocess.PIPE)
+            stdout, _ = proc.communicate()
+            tags = list(filter(bool, stdout.decode("utf-8").split("\n")))
+            tags.reverse()
+            tags.insert(0, "canary")
+
+            last_char = ""
+            position = 0
+            count = 2
+            last_tag_count = 0
+
+            while True:
+                position = min(len(tags) - 1, max(0, position))
+                
+                if position <= count:
+                    start_index = 0
+                    end_index = count * 2 + 1
+                elif position + count >= len(tags):
+                    start_index = max(0, len(tags) - count * 2 - 1)
+                    end_index = len(tags)
+                else:
+                    start_index = max(0, position - count)
+                    end_index = min(position + count + 1, len(tags))
+                
+                curr_tags = tags[start_index:end_index]
+
+                if last_tag_count > 0:
+                    print(f"\033[{last_tag_count}A", end="", flush=True)
+
+                for i, tag in enumerate(curr_tags):
+                    print(f"\33[2K\r ({'o' if i == position - start_index else ' '}) {tag}")
+
+                last_tag_count = len(curr_tags)
+                key = getch()
+
+                if key == b'\x03' or key == b'\x1B':
+                    print(fg.red + "Cancelled." + fg.rs)
+                    break
+
+                if key == b'\r':
+                    git_target = tags[position]
+                    target = git_target
+
+                    if target == "canary":
+                        git_target = "origin/main"
+
+                    subprocess.run(f"git reset --hard {git_target}", cwd=adk_folder, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                    print(fg.green + f"Updated to aardvark {target} successfully!" + fg.rs)
+                    break
+
+                if last_char == b'\x00' and key == b'P':
+                    position += 1
+
+                if last_char == b'\x00' and key == b'H':
+                    position -= 1
+
+                last_char = key
         else:
-            print(fg.red + "This installer can only download Aardvark canary for now." + fg.rs)
+            commmands = [
+                "git init",
+                "git remote add origin https://github.com/Aardvark-team/Aardvark/",
+                "git fetch origin",
+            ]
+
+            for command in commmands:
+                subprocess.run(command, cwd=adk_folder, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            
+            proc = subprocess.Popen("git tag --sort=creatordate", cwd=adk_folder, shell=True, stdout=subprocess.PIPE)
+            stdout, _ = proc.communicate()
+            tags = list(filter(bool, stdout.decode("utf-8").split("\n")))
+            target = tags[len(tags) - 1]
+
+            subprocess.run(f"git reset --hard {target}", cwd=adk_folder, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            print(fg.green + f"Updated to aardvark {target} successfully!" + fg.rs)
 
     @argp.command("[file]", "Default action if only a file is passed.")
     def run_file(ctx):
