@@ -1,0 +1,21 @@
+let json = python.import("json")
+
+let loads = json.loads
+
+let dumps = json.dumps
+
+let dump = json.dump
+
+let decoder = json.decoder
+
+let JSONEncoder = json.JSONEncoder
+
+let JSONDecoder = json.JSONDecoder
+
+let JSONDecodeError = json.JSONDecodeError
+
+let detect_encoding = json.detect_encoding
+
+let scanner = json.scanner
+
+let tool = json.tool

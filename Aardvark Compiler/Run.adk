@@ -1,0 +1,16 @@
+include ADK_Error, ErrorHandler from Errors
+include Lexer from Lexer
+include Parser from "new-Parser"
+include Optimizer
+
+function run_file(filename) {
+    let code = open(filename).read()
+    let error_handler = ErrorHandler(code, filename)
+    let lexer = Lexer(false, false, error_handler)
+    let tokens = lexer.tokenize(code)
+    let parser = Parser(lexer, error_handler)
+    let AST = parser.parse()
+    # TODO: Cache the AST and tokens
+
+
+}

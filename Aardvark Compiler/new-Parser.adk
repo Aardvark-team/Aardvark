@@ -476,7 +476,10 @@ static class Parser as this {
                 expansions.add(this.parse_expression(require=true))
             } else {
                 let key = parse_typed_variable([], ["NumberLiteral", "StringLiteral", "TemplateString"], "object key")
-                if type_of(key) == ADK_Error return key
+                if type_of(key) == ADK_Error {
+                    key.error_number = 1
+                    return key
+                }
                 this.eat_line_breaks()
                 let value
                 # There is a :, then the value is on the other side
@@ -852,19 +855,44 @@ static class Parser as this {
                 position: operator.position
             }
         }
-        # TODO
-        ##### TODO!!!!!!
-        #TODO: handle function call syntax, arrays, objects, and blocks
-        # stdout.write(object, this.peek(), "\n")
-        if this.compare("Delimiter", "(") {
+        if this.compare("Operator", "->") {
+            let operator = this.eat()
+            let type = this.parse_primary(require=true)
+            if !this.is_valid_type(type) {
+                return this.Throw("SyntaxError", "Invalid syntax.", position=type.position, here_message= $"Expected type.")
+            }
+            let body
+            if this.compare("Delimiter", "{") {
+            body = this.parse_scope_body()
+            } else {
+                body = this.parse_statement(require=true)
+            }
+            extension = {
+                type: "FunctionDefinition",
+                name: object,
+                type: type,
+                parameters: [],
+                parameter_expansion: null,
+                is_static: is_static,
+                is_private: null,
+                body: body,
+                position: {
+                    start: object.position.start,
+                    end: body.position.end
+                }
+            }
+        } else if this.compare("Delimiter", "(") {
             extension = this.parse_function_definition("extending", is_static)
         } else if this.compare("Delimiter", "[") {
             extension = this.parse_array()
         } else if this.compare("Delimiter", "{") {
             this.store_errors = true
             extension = this.parse_object()
-            # if type_of(extension) == ADK_Error
-            ## TODO!!!!!!!! handle object + block scope
+            if type_of(extension) == ADK_Error & extension.error_number == 1 {
+                extension = this.parse_scope_body()
+            }
+        } else {
+            extension = this.parse_statement(require=true)
         }
 
 
@@ -938,7 +966,10 @@ let parser_tests = {
     typed_deconstruction: "let [String a, b, Number c] = x",
     object: "{x: 5, y: 6, Number z: 7, d, ...y}",
     array_extending: "extending x [5, 6, 7, 8, 9, 10]",
-    function_extending: "extending x(y, z) -> Number {}"
+    function_extending: "extending x(y, z) -> Number {}",
+    function_extending_no_parameters: "extending x {}",
+    function_extending_no_parameters_with_return_type_annotation: "extending x -> Number {}",
+    object_extending: "extending x {y: 5, z: 6}",
 }
 let error_tests = {
     assign_value: "let 5 = x",
