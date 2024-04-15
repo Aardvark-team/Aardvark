@@ -109,10 +109,12 @@ class Object(Type):
         self.setters[name] = setter
 
     def set(self, name, value):
-        if name in self.getters:
+        if name in self.setters:
             self.setters[name](value)
-        else:
-            self.vars[name] = value
+            return
+        elif name in self.getters:
+            del self.getters[name]
+        self.vars[name] = value
 
     def get(self, name, default=None):
         if name in self.getters:
@@ -183,14 +185,21 @@ class Scope(Object):
         self._completed = False
         self._scope_type = scope_type
         self.returnActions = []
+        self.getters = {}
+        self.setters = {}
 
     def define_getter(self, name: str, getter):
-        pass
+        self.getters[name] = getter
 
     def define_setter(self, name: str, setter):
-        pass
+        self.setters[name] = setter
 
     def set(self, name, value):
+        if name in self.setters:
+            self.setters[name](value)
+            return
+        elif name in self.getters:
+            del self.getters[name]
         self.vars[name] = value
 
     def __setitem__(self, name, value):
@@ -206,6 +215,9 @@ class Scope(Object):
     def get(self, name, default=None):
         if self.parent:
             return self.vars.get(name, self.parent.get(name, default))
+
+        if name in self.getters:
+            return self.getters[name]()
 
         return self.vars.get(name, default)
 
@@ -585,7 +597,13 @@ class Array(Type, list):
         self._remove(other)
 
     def __str__(self):
-        return "[" + ', '.join([str(val) if type(val) != str else f'"{val}"' for val in self.value]) + "]"
+        return (
+            "["
+            + ", ".join(
+                [str(val) if type(val) != str else f'"{val}"' for val in self.value]
+            )
+            + "]"
+        )
 
     def __repr__(self):
         return str(self)

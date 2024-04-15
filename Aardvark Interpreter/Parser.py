@@ -1198,20 +1198,6 @@ class Parser:
             if self.compare("Operator", "$"):
                 self.eat("Operator")
                 body.append(self.pFunctionDefinition(True))
-            if self.compare("Keyword", "get") or self.compare("Keyword", "set"):
-                keyw = self.eat("Keyword")
-                funct = self.pFunctionDefinition(True)
-                body.append(
-                    {
-                        "type": "GetterSetterDefinition",
-                        "kind": keyw.value + "ter",
-                        "function": funct,
-                        "positions": {
-                            "start": keyw.start,
-                            "end": funct["positions"]["end"],
-                        },
-                    }
-                )
             body.append(self.pStatement())
 
         closer = self.eat("Delimiter", "}")
@@ -1723,6 +1709,19 @@ class Parser:
             )
         if self.compare("Keyword", "let"):
             return self.pAssignment()
+
+        if self.compare("Keyword", "get") or self.compare("Keyword", "set"):
+                keyw = self.eat("Keyword")
+                funct = self.pFunctionDefinition(True)
+                return {
+                        "type": "GetterSetterDefinition",
+                        "kind": keyw.value + "ter",
+                        "function": funct,
+                        "positions": {
+                            "start": keyw.start,
+                            "end": funct["positions"]["end"],
+                        },
+                    }
 
         return self.pExpression(require=require, eatLBs=eatLBs)
 

@@ -45,7 +45,7 @@ searchDirs = [
     "/home/runner/Aardvark-py/lib/",
     "/home/runner/Aardvark-py-API/lib/",
     ".adk/lib/",
-    "lib/"
+    "lib/",
 ]
 if os.environ["AARDVARK_INSTALL"]:
     searchDirs.append(os.environ["AARDVARK_INSTALL"] + "/lib/")
