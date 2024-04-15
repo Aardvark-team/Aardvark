@@ -1,7 +1,10 @@
-include "../Errors"
+from "../Errors" include ErrorHandler, ADK_Error
 from nlp include findClosest
 
+#*
+## Test Program:
 
+*#
 static class Scope as this {
     let Object value
     let Scope? parent
@@ -9,4 +12,14 @@ static class Scope as this {
         this.parent = parent
         this.value = initial
     }
+}
+
+static class Variable as this {
+    let []
+}
+if is_main {
+    include Parser from "../new-Parser"
+    include Lexer from "../Lexer"
+
+    let code = 
 }
