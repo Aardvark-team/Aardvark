@@ -873,7 +873,7 @@ class Parser:
                 starter = self.eat("Keyword", "function").start
         if self.compare("Identifier"):
             name = self.eat(TokenTypes["Identifier"])
-        if not starter:
+        if not starter and name:
             starter = name.start
         if self.compare("Delimiter", "("):
             openparen = self.eat(TokenTypes["Delimiter"], "(")
@@ -1711,17 +1711,17 @@ class Parser:
             return self.pAssignment()
 
         if self.compare("Keyword", "get") or self.compare("Keyword", "set"):
-                keyw = self.eat("Keyword")
-                funct = self.pFunctionDefinition(True)
-                return {
-                        "type": "GetterSetterDefinition",
-                        "kind": keyw.value + "ter",
-                        "function": funct,
-                        "positions": {
-                            "start": keyw.start,
-                            "end": funct["positions"]["end"],
-                        },
-                    }
+            keyw = self.eat("Keyword")
+            funct = self.pFunctionDefinition(True)
+            return {
+                "type": "GetterSetterDefinition",
+                "kind": keyw.value + "ter",
+                "function": funct,
+                "positions": {
+                    "start": keyw.start,
+                    "end": funct["positions"]["end"],
+                },
+            }
 
         return self.pExpression(require=require, eatLBs=eatLBs)
 

@@ -426,22 +426,22 @@ class Parser as this {
     }
     function pSet() {
         start = this.eat('Delimiter', '{')
-        set = []
+        let items = []
 
         while this.peek() & !this.compare('Delimiter', '}') & !(this.compare('Delimiter', ',') & this.peek(1).value == '}') {
             this.eatLBs()
-            if set.length > 0 this.eat('Delimiter', ',')
+            if items.length > 0 this.eat('Delimiter', ',')
             this.eatLBs()
         
             if this.compare('Operator', '...') {
                 this.eat()
-                set.add({
+                items.add({
                     type: 'Spread',
                     value: this.pStatement()
                 })
                 continue
             }
-            set.add({
+            items.add({
                 type: 'Value',
                 value: this.pStatement(true, eatLBs=true)
             })
@@ -451,25 +451,29 @@ class Parser as this {
         end = this.eat('Delimiter', '}')
         return {
             type: 'Set',
-            set: set,
+            items,
             position: {start: start.start, end: end.end}
         }
     }
     function pFunctionCall(ast_node) {
         this.eat('Delimiter', '(')
         arguments = []
-        keywordArguments = {}
+        keywordArguments = []
         spreads = []
 
         while this.peek() & !this.compare('Delimiter', ')') & !(this.compare('Delimiter', ',') & this.peek(1).value == ')') {
             this.eatLBs()
-            if arguments.length > 0 | keys(keywordArguments).length > 0 | spreads.length > 0 this.eat('Delimiter', ',')
+            if arguments.length > 0 | keywordArguments.length > 0 | spreads.length > 0 this.eat('Delimiter', ',')
             this.eatLBs()
             value = this.pExpression(require=true, eatLBs=true)
 
             if value.type == 'Operator' & value.operator == '=' {
-                if value.left & value.right & value.left.type == "VariableAcces"
-                    keywordArguments[value.left.value] = value.right
+                if value.left & value.right & value.left.type == "VariableAccess"
+                    keywordArguments.add({
+                        type: "KeywordArgument",
+                        key: value.left.value,
+                        value: value.right
+                    })
                 else if !value.left | !value.right
                     throw Error('Argument', 'Keyword Arguments must be in the form "key=value".')
                 else 

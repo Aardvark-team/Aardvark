@@ -475,6 +475,7 @@ static class Parser as this {
             if this.maybe_eat("Operator", "...")
                 expansions.add(this.parse_expression(require=true))
             else {
+                # TODO: handle $key arbitrary properties
                 let key = parse_typed_variable([], ["NumberLiteral", "StringLiteral", "TemplateString"], "object key")
                 if type_of(key) == ADK_Error {
                     key.error_number = 1
