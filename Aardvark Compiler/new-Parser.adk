@@ -319,6 +319,12 @@ static class Parser as this {
                 ast_node = this.parse_property_access(ast_node)
                 continue;
             }
+            # Re-assignment
+            if this.compare("Operator", '=') & !exclude.contains('Reassignment') {
+                ast_node = this.parse_reassignment(ast_node)
+                continue
+            }
+
             # Tell the user that x[] should be x.()
             if this.compare('Delimiter', '[') & this.peek().start.column == ast_node.position.end.column + 1 {
                 let opening_bracket = this.eat()
@@ -360,7 +366,7 @@ static class Parser as this {
     function parse_expression(level=keys(OrderOfOps).length-1, require=false, exclude=[], eat_line_breaks=false, is_deconstruction=false) {
         let left = this.parse_primary(false, exclude, is_deconstruction) if level < 0 else this.parse_expression(level - 1, false, exclude, eat_line_breaks, is_deconstruction)
         this.eat_line_breaks() if eat_line_breaks;
-        if !exclude.contains("$") exclude.add("$");
+        if !exclude.contains("$") exclude += ['$', '='];
         # while the next token is an operator and level in OrderOfOps, and the value of the next token is in the current precedence level and the value of the next token is not in the exclude list.
         while this.compare('Operator') & level in OrderOfOps & this.peek().value in OrderOfOps.(level) & !(this.peek().value in exclude) {
             let operator = this.eat()
@@ -614,7 +620,7 @@ static class Parser as this {
         etc... you get the idea
         *#
         # This may be the type or the variable, we don't know until we know IF there is a second expression.
-        let first = this.parse_primary(true, [], is_deconstruction=true)
+        let first = this.parse_primary(true, ["Reassignment"], is_deconstruction=true)
         let second = this.parse_primary(false, [], is_deconstruction=true)
         if second & !is_valid_type(first) {
             return this.Throw("SyntaxError", "Invalid syntax.", position=first.position, here_message= $"Expected type.")
@@ -655,7 +661,7 @@ static class Parser as this {
             let value
             # TODO: allow chaining: let x = y = 5
             if this.maybe_eat("Operator", "=")
-                value = this.parse_expression(require=true)
+                value = this.parse_expression(require=true, exclude=["Reassignment"])
             assignments.add({
                 type: "Assignment",
                 variables,
@@ -914,6 +920,41 @@ static class Parser as this {
             }
         }
     }
+    function parse_function_call() {
+        let opening_parenthesis = this.eat("Delimiter", "(")
+        let parameters = []
+        let keyword_arguments = []
+        # let 
+    }
+    function parse_reassignment(ast_node) {
+        if !this.is_valid_variable_definition(ast_node) {
+            return this.Throw("SyntaxError", $"Invalid syntax.", position=ast_node.position, here_message= $"Expected identifier (variable or property).")
+        }
+        let objects = [ast_node]
+        let value
+        # Reassignment chaining, x = y = z
+        while true {
+            this.eat("Operator", "=")
+            if (value?) {
+                if !this.is_valid_variable_definition(ast_node) {
+                    return this.Throw("SyntaxError", $"Invalid syntax.", position=ast_node.position, here_message= $"Expected identifier (variable or property).")
+                }
+                objects.add(value)
+            }
+            value = this.parse_expression(require=true, exclude=["Reassignment"])
+            if !this.compare("Operator", "=") break
+        }
+
+        return {
+            type: "Reassignment",
+            objects,
+            value,
+            position: {
+                start: ast_node.position.start,
+                end: value.position.end
+            }
+        }
+    }
     function parse_scope_body(enclosing_curly_braces=true) {
         let beginning_token = this.peek()
         let opening_curly_brace, closing_curly_brace
@@ -981,12 +1022,12 @@ let parser_tests = {
     # function_extending_no_parameters_with_return_type_annotation: "extending x -> Number {}",
     # object_extending: "extending x {y: 5, z: 6}",
     operator_extending: "extending +(Number x, String y) -> String {}",
+    reassignment: "x = y = z = 5"
 }
 let error_tests = {
     assign_value: "let 5 = x",
     else_without_if: "else { x }",
     anonymous_function_extension: "extending function {}",
-    x: "let x = 5"
 }
 function test(String code) {
     let error_handler = ErrorHandler(code, '<main>')
@@ -999,7 +1040,7 @@ function test(String code) {
         return false
     return AST
 }
-stdout.write(test(error_tests.x))
+stdout.write(test(parser_tests.reassignment), "\n")
 # test(error_tests.anonymous_function_extension)
 for test_name:code in parser_tests {
     let passed = test(code)

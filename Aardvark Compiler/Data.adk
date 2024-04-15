@@ -97,7 +97,7 @@ let Delimiters = set{
 let Keywords = set{
     'class',
     'extends',
-    'type',
+    # 'type',
     'extending',
     'function',
     'for',
@@ -121,7 +121,8 @@ let Keywords = set{
     "continue",
     "private",
     "set",
-    "get"
+    "get",
+    "macro"
 }
 let BaseNumsOrder = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVQXYZ"
 let Quotes = set{'"', "'", "`"}

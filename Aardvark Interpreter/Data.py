@@ -158,6 +158,7 @@ Keywords = {
     "static",
     "get",
     "set",
+    "macro",
 }
 
 # https://replit.com/@Programit/Redesign

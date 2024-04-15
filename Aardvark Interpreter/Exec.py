@@ -23,7 +23,11 @@ from Types import (
     _Undefined,
 )
 import importlib
-from bitarray import bitarray
+
+try:
+    from bitarray import bitarray
+except ImportError:
+    bitarray = None
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -193,6 +197,7 @@ class Executor:
         is_main=False,
         safe=False,
         included_by=None,
+        is_strict=False,
     ):
         self.path = Path(path)
         self.code = code
@@ -200,6 +205,7 @@ class Executor:
         self.ast = ast
         self.traceback = []
         self.switch = None
+        self.is_strict = is_strict
         self.filestack = filestack
         self.Global = createGlobals(safe)
         self.included_by = included_by
@@ -304,17 +310,21 @@ class Executor:
             scope[name] = pyToAdk(value)
             scope[name].is_static = is_static
 
-    def makeFunct(self, expr, parent: Scope):
-        special = expr["special"]
+    def makeFunct(self, expr, parent: Scope, is_macro=False):
+        special = expr.get("special", False)
         name = "$" + expr["name"] if special else expr["name"]
         params = expr["parameters"]
         code = expr["body"]
-        AS = expr["as"]
+        AS = expr.get("as", None)
 
         def x(*args, **kwargs):
-            functscope = Scope({}, parent=parent, scope_type="function")
-            if AS:
-                functscope[AS] = x
+            if is_macro:
+                functscope = args[0]
+                args = args[1:]
+            else:
+                functscope = Scope({}, parent=parent, scope_type="function")
+                if AS:
+                    functscope[AS] = x
             for i in range(len(params)):
                 param = params[i]
                 if i > len(args) - 1 and param["name"] in kwargs:
@@ -333,15 +343,19 @@ class Executor:
                 # if param["value_type"] != None:
                 #     notImplemented(self.errorhandler, "Type Checking", param)
                 functscope.vars[param["name"]] = arg
-                functscope.vars[param["name"]].is_static = False  # Should this be True?
+                if self.is_strict:
+                    functscope.vars[param["name"]].is_static = True
+                else:
+                    functscope.vars[param["name"]].is_static = False
             ret = self.Exec(code, functscope)
-            if not functscope._returned_value and expr["inline"]:
+            if not functscope._returned_value and expr.get("inline", False):
                 functscope._returned_value = ret
             return functscope._returned_value
 
+        funct_value = Function(x, is_macro)
         if name:
-            parent.set(name, Function(x))
-        return Function(x)
+            parent.set(name, funct_value)
+        return funct_value
 
     def getVar(
         self,
@@ -498,10 +512,17 @@ class Executor:
                     else:
                         args.append(self.ExecExpr(arg, scope))
                 try:
-                    ret = funct(
-                        *args,
-                        **kwargs,
-                    )
+                    if type(funct) == Function and funct.is_macro:
+                        ret = funct(
+                            scope,
+                            *args,
+                            **kwargs,
+                        )
+                    else:
+                        ret = funct(
+                            *args,
+                            **kwargs,
+                        )
                 except AardvarkArgumentError as e:
                     self.errorhandler.throw(
                         "Argument",
@@ -699,6 +720,9 @@ class Executor:
                     del self.switch
             case {"type": "FunctionDefinition"}:
                 funct = self.makeFunct(expr, scope)
+                return funct
+            case {"type": "MacroDefinition"}:
+                funct = self.makeFunct(expr, scope, is_macro=True)
                 return funct
             case {"type": "ClassDefinition"}:
                 classcope = Class(

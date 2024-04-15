@@ -1625,6 +1625,98 @@ class Parser:
             },
         }
 
+    def pMacroDefinition(self):
+        macro_keyword = self.eat("Keyword", "macro")
+        name = self.eat("Identifier")
+        parameters = []
+        if self.compare("Delimiter", "("):
+            openparen = self.eat(TokenTypes["Delimiter"], "(")
+            while self.peek() and not self.compare(TokenTypes["Delimiter"], ")"):
+                var_type = None
+                var_name = None
+                absorb = False
+                var_default = None
+                is_optional = False
+                self.eatLBs()
+                if len(parameters) > 0:
+                    self.eat(TokenTypes["Delimiter"], ",")
+                self.eatLBs()
+                if self.compare("Operator", "..."):
+                    self.eat("Operator")
+                    absorb = True
+                if self.compare("Delimiter", "["):
+                    var_type = self.pArray()
+                    var_name = self.eat("Identifier")
+                if self.compare("Delimiter", "("):
+                    var_type = self.pExpression(require=True)
+                    var_name = self.eat("Identifier")
+                else:
+                    temp = self.eat("Identifier")
+                    if self.compare("Identifier"):
+                        var_type = {
+                            "type": "VariableAccess",
+                            "value": temp.value,
+                            "positions": {"start": temp.start, "end": temp.end},
+                        }
+                        var_name = self.eat("Identifier")
+                    else:
+                        var_name = temp
+                if self.compare("Operator", "?"):
+                    self.eat("Operator")
+                    is_optional = True
+                self.eatLBs()
+                if self.compare("Operator", "="):
+                    self.eat("Operator")
+                    self.eatLBs()
+                    var_default = self.pExpression()
+                self.eatLBs()
+
+                parameters.append(
+                    {
+                        "type": "Parameter",
+                        "name": var_name.value,
+                        "value_type": var_type,
+                        "default": var_default,
+                        "absorb": absorb,
+                        "is_optional": is_optional,
+                        "positions": {
+                            "start": (
+                                var_type["positions"]["start"]
+                                if var_type
+                                else var_name.start
+                            ),
+                            "end": var_name.end,
+                        },
+                    }
+                )
+                if absorb:
+                    break
+            self.eat(TokenTypes["Delimiter"], ")")
+        if self.compare("Delimiter", "{"):
+            old = self.pos
+            inline = True
+            body = self.pObject(True)
+            if body == False:
+                self.pos = old
+                body, lasti = self.eatBlockScope()
+                inline = False
+            else:
+                lasti = body["positions"]["end"]
+        else:
+            body = self.pStatement(require=True)
+            lasti = body["positions"]["end"]
+            inline = True
+        return {
+            "type": "MacroDefinition",
+            "name": name.value,
+            "parameters": parameters,
+            "body": body,
+            "positions": {
+                "start": macro_keyword.start,
+                "end": lasti,
+            },
+        }
+
     # Statement:
     # 	VariableDefinition
     def pStatement(self, require=False, eatLBs=True):
@@ -1722,6 +1814,8 @@ class Parser:
                     "end": funct["positions"]["end"],
                 },
             }
+        if self.compare("Keyword", "macro"):
+            return self.pMacroDefinition()
 
         return self.pExpression(require=require, eatLBs=eatLBs)
 

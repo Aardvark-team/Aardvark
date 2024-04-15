@@ -558,9 +558,11 @@ class Boolean(int, Type):
 
 
 class Function(Type):
-    def __init__(self, funct):
-        self.vars = {}  # Funtions have no default attributes.
+    def __init__(self, funct, is_macro=False):
+        self.vars = {}  # Functions have no default attributes.
         self.funct = funct
+        # print("Is Macro: " + str(is_macro))
+        self.is_macro = is_macro
         self._locals = {}  # TODO
         Type.__init__(self)
 

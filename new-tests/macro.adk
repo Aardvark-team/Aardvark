@@ -1,0 +1,6 @@
+macro x() {
+    let y = 5
+}
+x()
+
+stdout.write(y)
