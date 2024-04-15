@@ -15,6 +15,7 @@ if __name__ == "__main__":
     argp.switch("ast", "Print AST. If not present, ast is not printed.")
     argp.switch("debug", "Allow $test and $clear commands.")
     argp.switch("no-ret", "if set, return values are not printed in repl mode.")
+    argp.switch("strict", "Use strict mode.")
     argp.switch("e", "Use experimental repl.")
     argp.switch("safe", "Use safe mode.")
     argp.switch("help", "Displays the help menu.")
@@ -35,6 +36,7 @@ if __name__ == "__main__":
                 ctx.getSwitch("ast"),
                 ctx.getSwitch("e"),
                 ctx.getSwitch("safe"),
+                ctx.getSwitch("strict"),
             )
 
     @argp.command("run [file]", "Compile a file.")
@@ -49,6 +51,7 @@ if __name__ == "__main__":
                 ctx.getSwitch("toks"),
                 ctx.getSwitch("ast"),
                 safe=ctx.getSwitch("safe"),
+                is_strict=ctx.getSwitch("strict"),
             )
 
     @argp.command("repl", "Start an interactable language shell.")
@@ -65,6 +68,7 @@ if __name__ == "__main__":
                 ctx.getSwitch("ast"),
                 ctx.getSwitch("e"),
                 ctx.getSwitch("safe"),
+                ctx.getSwitch("strict"),
             )
 
     @argp.command("help", "Shows help menu.")
@@ -93,11 +97,17 @@ if __name__ == "__main__":
                 "git init",
                 "git remote add origin https://github.com/Aardvark-team/Aardvark/",
                 "git fetch origin",
-                "git reset --hard origin/main"
+                "git reset --hard origin/main",
             ]
 
             for command in commmands:
-                subprocess.run(command, cwd=adk_folder, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                subprocess.run(
+                    command,
+                    cwd=adk_folder,
+                    shell=True,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
 
             print(fg.green + "Updated aardvark successfully!" + fg.rs)
         elif ctx.getSwitch("pick"):
@@ -108,10 +118,21 @@ if __name__ == "__main__":
             ]
 
             for command in commmands:
-                subprocess.run(command, cwd=adk_folder, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                subprocess.run(
+                    command,
+                    cwd=adk_folder,
+                    shell=True,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
 
             print(f"{ef.bold}? {ef.rs}Please choose a version from the following list:")
-            proc = subprocess.Popen("git tag --sort=creatordate", cwd=adk_folder, shell=True, stdout=subprocess.PIPE)
+            proc = subprocess.Popen(
+                "git tag --sort=creatordate",
+                cwd=adk_folder,
+                shell=True,
+                stdout=subprocess.PIPE,
+            )
             stdout, _ = proc.communicate()
             tags = list(filter(bool, stdout.decode("utf-8").split("\n")))
             tags.reverse()
@@ -124,7 +145,7 @@ if __name__ == "__main__":
 
             while True:
                 position = min(len(tags) - 1, max(0, position))
-                
+
                 if position <= count:
                     start_index = 0
                     end_index = count * 2 + 1
@@ -134,51 +155,67 @@ if __name__ == "__main__":
                 else:
                     start_index = max(0, position - count)
                     end_index = min(position + count + 1, len(tags))
-                
+
                 curr_tags = tags[start_index:end_index]
 
                 if last_tag_count > 0:
                     print(f"\033[{last_tag_count}A", end="", flush=True)
 
                 for i, tag in enumerate(curr_tags):
-                    print(f"\33[2K\r ({'o' if i == position - start_index else ' '}) {tag}")
+                    print(
+                        f"\33[2K\r ({'o' if i == position - start_index else ' '}) {tag}"
+                    )
 
                 last_tag_count = len(curr_tags)
                 key = getch()
 
-                if type(key) == str: key = key.encode("utf-8")
+                if type(key) == str:
+                    key = key.encode("utf-8")
 
-                if key == b'\x03':
+                if key == b"\x03":
                     print(fg.red + "Cancelled." + fg.rs)
                     break
 
-                if key == b'\r':
+                if key == b"\r":
                     git_target = tags[position]
                     target = git_target
 
                     if target == "canary":
                         git_target = "origin/main"
 
-                    subprocess.run(f"git reset --hard {git_target}", cwd=adk_folder, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                    print(fg.green + f"Updated to aardvark {target} successfully!" + fg.rs)
+                    subprocess.run(
+                        f"git reset --hard {git_target}",
+                        cwd=adk_folder,
+                        shell=True,
+                        stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL,
+                    )
+                    print(
+                        fg.green + f"Updated to aardvark {target} successfully!" + fg.rs
+                    )
                     break
 
-                if len(last_chars) > 0 and last_chars[0] in [b'\x00', b'\xe0']:
-                    if key == b'P':
+                if len(last_chars) > 0 and last_chars[0] in [b"\x00", b"\xe0"]:
+                    if key == b"P":
                         position += 1
 
-                    if key == b'H':
+                    if key == b"H":
                         position -= 1
 
-                if len(last_chars) >= 2 and last_chars[0] == b'[' and last_chars[1] == b'\x1B':
-                    if key == b'B':
+                if (
+                    len(last_chars) >= 2
+                    and last_chars[0] == b"["
+                    and last_chars[1] == b"\x1B"
+                ):
+                    if key == b"B":
                         position += 1
 
-                    if key == b'A':
+                    if key == b"A":
                         position -= 1
 
                 last_chars.insert(0, key)
-                if len(last_chars) > 5: last_chars.pop(len(last_chars) - 1)
+                if len(last_chars) > 5:
+                    last_chars.pop(len(last_chars) - 1)
         else:
             commmands = [
                 "git init",
@@ -187,14 +224,31 @@ if __name__ == "__main__":
             ]
 
             for command in commmands:
-                subprocess.run(command, cwd=adk_folder, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            
-            proc = subprocess.Popen("git tag --sort=creatordate", cwd=adk_folder, shell=True, stdout=subprocess.PIPE)
+                subprocess.run(
+                    command,
+                    cwd=adk_folder,
+                    shell=True,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
+
+            proc = subprocess.Popen(
+                "git tag --sort=creatordate",
+                cwd=adk_folder,
+                shell=True,
+                stdout=subprocess.PIPE,
+            )
             stdout, _ = proc.communicate()
             tags = list(filter(bool, stdout.decode("utf-8").split("\n")))
             target = tags[len(tags) - 1]
 
-            subprocess.run(f"git reset --hard {target}", cwd=adk_folder, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            subprocess.run(
+                f"git reset --hard {target}",
+                cwd=adk_folder,
+                shell=True,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
             print(fg.green + f"Updated to aardvark {target} successfully!" + fg.rs)
 
     @argp.command("[file]", "Default action if only a file is passed.")
@@ -202,7 +256,14 @@ if __name__ == "__main__":
         file = ctx.positional[0]
 
         if "/" in file or "." in file:
-            runFile(file, ctx.getSwitch("toks"), ctx.getSwitch("ast"))
+            runFile(
+                file,
+                ctx.getSwitch("toks"),
+                ctx.getSwitch("ast"),
+                None,
+                ctx.getSwitch("safe"),
+                ctx.getSwitch("strict"),
+            )
         else:
             ctx.help(error=True, message=f"Unknown command '{file}'.")
 

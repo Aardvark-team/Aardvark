@@ -71,7 +71,15 @@ def runTest(code, values={}, ret=None, testfunct=None):
     return True
 
 
-def run(text, file="<main>", printToks=False, printAST=False, Global=None, safe=False):
+def run(
+    text,
+    file="<main>",
+    printToks=False,
+    printAST=False,
+    Global=None,
+    safe=False,
+    is_strict=False,
+):
     errorhandler = ErrorHandler(text, file, py_error=True)
     ret = Null
     error = False
@@ -80,11 +88,13 @@ def run(text, file="<main>", printToks=False, printAST=False, Global=None, safe=
         toks = lexer.tokenize(text)
         if printToks:
             print(prettify_ast(toks))
-        parser = Parser.Parser(errorhandler, lexer)
+        parser = Parser.Parser(errorhandler, lexer, is_strict)
         ast = parser.parse()
         if printAST:
             print(prettify_ast(ast))
-        executor = Exec.Executor(file, text, ast["body"], errorhandler, {}, True, safe)
+        executor = Exec.Executor(
+            file, text, ast["body"], errorhandler, {}, True, safe, None, is_strict
+        )
         if Global:
             executor.Global = Global
         ret = executor.run()
@@ -286,6 +296,7 @@ def runLive(
     printAST=False,
     experimental=False,
     safe=False,
+    is_strict=False,
 ):
     print(f"Aardvark {version} \n[Python {python}]\n{sys.platform.upper()}")
     saved_scope = None
@@ -335,6 +346,7 @@ def runLive(
             printAST,
             Global=saved_scope if saved_scope else None,
             safe=safe,
+            is_strict=is_strict,
         )
         if not noret:
             print(x["return"])

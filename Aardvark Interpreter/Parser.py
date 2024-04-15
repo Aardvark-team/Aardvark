@@ -30,8 +30,9 @@ compares = 0
 
 
 class Parser:
-    def __init__(self, err_handler, lexer):
+    def __init__(self, err_handler, lexer, is_strict=False):
         self.code = lexer.data
+        self.is_strict = is_strict
         self.codelines = self.code.split("\n")
         self.tokens = lexer.output
         self.pos = 0

@@ -262,7 +262,7 @@ class Executor:
         errorhandler = Error.ErrorHandler(text, file, py_error=True)
         lexer = Lexer.Lexer("#", "#*", "*#", errorhandler, False)
         toks = lexer.tokenize(text)
-        parser = Parser.Parser(errorhandler, lexer)
+        parser = Parser.Parser(errorhandler, lexer, self.is_strict)
         ast = parser.parse()
         executor = Executor(
             file,
@@ -272,6 +272,7 @@ class Executor:
             filestack=self.filestack,
             safe=self.safe,
             included_by=self,
+            is_strict=self.is_strict,
         )
         executor.run()
         self.filestack[str(file)] = executor.Global
@@ -343,7 +344,7 @@ class Executor:
                 # if param["value_type"] != None:
                 #     notImplemented(self.errorhandler, "Type Checking", param)
                 functscope.vars[param["name"]] = arg
-                if self.is_strict:
+                if self.is_strict or param["is_static"]:
                     functscope.vars[param["name"]].is_static = True
                 else:
                     functscope.vars[param["name"]].is_static = False
