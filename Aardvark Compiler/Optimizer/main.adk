@@ -5,17 +5,12 @@ from nlp include findClosest
 ## Test Program:
 
 *#
-static class Scope as this {
-    let Object value
-    let Scope? parent
-    $constructor(initial={}, parent?) {
-        this.parent = parent
-        this.value = initial
-    }
-}
+#*
 
-static class Variable as this {
-    let []
+*#
+static class Identifier as this {
+    let value_possibilities = []
+    let type_possibilities = []
 }
 if is_main {
     include Parser from "../new-Parser"

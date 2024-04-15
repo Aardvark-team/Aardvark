@@ -1,9 +1,22 @@
-class FunctionSignature {
+static class FunctionSignature {
     let parameters = []
     let String? return_type
     let Object parameter_expansion
-}
-class FunctionValue {
-    let [...FunctionSignature] signatures
+    let Object body
     
+}
+static class FunctionValue {
+    let [...FunctionSignature] signatures
+
+}
+static class ObjectValue as this {
+    #*
+    Used for scopes and objects, anything with named values.
+    *#
+    let Object value
+    let Scope? parent
+    $constructor(initial={}, parent?) {
+        this.parent = parent
+        this.value = initial
+    }
 }

@@ -649,20 +649,21 @@ static class Parser as this {
                 is_private = true
             if this.maybe_eat("Keyword", "static")
                 is_static = true
-            let variable = this.parse_typed_variable()
+            let variables = []
+            variables.add(this.parse_typed_variable())
             let value
+            # TODO: allow chaining: let x = y = 5
             if this.maybe_eat("Operator", "=")
                 value = this.parse_expression(require=true)
             assignments.add({
                 type: "Assignment",
-                given_type: variable.given_type,
-                variable: variable.variable,
+                variables,
                 value: value?,
                 is_static: is_static,
                 is_private: is_private,
                 position: {
-                    start: variable.position.start,
-                    end: value.position.end if value? else variable.position.end
+                    start: variables.0.position.start,
+                    end: value.position.end if value? else variables.(-1).position.end
                 }
             })
             if !this.compare("Delimiter", ",") break
@@ -803,6 +804,9 @@ static class Parser as this {
     }
     function parse_class_definition() {
         let class_keyword = this.eat("Keyword", "class")
+        let name, body
+        let is_static = false
+        let is_private = false
         if this.maybe_eat("Keyword", "static")
             is_static = true
         if this.maybe_eat("Keyword", "private")
@@ -975,12 +979,13 @@ let parser_tests = {
     # function_extending_no_parameters: "extending x {}",
     # function_extending_no_parameters_with_return_type_annotation: "extending x -> Number {}",
     # object_extending: "extending x {y: 5, z: 6}",
-    operator_extending: "extending +(Number x, String y) -> String {}"
+    operator_extending: "extending +(Number x, String y) -> String {}",
 }
 let error_tests = {
     assign_value: "let 5 = x",
     else_without_if: "else { x }",
-    anonymous_function_extension: "extending function {}"
+    anonymous_function_extension: "extending function {}",
+    x: "let x = 5"
 }
 function test(String code) {
     let error_handler = ErrorHandler(code, '<main>')
@@ -988,11 +993,12 @@ function test(String code) {
     let tokens = lexer.tokenize(code)
     # stdout.write(tokens, '\n')
     let parser = Parser(lexer, error_handler)
-    parser.parse()
+    let AST = parser.parse()
     if parser.error_stack.length > 0
         return false
-    return true
+    return AST
 }
+stdout.write(test(error_tests.x))
 # test(error_tests.anonymous_function_extension)
 for test_name:code in parser_tests {
     let passed = test(code)
