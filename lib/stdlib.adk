@@ -1,0 +1,2 @@
+let python_sys = python.import("sys")
+let command_line_arguments = python_sys.argv

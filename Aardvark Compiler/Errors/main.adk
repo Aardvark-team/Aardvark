@@ -9,6 +9,9 @@ class ADK_Error as this {
     this.options = options
     this.message = options.message?
     this.error_type = options.error_type?
+    this.filename = options.filename?
+    this.location = options.location?
+    this.initiated_from = options.initiated_from?
     this.error = format(
         handler.highlighted_code_lines, 
         options.message?"This isn't valid.", 

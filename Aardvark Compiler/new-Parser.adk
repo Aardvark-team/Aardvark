@@ -64,7 +64,8 @@ static class Parser as this {
                 column: position.start.column - 1, # The error formatter starts column counting at 0.
                 length: position.end.column - position.start.column + 1,
                 message: here_message
-            }]
+            }],
+            ...options
         })
         if store_errors {
             error_stack.add(error)
@@ -91,7 +92,7 @@ static class Parser as this {
         else 
             suggestion = expected_token_type
 
-        this.error_handler.ThrowNew({
+        return this.error_handler.ThrowNew({
             error_type: "UnexpectedEndOfFile",
             message: "We didn't expect the file to end so soon!",
             location: {
@@ -257,7 +258,7 @@ static class Parser as this {
                 else if next_token.compare('Keyword', 'class')
                     ast_node = this.parse_class_definition()
                 else
-                    this.Throw('SyntaxError', 'Expected "function" or "class" after "static"', position=next_token.position)
+                    return this.Throw('SyntaxError', 'Expected "function" or "class" after "static"', position=next_token.position)
             }
             case 'private' {
                 let next_token = this.peek(1)
@@ -268,7 +269,7 @@ static class Parser as this {
                 else if next_token.compare('Keyword', 'class')
                     ast_node = this.parse_class_definition()
                 else
-                    this.Throw('SyntaxError', 'Expected "function" or "class" after "private"', position=next_token.position)
+                    return this.Throw('SyntaxError', 'Expected "function" or "class" after "private"', position=next_token.position)
             }
             case 'function'
                 ast_node = this.parse_function_definition()
@@ -289,7 +290,7 @@ static class Parser as this {
             case 'layout'
                 ast_node = this.parse_layout_type()
             case $default {
-                this.Throw('SyntaxError', 'Unexpected keyword "' + this.peek().value + '"', position=this.peek().position)
+                return this.Throw('SyntaxError', 'Unexpected keyword "' + this.peek().value + '"', position=this.peek().position)
             }
         }
 
@@ -328,7 +329,7 @@ static class Parser as this {
                 else # End of the line
                     length = this.code_lines[opening_bracket.position.start.line - 1].length - opening_bracket.position.end.column + 1
 
-                this.Throw("SyntaxError", "Incorrect property access", {
+                return this.Throw("SyntaxError", "Incorrect property access", {
                     markers: [
                         {
                             line: opening_bracket.position.start.line - 1,
@@ -352,7 +353,7 @@ static class Parser as this {
             return ast_node
         }
         if require {
-            this.Throw('SyntaxError', 'Expected expression or statement', position=this.peek().position)
+            return this.Throw('SyntaxError', 'Expected expression or statement', position=this.peek().position)
         }
     }
     function parse_expression(level=keys(OrderOfOps).length-1, require=false, exclude=[], eat_line_breaks=false, is_deconstruction=false) {
@@ -365,7 +366,7 @@ static class Parser as this {
             this.eat_line_breaks() if eat_line_breaks;
             let right = this.parse_expression(level - 1, false, exclude, eat_line_breaks, is_deconstruction)
             if !left and !right {
-                this.Throw('SyntaxError', "🤨 That's just an operator with nothing for it to operator on.", position=operator.position)
+                return this.Throw('SyntaxError', "🤨 That's just an operator with nothing for it to operator on.", position=operator.position)
                 # Throw an error because its just an operator all by itself
             }
             left = {
@@ -447,7 +448,7 @@ static class Parser as this {
             property = this.parse_statement(eat_line_breaks=true)
             this.eat('Delimiter', ")")
         } else {
-            this.Throw("SyntaxError", "Expected property name", position=this.peek().position)
+            return this.Throw("SyntaxError", "Expected property name", position=this.peek().position)
         }
         return {
             type: "PropertyAccess",
@@ -474,7 +475,8 @@ static class Parser as this {
                 this.eat()
                 expansions.add(this.parse_expression(require=true))
             } else {
-                let key = parse_typed_variable([], ["NumberLiteral", "StringLiteral"], "object key")
+                let key = parse_typed_variable([], ["NumberLiteral", "StringLiteral", "TemplateString"], "object key")
+                if type_of(key) == ADK_Error return key
                 this.eat_line_breaks()
                 let value
                 # There is a :, then the value is on the other side
@@ -607,16 +609,17 @@ static class Parser as this {
         y
         this.y
         a.b c.d
+        etc... you get the idea
         *#
         # This may be the type or the variable, we don't know until we know IF there is a second expression.
         let first = this.parse_primary(true, [], is_deconstruction=true)
         let second = this.parse_primary(false, [], is_deconstruction=true)
         if second & !is_valid_type(first) {
-            this.Throw("SyntaxError", "Invalid syntax.", position=first.position, here_message= $"Expected type.")
+            return this.Throw("SyntaxError", "Invalid syntax.", position=first.position, here_message= $"Expected type.")
         } else if !second & !is_valid_variable_definition(first, accept_var) {
-            this.Throw("SyntaxError", $"Invalid syntax.", position=first.position, here_message= $"Expected {name}.")
+            return this.Throw("SyntaxError", $"Invalid syntax.", position=first.position, here_message= $"Expected {name}.")
         } else if second & !is_valid_variable_definition(second, accept_var) {
-            this.Throw("SyntaxError", $"Invalid syntax.", position=second.position, here_message= $"Expected {name}.")
+            return this.Throw("SyntaxError", $"Invalid syntax.", position=second.position, here_message= $"Expected {name}.")
         }
         return {
             type: "TypedVariable",
@@ -733,7 +736,7 @@ static class Parser as this {
                     let operator = this.eat()
                     parameter_expansion = this.parse_primary(true)
                     if !["VariableAccess", "PropertyAccess"].contains(parameter_expansion.type) 
-                        this.Throw("SyntaxError", "Invalid syntax.", position=parameter_expansion.position, here_message= $"Expected parameter name.")
+                        return this.Throw("SyntaxError", "Invalid syntax.", position=parameter_expansion.position, here_message= $"Expected parameter name.")
                     # An expansion MUST be the last parameter
                     break
                 }
@@ -749,7 +752,7 @@ static class Parser as this {
                 first_keyword = operator
             type = this.parse_primary(require=true)
             if !this.is_valid_type(type) {
-                this.Throw("SyntaxError", "Invalid syntax.", position=type.position, here_message= $"Expected type.")
+                return this.Throw("SyntaxError", "Invalid syntax.", position=type.position, here_message= $"Expected type.")
             }
         }
         if this.compare("Delimiter", "{") {
@@ -809,16 +812,13 @@ static class Parser as this {
         let extending_keyword = this.eat("Keyword", "extending")
         let object, extension
         let is_static = false
-        if this.compare("Keyword", "static") & this.compare("Keyword", "function", 1) | this.compare("Keyword", "function") {
+        if this.compare("Keyword", "static") & this.compare("Keyword", "function", 1) | this.compare("Keyword", "function")
             extension = this.parse_function_definition()
-            if (!extension.name?)
-                this.Throw("ExtensionError", "Cannot extend an anonymous function.", position=extension.position)
-        } else if this.compare("Keyword", "static") & this.compare("Keyword", "class", 1) | this.compare("Keyword", "class") {
+        else if this.compare("Keyword", "static") & this.compare("Keyword", "class", 1) | this.compare("Keyword", "class")
             extension = this.parse_class_definition()
-            if (!extension.name?)
-                this.Throw("ExtensionError", "Cannot extend an anonymous class.", position=extension.position)
-        }
         if (extension?) {
+            if (!extension.name?)
+                return this.Throw("ExtensionError", "Cannot extend an anonymous class.", position=extension.position)
             return {
                 type: "ExtendingStatement",
                 object: extension.name,
@@ -852,18 +852,18 @@ static class Parser as this {
                 position: operator.position
             }
         }
-        if (!object?) stdout.write("??\n")
-        else stdout.write(object, "\n")
-        stdout.write("peek", this.peek(), "\n")
         # TODO
         ##### TODO!!!!!!
         #TODO: handle function call syntax, arrays, objects, and blocks
         # stdout.write(object, this.peek(), "\n")
         if this.compare("Delimiter", "(") {
-            extenstion = this.parse_function_definition("extending", is_static)
+            extension = this.parse_function_definition("extending", is_static)
         } else if this.compare("Delimiter", "[") {
-            extenstion = this.parse_array()
+            extension = this.parse_array()
         } else if this.compare("Delimiter", "{") {
+            this.store_errors = true
+            extension = this.parse_object()
+            # if type_of(extension) == ADK_Error
             ## TODO!!!!!!!! handle object + block scope
         }
 
@@ -929,14 +929,14 @@ static class Parser as this {
     }
 }
 let parser_tests = {
-    #*property_access: "x.y",
+    property_access: "x.y.z",
     function_definition: "private static function x(Number x, y, {Number a, b, c:d}, [String a, b, c], this.y, ...args) -> Number {}",
     if_else_statement: "if condition {\n\n x\n\n\n } else if condition { y } else { z }",
     object_type: "let {Number x, String y} x",
     optional_type: "let String? x",
     optional_type_no_annotations: "let x? = y",
     typed_deconstruction: "let [String a, b, Number c] = x",
-    object: "{x: 5, y: 6, Number z: 7, d, ...y}",*#
+    object: "{x: 5, y: 6, Number z: 7, d, ...y}",
     array_extending: "extending x [5, 6, 7, 8, 9, 10]",
     function_extending: "extending x(y, z) -> Number {}"
 }
