@@ -47,11 +47,10 @@ class Lexer as this {
   let [...Token] output
   let Boolean empty
   let Boolean AtEnd
-  let String curChar
+  let String current_character
   let error_handler # (null | ErrorHandler)
-  let Boolean raw
 
-  $constructor(useIndents = false, tokenizeComments = false, error_handler=null, raw=false) {
+  $constructor(useIndents = false, tokenizeComments = false, error_handler=null) {
     this.useIndents = useIndents
     this.tokenizeComments = tokenizeComments
     this.data = ""
@@ -62,41 +61,40 @@ class Lexer as this {
     this.output = []
     this.empty = true
     this.AtEnd = false
-    this.curChar = ""
+    this.current_character = ""
     this.error_handler = error_handler
-    this.raw = raw
   }
-  function throwError(type, message, options={}, note="", kill=true) {
+  function Throw(options, kill=true) {
     if this.error_handler == null return false
-    else return this.error_handler.Throw(type, message, options, note, kill)
+    return this.error_handler.ThrowNew(options, kill)
   }
 
   function isWhitespace(char)
-    (char ? this.curChar) in Whitespaces
+    (char ? this.current_character) in Whitespaces
 
   function isNewline(char)
-    (char ? this.curChar) in '\n;'
+    (char ? this.current_character) in '\n;'
 
   function isQuote(char)
-    (char ? this.curChar) in Quotes
+    (char ? this.current_character) in Quotes
 
   function isDelimiter(char)
-    (char ? this.curChar) in Delimiters 
+    (char ? this.current_character) in Delimiters 
 
   function isNumber(char)
-    (char ? this.curChar) in '0123456789'
+    (char ? this.current_character) in '0123456789'
 
   function addToken(type, start, end, value, variety)
     this.output.add(Token(type, start, end, value, variety))
 
   function otherwise(char) {
-    char = char ? this.curChar
+    char = char ? this.current_character
     return !(this.isWhitespace(char) | this.isDelimiter(char) | this.isNewline(char) | char == '#' | char in Operators)
   }
   function detect(text) {
-    if this.curChar == text[0] {
+    if this.current_character == text.0 {
         for i in sequence(1, 1, text.length - 1) {
-            if this.peek(i) != text[i] | i > this.data.length return false;
+            if this.peek(i) != text.(i) | i > this.data.length return false;
         }
     } else return false;
     return true
@@ -110,13 +108,13 @@ class Lexer as this {
     this.index = this.index + amt
     this.column = this.column + amt
     if this.index < this.data.length
-      this.curChar = this.data[this.index]
+      this.current_character = this.data.(this.index)
     else 
       this.AtEnd = true
   }
   function peek(amt = 1) {
     if this.index + amt < this.data.length 
-      return this.data[this.index + amt]
+      return this.data.(this.index + amt)
     else return null;
   }
   function pos
@@ -133,7 +131,7 @@ class Lexer as this {
     this.output = []
     this.empty = true
     this.AtEnd = false
-    this.curChar = this.data.(this.index)
+    this.current_character = this.data.(this.index)
     while this.index < this.data.length {
         # Operators
         let Operators_array_sorted = Array(Operators)
@@ -147,10 +145,10 @@ class Lexer as this {
             break
           }
 
-        # Newlines (\n or ;)
+      # Newlines (\n or ;)
       if this.isNewline() {
-        this.addToken('LineBreak', this.pos(), this.pos(), this.curChar, this.curChar)
-        if this.curChar = '\n' this.newline(); # Only increment the line if its a \n
+        this.addToken('LineBreak', this.pos(), this.pos(), this.current_character, this.current_character)
+        if this.current_character = '\n' this.newline(); # Only increment the line if its a \n
         else this.empty = true
       }
 
@@ -160,7 +158,7 @@ class Lexer as this {
         start = this.index
         startcolumn = this.column
         while this.isWhitespace() & !this.AtEnd {
-          value = value + this.curChar
+          value = value + this.current_character
           this.advance()
         }
         if !this.isNewline() {
@@ -172,40 +170,68 @@ class Lexer as this {
 
       #Delimiters
       else if this.isDelimiter() 
-        this.addToken('Delimiter', this.pos(), this.pos(), this.curChar)
+        this.addToken('Delimiter', this.pos(), this.pos(), this.current_character)
 
       #Numbers
       else if this.isNumber() {
         let start = this.pos()
         let base = 10
+        let underscore_position
         let value = ''
-        let seen_dot = false
-        let seen_underscore = false
+        let dot_position
         let characters = BaseNumsOrder.slice(0, base)
-        while (characters.contains(this.curChar) | '._'.contains(this.curChar)) & !this.AtEnd {
-          if seen_dot & this.curChar == '.' & this.peek() in characters
-            this.throwError('SyntaxError', 'A Number may not have two decimal points!', {
-              lineno: this.pos().line,
-              marker: {start: this.pos().column, length: 1},
-              underline: {start: start.column, end: this.pos().column+1}
+        while (characters.contains(this.current_character) | '._'.contains(this.current_character)) & !this.AtEnd {
+          if dot_position? & this.current_character == '.' & this.peek() in characters
+            this.Throw({
+              message: "A Number may not have two decimal points!",
+              error_type: "SyntaxError",
+              location: {
+                line: this.pos().line - 1,
+                column: this.pos().column - 1
+              },
+              markers: [{
+                line: dot_position.line - 1,
+                column: dot_position.column - 1,
+                length: 1,
+                message: "First decimal point."
+              }, {
+                line: this.pos().line - 1,
+                column: this.pos().column - 1,
+                length: 1,
+                message: "Second decimal point."
+              }]
             })
-          else if seen_underscore & this.curChar == '_'
-            this.throwError('SyntaxError', 'Number base already defined!', {
-              lineno: this.pos().line,
-              marker: {start: this.pos().column, length: 1},
-              underline: {start: start.column, end: this.pos().column+1}
-            }, "The value left of the underscore (_) represents the base of the Number. (e.g. 16_1ab would be hex and 2_0101 would be binary)")
-          if this.curChar == '.' seen_dot = true;
-          else if this.curChar == '_' {
-            seen_underscore = true;
-            if !this.raw {
-              base = Number(value)
-              value = ''
-              characters = BaseNumsOrder.slice(0, base)
-              this.curChar = ''
-            }
+          else if underscore_position? & this.current_character == '_'
+            this.Throw({
+              message: "Number base already defined!\nHint: The value left of the underscore (_) represents the base of the Number. (e.g. 16_1ab would be hex and 2_0101 would be binary)",
+              error_type: "SyntaxError",
+              location: {
+                line: this.pos().line - 1,
+                column: this.pos().column - 1
+              },
+              markers: [{
+                line: start.line - 1,
+                column: start.column - 1,
+                length: start.column - underscore_position.column + 1,
+                message: "Number base."
+              }, {
+                line: this.pos().line - 1,
+                column: this.pos().column - 1,
+                length: 1,
+                message: "Second underscore."
+              }]
+            })
+          if this.current_character == '.' 
+            dot_position = this.pos();
+          else if this.current_character == '_' {
+            underscore_position = this.pos();
+            base = Number(value)
+            characters = BaseNumsOrder.slice(0, base)
+            value = ''
+            this.advance()
+            continue
           }
-          value = value + this.curChar
+          value += this.current_character
           this.advance()
         }
         if value.(-1) == "." {
@@ -221,8 +247,8 @@ class Lexer as this {
         value = ''
         start = this.pos()
         while !this.detect('*#') & !this.AtEnd {
-            value = value + this.curChar
-            if this.curChar == '\n' this.newline()
+            value = value + this.current_character
+            if this.current_character == '\n' this.newline()
             this.advance()
         }
         this.advance('*#'.length - 1) # To skip the *#
@@ -230,53 +256,98 @@ class Lexer as this {
       }
 
       # Single line comments
-      else if this.curChar == '#' {
+      else if this.current_character == '#' {
         value = ''
         start = this.pos()
-        while this.curChar != '\n' & !this.AtEnd {
-          value = value + this.curChar
+        while this.current_character != '\n' & !this.AtEnd {
+          value = value + this.current_character
           this.advance()
         }
         this.advance(-1) # To still register the newline
         if (this.tokenizeComments) this.addToken('Comment', start, this.pos(), value)
       }
-
       # Strings
-      else if this.isQuote() {
-        variation = this.curChar
-        value = ''
-        start = this.pos()
-        backslash = false
+      else if this.isQuote() | (this.current_character == '$' & this.isQuote(this.peek(1))) {
+        let is_template_string = false
+        #TODO: Handle template strings
+        if this.current_character == '$' {
+          this.advance()
+          is_template_string = true
+        }
+        let variation = this.current_character
+        let value = ''
+        let start = this.pos()
+        let backslash = false
         while !this.AtEnd {
           this.advance()
-          if this.AtEnd this.throwError('UnexpectedEOF', 'String was not terminated', {
-              lineno: start.line,
-              linestart: start.line,
-              lineend: start.line + 5,
-              marker: {start: start.column, length: value.split('\n')[0].length},
-              underline: {start: start.column, end: start.column + value.split('\n')[0].length}
+          if this.AtEnd 
+            this.Throw({
+              message: "String was not terminated",
+              error_type: "UnexpectedEndOfFile",
+              location: {
+                line: this.pos().line - 1,
+                column: this.pos().column - 1
+              },
+              markers: [{
+                line: this.pos().line - 1,
+                column: start.column - 1 if value.split('\n').length == 1 else 0,
+                length: value.split('\n').(-1).length + 1,
+                message: "This is the string."
+              }, {
+                line: this.pos().line - 1,
+                column: this.pos().column - 1,
+                length: 1,
+                message: "Put your quote here."
+              }]
             })
+          # Handle escape sequences
           if backslash {
-            if this.curChar == '\\' value = value + '\\'
-            else if this.curChar == 'n' value = value + '\n'
-            else value = value + this.curChar
+            if this.current_character == '\\' value = value + '\\'
+            else if this.current_character == 'n' value = value + '\n'
+            else value = value + this.current_character
             backslash = false
           }
+          # Handle template strings
+          else if is_template_string and this.current_character == '{' {
+            let expression_text = ''
+            let expression_start = this.pos()
+            while !this.AtEnd and this.current_character != '}' {
+              expression_text += this.current_character
+              this.advance()
+            }
+            if this.AtEnd {
+              this.Throw({
+                error_type: "UnexpectedEndOfFile",
+                message: "Template string was not terminated",
+                location: {
+                  line: this.pos().line - 1,
+                  column: this.pos().column - 1
+                },
+                markers: [{
+                  line: this.pos().line - 1,
+                  column: start.column - 1 if value.split('\n').length == 1 else 0,
+                  length: value.split('\n').(-1).length
+                }]
+              })
+            }
+            this.advance(-1)
+            let expression_tokens = this.tokenize(expression_text)
+            # TODO
+          }
           else {
-            if (this.curChar == '\\') backslash = true
-            else if this.curChar == variation break
-            else value = value + this.curChar
+            if (this.current_character == '\\') backslash = true
+            else if this.current_character == variation break
+            else value = value + this.current_character
           }
         }
         this.addToken('String', start, this.pos(), value, variation)
       }
-
       # Identifiers, Keywords, and Operators
       else if this.otherwise() {
         value = ''
         start = this.pos()
         while (this.otherwise() or this.isNumber()) & !this.AtEnd {
-          value += this.curChar
+          value += this.current_character
           this.advance()
         }
         this.advance(-1)

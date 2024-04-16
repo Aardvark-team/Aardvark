@@ -69,11 +69,7 @@ class ErrorHandler as this {
     }
     function ThrowNew(options, kill) {
         let error = this.create(options)
-        stdout.flush()
-        stderr.flush()
-        stderr.write(error)
-        stderr.flush()
-        exit(1) if kill
+        error.Throw(kill)
     }
     function getLine(linenum) {
         return this.codelines[linenum-1]

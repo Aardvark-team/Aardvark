@@ -49,7 +49,7 @@ function format(source_lines, message, error_type, filename, location, markers) 
             continue
         
         formatted += $"{color_border}{' ' * max_line_number_length} │\n"
-        formatted += $"{color_border}{padstr(line + 1, max_line_number_length)} │ {fg.rs}{source_lines[line]}\n"
+        formatted += $"{color_border}{padstr(line + 1, max_line_number_length)} │ {fg.rs}{source_lines.(line)}\n"
         
         for offset in range(0, matching_markers.length + 1) {
             if offset == 0 {
