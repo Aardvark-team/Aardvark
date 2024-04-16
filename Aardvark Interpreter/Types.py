@@ -39,21 +39,18 @@ def get_number(number: str, base: int, charmap: str):
 class Type:
     vars = {}
 
-    @classmethod
     def get(self, name, default=None):
         if getattr(self, "parent", None):
             return self.vars.get(name, self.parent.get(name, default))
         else:
             return self.vars.get(name, default)
 
-    @classmethod
     def getAll(self):
         if getattr(self, "parent", None):
             return self.vars | self.parent.getAll()
         else:
             return self.vars
 
-    @classmethod
     def set(self, name, value):
         self.vars[name] = value
 
@@ -61,10 +58,15 @@ class Type:
         return self.set(name, value)
 
     def __getitem__(self, name):
-        return self.get(name)
+        if isinstance(self, type):
+            return self.get(self, name)
+        else:
+            return self.get(name)
 
 
 class Object(Type):
+    vars = {}
+
     def __init__(
         self,
         inherit={},
@@ -177,6 +179,8 @@ class Object(Type):
 
 
 class Scope(Object):
+    vars = {}
+
     def __init__(self, vars, parent: "Scope | None" = None, scope_type=None):
         self.vars = vars
         self.parent = parent or None
@@ -286,6 +290,8 @@ class Scope(Object):
 
 
 class _Undefined(Type):
+    vars = {}
+
     def __repr__(self):
         return "null"
 
@@ -297,6 +303,8 @@ class _Undefined(Type):
 
 
 class _Null(Type):
+    vars = {}
+
     def __repr__(self):
         return "null"
 
@@ -353,6 +361,7 @@ class String(str, Type):
     def __round__(self):
         return self.lower()
 
+    @staticmethod
     @classmethod
     def get(self, name, default=None):
         if type(name) in [Number, int] or (
@@ -364,6 +373,7 @@ class String(str, Type):
             return self[index]
         return self.vars.get(name, default)
 
+    @staticmethod
     @classmethod
     def getAll(self):
         return self.vars | (
@@ -375,6 +385,8 @@ class String(str, Type):
 
 
 class Number(Type):
+    vars = {}
+
     def __init__(
         self,
         value=0,
@@ -558,6 +570,8 @@ class Number(Type):
 
 
 class Boolean(int, Type):
+    vars = {}
+
     def __init__(self, value):
         value = bool(value)
         if value != 0:
@@ -582,10 +596,10 @@ class Boolean(int, Type):
 
 
 class Function(Type):
+    vars = {}
+
     def __init__(self, funct, is_macro=False):
-        self.vars = {}  # Functions have no default attributes.
         self.funct = funct
-        # print("Is Macro: " + str(is_macro))
         self.is_macro = is_macro
         self._locals = {}  # TODO
         Type.__init__(self)
@@ -595,6 +609,8 @@ class Function(Type):
 
 
 class Array(Type, list):
+    vars = {}
+
     def __init__(self, value):
         value = list(value)
         list.__init__(self)
@@ -693,6 +709,8 @@ class Array(Type, list):
 
 
 class Set(Type, list):
+    vars = {}
+
     def __init__(self, value):
         value = list(value)
         list.__init__(self)
@@ -759,6 +777,8 @@ class Set(Type, list):
 
 
 class File(Type):
+    vars = {}
+
     def __init__(self, obj):
         if obj == None:
             obj = open(os.devnull, "w+")
@@ -782,6 +802,7 @@ class File(Type):
         }
         if self.obj == sys.stdin:
             self.vars["prompt"] = input
+        # Type.__init__(self)
 
     def read(self, chars=1):
         return self.obj.read(chars)
@@ -821,6 +842,9 @@ class File(Type):
 
 
 class Class(Type):
+    vars = {}
+    parent = None
+
     def __init__(self, name, build, extends=[], AS=None, parent=None):
         self.name = name
         self.build = build  # A function the class with,
@@ -904,6 +928,8 @@ class Class(Type):
 
 
 class Error(Type):
+    vars = {}
+
     def __init__(self, t="?", msg="Error"):
         self.type = t
         self.message = msg

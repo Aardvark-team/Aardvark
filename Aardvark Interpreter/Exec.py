@@ -260,7 +260,6 @@ class Executor:
                 raise ValueError(f"Could not find library or file {name}.")
             i += 1
         file.resolve()
-        # print(f"{self.path.name} included {file}")
         if str(file) in self.filestack:
             return self.filestack[str(file)]
         errorhandler = Error.ErrorHandler(text, file, py_error=True)
@@ -288,9 +287,6 @@ class Executor:
         self.lexer_time += executor.lexer_time
         self.parser_time += executor.parser_time
         self.filestack[str(file)] = executor.Global
-        # if file.name.split(".")[0] == "SyntaxHighlighter":
-        #     if self.filestack[str(file)]["Highlight"] == None:
-        #         print(self.included_by)
         return executor.Global
 
     def defineVar(self, name, value, scope, is_static=False, expr=None):
