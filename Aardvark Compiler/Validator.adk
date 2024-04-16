@@ -152,7 +152,7 @@ class Validator as this {
         stdout.write(right, '\n\n')
         left = this.traverseAssignment(left, scope)
         right = this.validate(right, scope)
-        stdout.write('Assignment!', right, '\n')
+        stdout.write('Assignment! ', right, '\n')
         if left.variable == null {
           leftVar = Variable(left.name, scope, right.types)
           scope.set(left.name, leftVar)

@@ -1,4 +1,4 @@
-depth = ''
+let depth = ''
 function test(x) {
   stdout.write(depth, 'x is', x, '\n')
   if x <= 0 {
@@ -11,7 +11,7 @@ function test(x) {
     depth = slice(depth, 0, -1)
     return 1
   }
-  depth = depth + '  '
+  depth += '  '
   return test(x-1) + test(x-2)
 }
 

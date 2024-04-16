@@ -79,25 +79,41 @@ def run(
     Global=None,
     safe=False,
     is_strict=False,
+    time_stats=False,
 ):
+    lexer_time = 0
+    parser_time = 0
+    executor_time = 0
     errorhandler = ErrorHandler(text, file, py_error=True)
     ret = Null
     error = False
     try:
+        lexer_start = time.time()
         lexer = Lexer.Lexer("#", "#*", "*#", errorhandler, False)
         toks = lexer.tokenize(text)
         if printToks:
             print(prettify_ast(toks))
+        lexer_end = time.time()
+        lexer_time = lexer_end - lexer_start
         parser = Parser.Parser(errorhandler, lexer, is_strict)
         ast = parser.parse()
         if printAST:
             print(prettify_ast(ast))
+        parser_end = time.time()
+        parser_time = parser_end - lexer_end
         executor = Exec.Executor(
             file, text, ast["body"], errorhandler, {}, True, safe, None, is_strict
         )
         if Global:
             executor.Global = Global
         ret = executor.run()
+        executor_time = executor.executor_time
+        lexer_time += executor.lexer_time
+        parser_time += executor.parser_time
+        if time_stats:
+            print(
+                f"Lexer: {lexer_time}\nParser: {parser_time}\nExecutor: {executor_time}"
+            )
         Global = executor.Global
     except Exception as e:
         error = str(e.args)

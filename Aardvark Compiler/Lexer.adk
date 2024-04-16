@@ -48,7 +48,7 @@ class Lexer as this {
   let Boolean empty
   let Boolean AtEnd
   let String current_character
-  let error_handler # (null | ErrorHandler)
+  let (ErrorHandler?) error_handler
 
   $constructor(useIndents = false, tokenizeComments = false, error_handler=null) {
     this.useIndents = useIndents

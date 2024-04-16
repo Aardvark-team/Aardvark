@@ -48,5 +48,5 @@ function findClosest(items, item) {
 
 if is_main {
   # Calculate and print the edit distance between 'hi' and 'he'.
-  stdout.write('The distance between hi and he:', editDistance('hi', 'he'), '\n')
+  stdout.write('The distance between hi and he: ', editDistance('hi', 'he'), '\n')
 }

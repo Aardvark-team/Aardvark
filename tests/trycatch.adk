@@ -2,7 +2,7 @@ try {
   hjsjkh
 }
 catch x {
-  stdout.write(x, dir(x), '\n')
+  stdout.write(x, " " dir(x), '\n')
 }
 
 #throw z

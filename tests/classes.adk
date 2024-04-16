@@ -5,7 +5,7 @@ class X as this {
     stdout.write('constructed!\n')
   }
   $call(x, y, z) {
-    stdout.write('Args work?', x, y, z, '\n')
+    stdout.write('Args work? ', x, " " y, " ", z, '\n')
   }
   function method() {
     return this.x
@@ -13,7 +13,7 @@ class X as this {
   attr = 5
 }
 
-x = [X()]
+let x = [X()]
 stdout.write(typeof(x), x, '\n')
 
 for i in x {

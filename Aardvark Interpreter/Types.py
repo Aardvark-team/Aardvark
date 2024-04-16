@@ -532,6 +532,9 @@ class Number(Type):
     def __round__(self):
         return round(self.value)
 
+    def __bool__(self):
+        return bool(self.value)
+
 
 class Boolean(int, Type):
     def __init__(self, value):
@@ -767,13 +770,13 @@ class File(Type):
         return self.obj.read()
 
     def write(self, *args, flush="auto"):
-        ret = self.obj.write(" ".join([str(a) for a in args]))
+        ret = self.obj.write("".join([str(a) for a in args]))
         if flush == "instant":
             self.obj.flush()
         return ret
 
     def writeLines(self, *lines):
-        return self.obj.writelines([str(lines) for line in lines])
+        return self.obj.write("\n".join([str(line) for line in lines]))
 
     def delete(self):
         os.remove(self.name)

@@ -16,6 +16,7 @@ if __name__ == "__main__":
     argp.switch("debug", "Allow $test and $clear commands.")
     argp.switch("no-ret", "if set, return values are not printed in repl mode.")
     argp.switch("strict", "Use strict mode.")
+    argp.switch("time", "Record time stats.")
     argp.switch("e", "Use experimental repl.")
     argp.switch("safe", "Use safe mode.")
     argp.switch("help", "Displays the help menu.")
@@ -52,6 +53,7 @@ if __name__ == "__main__":
                 ctx.getSwitch("ast"),
                 safe=ctx.getSwitch("safe"),
                 is_strict=ctx.getSwitch("strict"),
+                time_stats=ctx.getSwitch("time"),
             )
 
     @argp.command("repl", "Start an interactable language shell.")
@@ -263,6 +265,7 @@ if __name__ == "__main__":
                 None,
                 ctx.getSwitch("safe"),
                 ctx.getSwitch("strict"),
+                time_stats=ctx.getSwitch("time"),
             )
         else:
             ctx.help(error=True, message=f"Unknown command '{file}'.")

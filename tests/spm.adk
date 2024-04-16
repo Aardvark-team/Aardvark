@@ -6,7 +6,7 @@ x = {
 }
 switch x {
     case {age: 19, name: $name} {
-        stdout.write('Yea!', name, '\n')
+        stdout.write('Yea! ', name, '\n')
         break
     }
     case {} {

@@ -23,6 +23,7 @@ from Types import (
     _Undefined,
 )
 import importlib
+import time
 
 try:
     from bitarray import bitarray
@@ -199,6 +200,9 @@ class Executor:
         included_by=None,
         is_strict=False,
     ):
+        self.lexer_time = 0
+        self.parser_time = 0
+        self.executor_time = 0
         self.path = Path(path)
         self.code = code
         self.codelines = code.split("\n")
@@ -260,10 +264,15 @@ class Executor:
         if str(file) in self.filestack:
             return self.filestack[str(file)]
         errorhandler = Error.ErrorHandler(text, file, py_error=True)
+        lexer_start = time.time()
         lexer = Lexer.Lexer("#", "#*", "*#", errorhandler, False)
         toks = lexer.tokenize(text)
+        lexer_end = time.time()
+        self.lexer_time += lexer_end - lexer_start
         parser = Parser.Parser(errorhandler, lexer, self.is_strict)
         ast = parser.parse()
+        parser_end = time.time()
+        self.parser_time += parser_end - lexer_end
         executor = Executor(
             file,
             text,
@@ -275,6 +284,9 @@ class Executor:
             is_strict=self.is_strict,
         )
         executor.run()
+        self.executor_time += executor.executor_time
+        self.lexer_time += executor.lexer_time
+        self.parser_time += executor.parser_time
         self.filestack[str(file)] = executor.Global
         # if file.name.split(".")[0] == "SyntaxHighlighter":
         #     if self.filestack[str(file)]["Highlight"] == None:
