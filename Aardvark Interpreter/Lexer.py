@@ -312,6 +312,18 @@ class Lexer:
                             value += "\\"
                         if self.curChar == "n":
                             value += "\n"
+                        if self.curChar == "t":
+                            value += "\t"
+                        if self.curChar == "r":
+                            value += "\r"
+                        if self.curChar == "b":
+                            value += "\b"
+                        if self.curChar == "f":
+                            value += "\f"
+                        if self.curChar == "v":
+                            value += "\v"
+                        if self.curChar == "e":
+                            value += "\033"
                         if self.curChar == variation:
                             value += variation
                         backslash = False

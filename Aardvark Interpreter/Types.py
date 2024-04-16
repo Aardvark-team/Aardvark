@@ -39,18 +39,21 @@ def get_number(number: str, base: int, charmap: str):
 class Type:
     vars = {}
 
+    @classmethod
     def get(self, name, default=None):
         if getattr(self, "parent", None):
             return self.vars.get(name, self.parent.get(name, default))
         else:
             return self.vars.get(name, default)
 
+    @classmethod
     def getAll(self):
         if getattr(self, "parent", None):
             return self.vars | self.parent.getAll()
         else:
             return self.vars
 
+    @classmethod
     def set(self, name, value):
         self.vars[name] = value
 
@@ -317,6 +320,10 @@ class _Null(Type):
 
 
 class String(str, Type):
+    vars = {
+        "from_ordinal": lambda x: chr(x),
+    }
+
     def __init__(self, value):
         value = str(value)
         self.vars = {
@@ -335,6 +342,8 @@ class String(str, Type):
             "lstrip": self.lstrip,
             "strip": self.strip,
             "copy": lambda: String(value),
+            "ordinal": lambda: ord(self),
+            "from_ordinal": lambda x: chr(x),
         }
         str.__init__(self)
 
@@ -344,13 +353,25 @@ class String(str, Type):
     def __round__(self):
         return self.lower()
 
+    @classmethod
     def get(self, name, default=None):
-        if type(name) in [Number, int] or name.isdigit():
+        if type(name) in [Number, int] or (
+            type(name) in [str, String] and name.isdigit()
+        ):
             index = int(name)
             if index >= len(self):
                 return default
             return self[index]
         return self.vars.get(name, default)
+
+    @classmethod
+    def getAll(self):
+        return self.vars | (
+            {x: self[x] for x in range(len(self))} if type(self) != type else {}
+        )
+
+    def from_ordinal(self, x):
+        return chr(x)
 
 
 class Number(Type):
@@ -647,7 +668,9 @@ class Array(Type, list):
         self.vars["length"] = len(self)
 
     def __setitem__(self, name, value):
-        if type(name) in [Number, int] or name.isdigit():
+        if type(name) in [Number, int] or (
+            type(name) in [str, String] and name.isdigit()
+        ):
             index = int(name)
             if index >= len(self.value):
                 return None
@@ -656,7 +679,9 @@ class Array(Type, list):
         return self.set(name, value)
 
     def get(self, name, default=None):
-        if type(name) in [Number, int] or name.isdigit():
+        if type(name) in [Number, int] or (
+            type(name) in [str, String] and name.isdigit()
+        ):
             index = int(name)
             if index >= len(self.value):
                 return default
