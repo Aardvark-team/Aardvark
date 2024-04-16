@@ -747,6 +747,7 @@ class File(Type):
             "readLine": self.readLine,
             "readLines": self.readLines,
             "writeLines": self.writeLines,
+            "log": self.log,
             "erase": self.erase,
             "move": self.move,
             "delete": self.delete,
@@ -768,6 +769,12 @@ class File(Type):
 
     def readAll(self):
         return self.obj.read()
+
+    def log(self, *args, flush="auto", sep=" "):
+        ret = self.obj.write(sep.join([str(a) for a in args]) + "\n")
+        if flush == "instant":
+            self.obj.flush()
+        return ret
 
     def write(self, *args, flush="auto"):
         ret = self.obj.write("".join([str(a) for a in args]))
