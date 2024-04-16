@@ -324,6 +324,27 @@ class Lexer:
                             value += "\v"
                         if self.curChar == "e":
                             value += "\033"
+                        if self.curChar == "a":
+                            value += "\a"
+                        if self.curChar == "x":
+                            hex_val = ""
+                            self.advance()
+                            while (
+                                self.curChar in "0123456789abcdefABCDEF"
+                                and not self.AtEnd
+                            ):
+                                hex_val += self.curChar
+                                self.advance()
+                            self.advance(-1)
+                            value += chr(int(hex_val, 16))
+                        if self.curChar in "01234567":
+                            octal_val = self.curChar
+                            self.advance()
+                            while self.curChar in "01234567" and not self.AtEnd:
+                                octal_val += self.curChar
+                                self.advance()
+                            self.advance(-1)
+                            value += chr(int(octal_val, 8))
                         if self.curChar == variation:
                             value += variation
                         backslash = False
