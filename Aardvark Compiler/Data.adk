@@ -43,7 +43,6 @@ let Operators = set{
   "or",  # or
   "xor", # xor
   "in",  # in
-  '$', #special functions
   '++',
   '--',
   "$=",
@@ -91,7 +90,8 @@ let Delimiters = set{
     "[",  # lbracket
     "]",  # rbracket
     ".",  # period
-    ','   # comma, for separating values.
+    ',',  # comma, for separating values.
+    "$"   # dollar sign, used for special variables and methods
 }
 
 let Keywords = set{

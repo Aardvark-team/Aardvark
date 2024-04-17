@@ -9,11 +9,13 @@ class Token as this {
     let String value
     let String variation
     let Object position
+    let Array insertions
     $constructor(type, 
             start, 
             end,
             value = null,
-            variation = null) 
+            variation = null, 
+            insertions=null) 
     {
     this.type = type
     this.length = end.index - start.index + 1
@@ -21,6 +23,7 @@ class Token as this {
     this.end = end
     this.value = value
     this.variation = variation
+    this.insertions = insertions
     this.position = {
         start: start,
         end: end
@@ -48,15 +51,18 @@ class Lexer as this {
   let Boolean empty
   let Boolean AtEnd
   let String current_character
-  let error_stack
+  let error_stack = []
+  let position
 
   $constructor(useIndents = false, tokenizeComments = false) {
     this.useIndents = useIndents
     this.tokenizeComments = tokenizeComments
     this.data = ""
-    this.index = 0
-    this.line = 0
-    this.column = 0
+    this.position = {
+        index: 0,
+        line: 0,
+        column: 0
+    }
     #TODO: merge index, line, and column into a position attribute
     this.output = []
     this.empty = true
@@ -83,8 +89,8 @@ class Lexer as this {
   function isNumber(char)
     (char ? this.current_character) in '0123456789'
 
-  function addToken(type, start, end, value, variety)
-    this.output.add(Token(type, start, end, value, variety))
+  function addToken(type, start, end, value, variety, insertions)
+    this.output.add(Token(type, start, end, value, variety, insertions))
 
   function otherwise(char) {
     char = char ? this.current_character
@@ -100,38 +106,38 @@ class Lexer as this {
   }
   function newline() {
     this.empty = true
-    this.line += 1
-    this.column = 1
+    this.position.line += 1
+    this.position.column = 1
   }
   function advance(amt = 1) {
-    this.index = this.index + amt
-    this.column = this.column + amt
-    if this.index < this.data.length
-      this.current_character = this.data.(this.index)
+    this.position.index += amt
+    this.position.column += amt
+    if this.position.index < this.data.length
+      this.current_character = this.data.(this.position.index)
     else 
       this.AtEnd = true
   }
   function peek(amt = 1) {
-    if this.index + amt < this.data.length 
-      return this.data.(this.index + amt)
+    if this.position.index + amt < this.data.length 
+      return this.data.(this.position.index + amt)
     else return null;
   }
   function pos
-    {index: this.index, line: this.line, column: this.column}
+    {index: this.position.index, line: this.position.line, column: this.position.column}
 
   function tokenize(data="") {
     #*
       Takes code and converts it to tokens.
     *#
     this.data = data
-    this.index = 0
-    this.line = 1
-    this.column = 1
+    this.position.index = 0
+    this.position.line = 1
+    this.position.column = 1
     this.output = []
     this.empty = true
     this.AtEnd = false
-    this.current_character = this.data.(this.index)
-    while this.index < this.data.length {
+    this.current_character = this.data.(this.position.index)
+    while this.position.index < this.data.length {
         # Operators
         let Operators_array_sorted = Array(Operators)
         Operators_array_sorted.sort(function (a, b) b.length - a.length)
@@ -146,16 +152,19 @@ class Lexer as this {
 
       # Newlines (\n or ;)
       if this.isNewline() {
-        this.addToken('LineBreak', this.pos(), this.pos(), this.current_character, this.current_character)
-        if this.current_character = '\n' this.newline(); # Only increment the line if its a \n
+        let character = this.current_character
+        this.addToken('LineBreak', this.pos(), this.pos(), character, character)
+        this.advance()
+        if character = '\n' this.newline(); # Only increment the line if its a \n
         else this.empty = true
+        continue
       }
 
       # Indents
       else if this.isWhitespace() & this.empty & this.useIndents {
         value = ''
-        start = this.index
-        startcolumn = this.column
+        start = this.position.index
+        startcolumn = this.position.column
         while this.isWhitespace() & !this.AtEnd {
           value = value + this.current_character
           this.advance()
@@ -166,10 +175,6 @@ class Lexer as this {
         }
         else this.advance(-1);
       }
-
-      #Delimiters
-      else if this.isDelimiter() 
-        this.addToken('Delimiter', this.pos(), this.pos(), this.current_character)
 
       #Numbers
       else if this.isNumber() {
@@ -185,8 +190,8 @@ class Lexer as this {
               message: "A Number may not have two decimal points!",
               error_type: "SyntaxError",
               location: {
-                line: this.pos().line - 1,
-                column: this.pos().column - 1
+                line: this.position.line - 1,
+                column: this.position.column - 1
               },
               markers: [{
                 line: dot_position.line - 1,
@@ -194,8 +199,8 @@ class Lexer as this {
                 length: 1,
                 message: "First decimal point."
               }, {
-                line: this.pos().line - 1,
-                column: this.pos().column - 1,
+                line: this.position.line - 1,
+                column: this.position.column - 1,
                 length: 1,
                 message: "Second decimal point."
               }]
@@ -205,8 +210,8 @@ class Lexer as this {
               message: "Number base already defined!\nHint: The value left of the underscore (_) represents the base of the Number. (e.g. 16_1ab would be hex and 2_0101 would be binary)",
               error_type: "SyntaxError",
               location: {
-                line: this.pos().line - 1,
-                column: this.pos().column - 1
+                line: this.position.line - 1,
+                column: this.position.column - 1
               },
               markers: [{
                 line: start.line - 1,
@@ -214,8 +219,8 @@ class Lexer as this {
                 length: start.column - underscore_position.column + 1,
                 message: "Number base."
               }, {
-                line: this.pos().line - 1,
-                column: this.pos().column - 1,
+                line: this.position.line - 1,
+                column: this.position.column - 1,
                 length: 1,
                 message: "Second underscore."
               }]
@@ -262,13 +267,13 @@ class Lexer as this {
           value = value + this.current_character
           this.advance()
         }
-        this.advance(-1) # To still register the newline
         if (this.tokenizeComments) this.addToken('Comment', start, this.pos(), value)
       }
+
       # Strings
       else if this.isQuote() | (this.current_character == '$' & this.isQuote(this.peek(1))) {
         let is_template_string = false
-        #TODO: Handle template strings
+        let insertions = []
         if this.current_character == '$' {
           this.advance()
           is_template_string = true
@@ -329,9 +334,23 @@ class Lexer as this {
                 }]
               })
             }
-            this.advance(-1)
-            let expression_tokens = this.tokenize(expression_text)
-            # TODO
+            expression_text = expression_text.slice(1, 0)
+            let new_lexer = Lexer(expression_text, this.tokenizeComments)
+            let expression_tokens = new_lexer.tokenize(expression_text)
+            for token in expression_tokens {
+              token.position.start.index += expression_start.index
+              token.position.start.line += expression_start.line - 1
+              token.position.start.column += expression_start.column - 1
+              token.position.end.index += expression_start.index
+              token.position.end.line += expression_start.line - 1
+              token.position.end.column += expression_start.column - 1
+            }
+            # stdout.log(expression_tokens)
+            insertions.add({
+              position: value.length - 1,
+              tokens: expression_tokens,
+              expression_text
+            })
           }
           else {
             if (this.current_character == '\\') backslash = true
@@ -339,8 +358,13 @@ class Lexer as this {
             else value = value + this.current_character
           }
         }
-        this.addToken('String', start, this.pos(), value, variation)
+        this.addToken('String', start, this.pos(), value, variation, insertions)
       }
+
+      # Delimiters
+      else if this.isDelimiter() 
+        this.addToken('Delimiter', this.pos(), this.pos(), this.current_character)
+
       # Identifiers, Keywords, and Operators
       else if this.otherwise() {
         value = ''

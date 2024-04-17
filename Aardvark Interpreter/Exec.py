@@ -103,14 +103,14 @@ def createGlobals(safe=False):
             "prettify": prettify_ast,
             "range": lambda *args: list(range(*args)),
             "typeof": lambda obj: (
-                obj._class.name
+                obj._class
                 if type(obj) == Object and getattr(obj, "_class", False)
-                else type(obj).__name__
+                else type(obj)
             ),
             "type_of": lambda obj: (
-                obj._class.name
+                obj._class
                 if type(obj) == Object and getattr(obj, "_class", False)
-                else type(obj).__name__
+                else type(obj)
             ),
             "keys": lambda x: list(x.getAll().keys()),
             "dir": lambda x=None: x.getAll() if x else Globals.vars,
@@ -347,11 +347,13 @@ class Executor:
                 # if param["value_type"] != None:
                 #     notImplemented(self.errorhandler, "Type Checking", param)
                 functscope.vars[param["name"]] = arg
-                if self.is_strict or param["is_static"]:
+                if self.is_strict or param.get("is_static", False):
                     functscope.vars[param["name"]].is_static = True
                 else:
                     functscope.vars[param["name"]].is_static = False
             ret = self.Exec(code, functscope)
+            if is_macro:
+                return ret
             if not functscope._returned_value and expr.get("inline", False):
                 functscope._returned_value = ret
             return functscope._returned_value
@@ -493,15 +495,16 @@ class Executor:
                 del scope[expr["name"]]
             case {"type": "FunctionCall"}:
                 funct = self.ExecExpr(expr["function"], scope)
-                self.traceback.append(
-                    {
-                        "name": Error.getAstText(expr["function"], self.codelines)
-                        + "()",
-                        "line": expr["positions"]["start"]["line"],
-                        "col": expr["positions"]["start"]["col"],
-                        "filename": Path(self.path).name,
-                    }
-                )
+                if not getattr(funct, "is_macro", False):
+                    self.traceback.append(
+                        {
+                            "name": Error.getAstText(expr["function"], self.codelines)
+                            + "()",
+                            "line": expr["positions"]["start"]["line"],
+                            "col": expr["positions"]["start"]["col"],
+                            "filename": Path(self.path).name,
+                        }
+                    )
                 args = []
                 kwargs = {
                     k: self.ExecExpr(v, scope)
