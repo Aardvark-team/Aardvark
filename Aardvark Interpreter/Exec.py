@@ -235,11 +235,11 @@ class Executor:
             test_path = d / name
             if test_path.is_dir():
                 test_path_main = test_path / "main.adk"
-                test_path_index = test_path / "index.adk"
                 if test_path_main.exists():
                     file = test_path / "main.adk"
                     break
-                elif test_path_index.exists():
+                test_path_index = test_path / "index.adk"
+                if test_path_index.exists():
                     file = test_path / "index.adk"
                     break
             elif test_path.exists():
@@ -254,10 +254,11 @@ class Executor:
 
         if file:
             file = file.resolve()
-            text = file.read_text(encoding="utf-8")
 
         if str(file) in self.filestack:
             return self.filestack[str(file)]
+
+        text = file.read_text(encoding="utf-8")
         lexer_start = time.time()
         errorhandler = Error.ErrorHandler(text, file, py_error=True)
         lexer = Lexer.Lexer("#", "#*", "*#", errorhandler, False)
