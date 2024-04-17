@@ -67,16 +67,14 @@ class Lexer as this {
         line: 0,
         column: 0
     }
-    #TODO: merge index, line, and column into a position attribute
     this.output = []
     this.empty = true
     this.AtEnd = false
     this.error_stack = []
     this.current_character = ""
   }
-  function Throw(options) {
+  function Throw(options)
     this.error_stack.add(options)
-  }
 
   function isWhitespace(char)
     (char ? this.current_character) in Whitespaces
@@ -97,8 +95,8 @@ class Lexer as this {
     this.output.add(Token(type, start, end, value, variety, insertions))
 
   function otherwise(char) {
-    char = char ? this.current_character
-    return !(this.isWhitespace(char) | this.isDelimiter(char) | this.isNewline(char) | char == '#' | char in Operators)
+    let character = char ? this.current_character
+    return !(this.isWhitespace(character) | this.isDelimiter(character) | this.isNewline(character) | character == '#' | character in Operators)
   }
   function detect(text) {
     if this.current_character == text.0 {

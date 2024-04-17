@@ -1032,8 +1032,7 @@ function test(String code) {
         return false
     return AST
 }
-# let code = "$'hello, {else}!'"
-# stdout.log(test(code))
+# stdout.log(test(error_tests.many_errors))
 for test_name:code in parser_tests {
     let passed = test(code)
     if passed
