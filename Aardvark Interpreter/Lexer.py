@@ -142,10 +142,11 @@ class Lexer:
             return []
         self.data += data
         self.curChar = self.data[self.index]
+        sortedPureOperators = sorted(PureOperators, key=len, reverse=True)
         while self.index < len(self.data):
 
             # Operators
-            for op in sorted(PureOperators, key=len, reverse=True):
+            for op in sortedPureOperators:
                 if self.detect(op):
                     start = self.index
                     startcolumn = self.column

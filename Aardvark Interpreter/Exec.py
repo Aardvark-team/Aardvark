@@ -25,6 +25,7 @@ from Types import (
 import importlib
 import time
 
+
 try:
     from bitarray import bitarray
 except ImportError:
@@ -45,17 +46,10 @@ class AardvarkArgumentError(ValueError):
         self.message = message
 
 
-searchDirs = [
-    "/home/runner/Aardvark/lib/",
-    "/home/runner/Aardvark-py/lib/",
-    "/home/runner/Aardvark-py-API/lib/",
-    ".adk/lib/",
-    "lib/",
-]
-if os.environ["AARDVARK_INSTALL"]:
-    searchDirs.append(os.environ["AARDVARK_INSTALL"] + "/lib/")
-
 current_dir = os.getcwd()
+searchDirs = [Path(".adk/lib"), Path("lib/"), Path("../lib/")]
+# if os.environ["AARDVARK_INSTALL"]:
+#     searchDirs.append(Path(os.environ["AARDVARK_INSTALL"] + "/lib/"))
 
 adk_overloaded_classes = {}
 
@@ -214,6 +208,8 @@ class Executor:
         self.Global = createGlobals(safe)
         self.included_by = included_by
         self.safe = safe
+        self.searchDirs = searchDirs
+        self.searchDirs.insert(0, self.path.parent)
         if not safe:
 
             def adk_open(path, *args, **kwargs):
@@ -230,40 +226,39 @@ class Executor:
         self.filestack[str(self.path)] = self.Global
 
     def include(self, name):
-        locs = []
-        path = Path(Path(self.path).parent, name).resolve()
-        locs.append(str(path))
-        locs.append(str(path) + ".adk")
-        # allow importing folders that contain an main.adk
-        locs.append(os.path.join(str(path), "index.adk"))
-        locs.append(os.path.join(str(path), "main.adk"))
-
-        if "/" not in name and "\\" not in name:
-            for dir in searchDirs:
-                locs.append(os.path.join(current_dir, dir, name))
-                locs.append(os.path.join(current_dir, dir, name) + ".adk")
-                locs.append(dir + name)
-                locs.append(dir + name + ".adk")
-                locs.append(os.path.join(current_dir, dir, name, "index.adk"))
-                locs.append(os.path.join(current_dir, dir, name, "main.adk"))
-
-        i = 0
+        # Search all search directories
+        with_ext = name + ".adk"
+        file = None
         text = None
-        while True:
-            file = Path(locs[i])
-            if file.is_dir():
-                file = file.joinpath(file.name + ".adk")
-            if file.exists():
-                text = file.read_text(encoding="utf-8")
+        for d in self.searchDirs:
+            test_path = d / name
+            if test_path.is_dir():
+                test_path_main = test_path / "main.adk"
+                test_path_index = test_path / "index.adk"
+                if test_path_main.exists():
+                    file = test_path / "main.adk"
+                    break
+                elif test_path_index.exists():
+                    file = test_path / "index.adk"
+                    break
+            elif test_path.exists():
+                file = test_path
                 break
-            if i > len(locs) - 2:
-                raise ValueError(f"Could not find library or file {name}.")
-            i += 1
-        file.resolve()
+            test_path_with_ext = d / with_ext
+            if test_path_with_ext.exists():
+                file = test_path_with_ext
+                break
+        else:
+            raise ValueError(f"Could not find library or file {name}.")
+
+        if file:
+            file = file.resolve()
+            text = file.read_text(encoding="utf-8")
+
         if str(file) in self.filestack:
             return self.filestack[str(file)]
-        errorhandler = Error.ErrorHandler(text, file, py_error=True)
         lexer_start = time.time()
+        errorhandler = Error.ErrorHandler(text, file, py_error=True)
         lexer = Lexer.Lexer("#", "#*", "*#", errorhandler, False)
         toks = lexer.tokenize(text)
         lexer_end = time.time()
@@ -411,6 +406,9 @@ class Executor:
                 + findClosest(varname, scope)
                 + line[start["col"] + len(varname) - 1 :]
             )
+            # Check if the message is a function or lambda:
+            if callable(message):
+                message = message()
             return self.errorhandler.throw(
                 "Value",
                 message.format(name=varname),
@@ -454,9 +452,9 @@ class Executor:
                 )
             case {"type": "PropertyAccess"}:
                 obj = pyToAdk(self.ExecExpr(expr["value"], scope, undefinedError))
-                objname = (
+                get_objname = lambda: (
                     obj.name
-                    if "name" in dir(obj)
+                    if "name" in dir(obj)  # Biggest performance issue is calling dir()
                     else Error.getAstText(expr["value"], self.codelines)
                 )
                 property = self.ExecExpr(expr["property"], scope, undefinedError)
@@ -465,7 +463,7 @@ class Executor:
                     property,
                     expr["property"]["positions"]["start"],
                     undefinedError,
-                    message=f'Undefined property "{{name}}" of "{objname}"',
+                    message=lambda: f'Undefined property "{{name}}" of "{get_objname()}"',
                 )
             case {"type": "Object"}:
                 obj = Object()

@@ -48,9 +48,9 @@ class Lexer as this {
   let Boolean empty
   let Boolean AtEnd
   let String current_character
-  let (ErrorHandler?) error_handler
+  let error_stack
 
-  $constructor(useIndents = false, tokenizeComments = false, error_handler=null) {
+  $constructor(useIndents = false, tokenizeComments = false) {
     this.useIndents = useIndents
     this.tokenizeComments = tokenizeComments
     this.data = ""
@@ -61,12 +61,11 @@ class Lexer as this {
     this.output = []
     this.empty = true
     this.AtEnd = false
+    this.error_stack = []
     this.current_character = ""
-    this.error_handler = error_handler
   }
-  function Throw(options, kill=true) {
-    if this.error_handler == null return false
-    return this.error_handler.ThrowNew(options, kill)
+  function Throw(options) {
+    this.error_stack.add(options)
   }
 
   function isWhitespace(char)
@@ -221,7 +220,7 @@ class Lexer as this {
                 message: "Second underscore."
               }]
             })
-          if this.current_character == '.' 
+          else if this.current_character == '.' 
             dot_position = this.pos();
           else if this.current_character == '_' {
             underscore_position = this.pos();

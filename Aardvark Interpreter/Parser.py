@@ -30,6 +30,7 @@ compares = 0
 
 
 class Parser:
+
     def __init__(self, err_handler, lexer, is_strict=False):
         self.code = lexer.data
         self.is_strict = is_strict
@@ -43,14 +44,14 @@ class Parser:
     ## UTILITY
 
     # Get the next token
+
     def peek(self, n=0):
         tok = self.tokens[self.pos + n] if self.pos + n < len(self.tokens) else None
         return tok
 
     # Compare the next token with type, value
+
     def compare(self, Type, value=None, n=0):
-        # global compares
-        # compares += 1
         if self.isEOF():
             return False
 
@@ -62,6 +63,7 @@ class Parser:
         return False
 
     # Advance to the next token
+
     def advance(self):
         self.pos += 1
 
@@ -70,6 +72,7 @@ class Parser:
             self.advance()
 
     # Unexpected EOF
+
     def eofError(self, Type, value=None, is_type=False):
         last_tok = self.tokens[self.pos - 1]
         curr_line = self.err_handler.code.split("\n")[last_tok.line - 1]
@@ -108,6 +111,7 @@ class Parser:
             )
 
     # Consume the current token if the types match, else throw an error
+
     def eat(self, Type="any", value=None, is_type=False):
         if type(Type) == str:
             Type = TokenTypes[Type]
@@ -173,11 +177,13 @@ class Parser:
         )
 
     # Is at the end of file
+
     def isEOF(self):
         return self.pos >= len(self.tokens)
 
     # Parse expression split by delimiter, until token type is reached,
     # closer should look like ( Type of token, Value of token )
+
     def parseListLike(self, delim, closer):
         items = []
         while self.peek() and not self.compare(*closer):
@@ -213,6 +219,7 @@ class Parser:
         return items
 
     # Eats a list of statements contained in { and }
+
     def eatBlockScope(self):
         self.eatLBs()
         self.eat(TokenTypes["Delimiter"], "{")
@@ -239,6 +246,7 @@ class Parser:
     #   [boolean]
     #   FunctionDefinition
     #   FunctionCall
+
     def pPrimary(self, require=False, exclude=[]):
         tok = self.peek()
         ast_node = None
@@ -623,6 +631,7 @@ class Parser:
             )
 
     # Expression:
+
     def pExpression(
         self, level=len(OrderOfOps) - 1, require=False, exclude=[], eatLBs=False
     ):
@@ -683,6 +692,7 @@ class Parser:
 
     # Object:
     # 	{ [string] : Expression (, [string] : Expression ) }
+
     def pObject(self, no_error=False):
         starter = self.eat(TokenTypes["Delimiter"], "{")
         obj = {}
@@ -764,6 +774,7 @@ class Parser:
 
     # Array:
     # 	[ Expression ( , Expression ) ]
+
     def pArray(self):
         starter = self.eat(TokenTypes["Delimiter"], "[")
         items = self.parseListLike(",", (TokenTypes["Delimiter"], "]"))
@@ -777,6 +788,7 @@ class Parser:
 
     # Set:
     # 	{ Expression ( , Expression ) }
+
     def pSet(self, starter):
         self.eat(TokenTypes["Delimiter"], "{")
         items = self.parseListLike(",", (TokenTypes["Delimiter"], "}"))
@@ -790,6 +802,7 @@ class Parser:
 
     # FunctionCall:
     # 	[identifier] ( Expression ( , Expression ) )
+
     def pFunctionCall(self, ast_node):
         self.eat(TokenTypes["Delimiter"], "(")
         arguments = []
@@ -860,6 +873,7 @@ class Parser:
 
     # pFunctionDefinition:
     # 	function [identifier] ( [identifier] [identifier] ( , [identifier] [identifier] ) )
+
     def pFunctionDefinition(self, special=False):
         starter = None
         name = None
@@ -1010,6 +1024,7 @@ class Parser:
 
     # ExtendingStatement:
     #    extending Object
+
     def pExtendingStatement(self):
         starter = self.eat("Keyword", "extending")
 
@@ -1062,6 +1077,7 @@ class Parser:
 
     # ReturnStatement:
     # 	return Expression
+
     def pReturnStatement(self):
         starter = self.eat(TokenTypes["Keyword"], "return")
         return_value = self.pStatement(eatLBs=False)
@@ -1079,6 +1095,7 @@ class Parser:
     # WhileLoop:
     # 	while condition BlockScope
     # 	while condition Statement
+
     def pWhileLoop(self, inline=False):
         starter = self.eat(TokenTypes["Keyword"], "while")
         condition = self.pExpression(require=True)
@@ -1101,6 +1118,7 @@ class Parser:
     # IfStatement:
     # 	if condition BlockScope [ else BlockScope ]
     #   if condition BlockScope [ else Statement ]
+
     def pIfStatement(self, inline=False):
         starter = self.eat(TokenTypes["Keyword"], "if")
         condition = self.pExpression(require=True)
@@ -1135,6 +1153,7 @@ class Parser:
         }
 
     # Delete Keyword:
+
     def pDelete(self):
         starter = self.eat(TokenTypes["Keyword"], "delete")
         target = self.pExpression(require=True)
@@ -1145,6 +1164,7 @@ class Parser:
         }
 
     # For loop:
+
     def pForLoop(self, inline=False):
         starter = self.eat("Keyword", "for")
         declarations = []
@@ -1188,6 +1208,7 @@ class Parser:
 
     # ClassScope:
     #     { FunctionDefinition(is_class_method = True)* }
+
     def pClassScope(self):
         starter = self.eat("Delimiter", "{")
         body = []
@@ -1207,6 +1228,7 @@ class Parser:
 
     # ClassDefinition:
     #     class [identifier] [ extends [identifier] ] ClassScope
+
     def pClassDefinition(self):
         if self.compare("Keyword", "static"):
             starter = self.eat("Keyword", "static")
@@ -1255,6 +1277,7 @@ class Parser:
     #     include [identifier] [ as [identifier] ] from [identifier]
     #     from [identifier] include [identifier]
     #     from [identifier] include [identifier] as [identifier]
+
     def pIncludeStatement(self):
         if self.compare("Keyword", "include"):
             keyw = self.eat("Keyword", "include")
@@ -1409,6 +1432,7 @@ class Parser:
 
     # Statement:
     #   Case
+
     def pCaseStatement(self):
         starter = self.eat("Keyword", "case")
         compare = None
@@ -1436,6 +1460,7 @@ class Parser:
         }
 
     # Statement Switch
+
     def pSwitchCase(self):
         if self.compare("Keyword", "match"):
             starter = self.eat("Keyword", "match")
@@ -1720,6 +1745,7 @@ class Parser:
 
     # Statement:
     # 	VariableDefinition
+
     def pStatement(self, require=False, eatLBs=True):
         if eatLBs:
             self.eatLBs()
@@ -1822,6 +1848,7 @@ class Parser:
 
     # Program:
     # 	Statement ( [linebreak] Statement )
+
     def pProgram(self):
         self.statements = []
 

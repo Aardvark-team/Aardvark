@@ -361,8 +361,6 @@ class String(str, Type):
     def __round__(self):
         return self.lower()
 
-    @staticmethod
-    @classmethod
     def get(self, name, default=None):
         if type(name) in [Number, int] or (
             type(name) in [str, String] and name.isdigit()
@@ -373,8 +371,6 @@ class String(str, Type):
             return self[index]
         return self.vars.get(name, default)
 
-    @staticmethod
-    @classmethod
     def getAll(self):
         return self.vars | (
             {x: self[x] for x in range(len(self))} if type(self) != type else {}
@@ -401,11 +397,11 @@ class Number(Type):
         self.value = value
         float.__init__(self)
         self.vars = {
-            "digits": (
-                [int(x) if x in "0123456789" else x for x in str(value)]
-                if len(str(value)) > 1
-                else [value]
-            ),
+            # "digits": (
+            #     [int(x) if x in "0123456789" else x for x in str(value)]
+            #     if len(str(value)) > 1
+            #     else [value]
+            # ),
             # methods and attributes here
         }
         try:

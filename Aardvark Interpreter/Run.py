@@ -57,7 +57,6 @@ python = Version(
 
 def runTest(code, values={}, ret=None, testfunct=None):
     x = run(code)
-    # print(x['error'])
     if x["error"] or x["Global"] == None:
         raise ValueError(f'Error: {x["error"]}')
     scope = x["Global"]
@@ -84,11 +83,11 @@ def run(
     lexer_time = 0
     parser_time = 0
     executor_time = 0
-    errorhandler = ErrorHandler(text, file, py_error=True)
     ret = Null
     error = False
     try:
         lexer_start = time.time()
+        errorhandler = ErrorHandler(text, file, py_error=True)
         lexer = Lexer.Lexer("#", "#*", "*#", errorhandler, False)
         toks = lexer.tokenize(text)
         if printToks:

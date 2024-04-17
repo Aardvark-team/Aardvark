@@ -19,9 +19,9 @@ function genLine(linenum, digits)
     " " * (Number(digits) - linenum.digits.length) + $"{styles.default}{linenum} │ "
 
 
-function Highlight(code, opts={}) {
-    let lexer = Lexer.Lexer(false, true, null, false)
-    let tokens = lexer.tokenize(code)
+function Highlight(code, tokens, opts={}) {
+    # let lexer = Lexer.Lexer(false, true, null)
+    # let tokens = lexer.tokenize(code)
     let line = opts.startline?1
     let output = (styles.background if opts.background? else "") + styles.default
     if opts.linenums?true
@@ -42,7 +42,7 @@ function Highlight(code, opts={}) {
             else
                 output += fg.rs + "\n"
         }
-        else if token.type == "Identifier" & toknum < lexer.output.length - 1 & lexer.output[toknum + 1].type == "Delimiter" & lexer.output[toknum + 1].value == "("
+        else if token.type == "Identifier" & toknum < tokens.length - 1 & tokens[toknum + 1].type == "Delimiter" & tokens[toknum + 1].value == "("
             output += styles.Function + code.slice(token.start.index, token.end.index + 1)
 
         else if token.type in styles

@@ -90,8 +90,6 @@ if __name__ == "__main__":
     lexer = Lexer.Lexer("#", "#*", "*#", None, False)
     lexer.tokenize(text)
 
-    # print("".join([ str(x) for x in lexer.output ]))
-
     parser = Parser.Parser(ErrorHandler(text, "<main>", py_error=True), lexer)
 
     ast = parser.parse()

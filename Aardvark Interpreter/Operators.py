@@ -99,7 +99,6 @@ def operator(*names, left=None, right=None):
 def add(
     x, y, errorhandler: "ErrorHandler", line: str, ast, scope: Scope, exec: "Executor"
 ):
-    # print("OP", x, '+', y)
     if x == Null:
         return missingOperand(
             True, errorhandler, line, ast, f"<{str(type(y or 0).__name__)}>"
@@ -122,14 +121,12 @@ def sub(
             True, errorhandler, line, ast, f"<{str(type(y or 0).__name__)}>"
         )
     elif x == Null:
-        # print('not x', x, ast)
         x = 0  # Can't return because we still have to check for y
     if y == Null:
         return missingOperand(
             False, errorhandler, line, ast, f"<{str(type(x or 0).__name__)}>"
         )
     # TODO: add if y and x equal none
-    # print("OP", x, '-', y, '=', x - y)
     return x - y
 
 

@@ -34,10 +34,10 @@ class ADK_Error as this {
 }
 
 class ErrorHandler as this {
-    $constructor(code, filename, silenced = false) {
+    $constructor(code, tokens, filename, silenced = false) {
         this.code = code
-        this.codelines = code.split("\n")
-        this.highlighted_code_lines = Highlight(this.code, {
+        this.tokens = tokens
+        this.highlighted_code_lines = Highlight(this.code, this.tokens, {
             linenums: false
         }).split("\n")
         this.filename = filename
@@ -70,13 +70,6 @@ class ErrorHandler as this {
     function ThrowNew(options, kill) {
         let error = this.create(options)
         error.Throw(kill)
-    }
-    function getLine(linenum) {
-        return this.codelines[linenum-1]
-    }
-    function replace(linenum, start, end, new) {
-        line = this.getLine(linenum)
-        return line.slice(0, start) + new + line.slice(end+1, 0)
     }
 }
 function ErrorType(t='error') match t {
