@@ -11,6 +11,8 @@ from Data import (
 )
 import Error
 
+sortedPureOperators = sorted(PureOperators, key=len, reverse=True)
+
 
 class Token:
     def __init__(
@@ -142,7 +144,6 @@ class Lexer:
             return []
         self.data += data
         self.curChar = self.data[self.index]
-        sortedPureOperators = sorted(PureOperators, key=len, reverse=True)
         while self.index < len(self.data):
 
             # Operators

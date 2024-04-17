@@ -327,7 +327,7 @@ static class Parser as this {
     function parse_expression(level=keys(OrderOfOps).length-1, require=false, exclude=[], eat_line_breaks=false, is_deconstruction=false) {
         let left = CHECK(this.parse_primary(false, exclude, is_deconstruction) if level < 0 else this.parse_expression(level - 1, false, exclude, eat_line_breaks, is_deconstruction))
         this.eat_line_breaks() if eat_line_breaks;
-        if !exclude.contains("=") exclude += ['='];
+        if !exclude.contains("=") exclude += ['=', '->'];
         # while the next token is an operator and level in OrderOfOps, and the value of the next token is in the current precedence level and the value of the next token is not in the exclude list.
         while this.compare('Operator') & level in OrderOfOps & this.peek().value in OrderOfOps.(level) & !(this.peek().value in exclude) {
             let operator = this.eat()

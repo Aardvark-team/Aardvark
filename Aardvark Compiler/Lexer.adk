@@ -1,6 +1,10 @@
 include TokenTypes, Operators, Keywords, Quotes, Whitespaces, Booleans, Delimiters, NotIncluded, BaseNumsOrder from Data
 include Errors
 
+
+let Operators_array_sorted = Array(Operators)
+    Operators_array_sorted.sort(function (a, b) b.length - a.length)
+
 class Token as this {
     let String type
     let Number length
@@ -137,8 +141,6 @@ class Lexer as this {
     this.empty = true
     this.AtEnd = false
     this.current_character = this.data.(this.position.index)
-    let Operators_array_sorted = Array(Operators)
-    Operators_array_sorted.sort(function (a, b) b.length - a.length)
     while this.position.index < this.data.length {
         # Operators
         for operator in Operators_array_sorted
