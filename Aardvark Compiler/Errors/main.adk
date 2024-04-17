@@ -6,6 +6,7 @@ include printError from OldErrors
 
 class ADK_Error as this {
   $constructor(handler, options) {
+    this.handler = handler
     this.options = options
     this.message = options.message?
     this.error_type = options.error_type?
@@ -13,8 +14,16 @@ class ADK_Error as this {
     this.location = options.location?
     this.initiated_from = options.initiated_from?
     this.error_number = options.error_number? -1
+    this.error = null
+  }
+  function Throw(kill=false) {
+    if !this.handler.highlighted_code_lines {
+        this.handler.highlighted_code_lines = Highlight(this.handler.code, this.handler.tokens, {
+            linenums: false
+        }).split("\n")
+    }
     this.error = format(
-        handler.highlighted_code_lines, 
+        this.handler.highlighted_code_lines, 
         options.message?"This isn't valid.", 
         options.error_type?"SyntaxError", 
         options.filename?"<main>", 
@@ -23,8 +32,6 @@ class ADK_Error as this {
         options.color?fg(255, 30, 10), 
         options.symbol?'ⓧ'
     )
-  }
-  function Throw(kill=false) {
     stdout.flush()
     stderr.flush()
     stderr.write(this.error)
@@ -37,9 +44,7 @@ class ErrorHandler as this {
     $constructor(code, tokens, filename, silenced = false) {
         this.code = code
         this.tokens = tokens
-        this.highlighted_code_lines = Highlight(this.code, this.tokens, {
-            linenums: false
-        }).split("\n")
+        this.highlighted_code_lines = null
         this.filename = filename
         this.silenced = silenced
     }
