@@ -131,6 +131,8 @@ class Lexer as this {
     #*
       Takes code and converts it to tokens.
     *#
+    if data == ""
+      return []
     this.data = data
     this.position.index = 0
     this.position.line = 1
