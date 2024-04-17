@@ -47,10 +47,11 @@ class AardvarkArgumentError(ValueError):
 
 
 current_dir = os.getcwd()
-searchDirs = [Path(".adk/lib"), Path("lib/"), Path("../lib/")]
-# if os.environ["AARDVARK_INSTALL"]:
-#     searchDirs.append(Path(os.environ["AARDVARK_INSTALL"] + "/lib/"))
-
+searchDirs = [Path(__file__).parent / "../lib"]
+if os.environ["AARDVARK_INSTALL"]:
+    searchDirs.append(Path(os.environ["AARDVARK_INSTALL"] + "/lib/"))
+for i in range(len(searchDirs)):
+    searchDirs[i] = searchDirs[i].resolve()
 adk_overloaded_classes = {}
 
 
