@@ -1004,7 +1004,7 @@ let parser_tests = {
     object_extending: "extending x {y: 5, z: 6}",
     operator_extending: "extending +(Number x, String y) -> String {}",
     reassignment: "x = y = z = 5",
-    # template_string: "$'Hello, {name}!'",
+    template_string: "$'Hello, {name}!'",
 }
 let error_tests = {
     multiple_decimal_points: "5.4.3",

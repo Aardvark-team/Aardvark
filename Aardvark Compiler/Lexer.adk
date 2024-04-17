@@ -137,10 +137,10 @@ class Lexer as this {
     this.empty = true
     this.AtEnd = false
     this.current_character = this.data.(this.position.index)
+    let Operators_array_sorted = Array(Operators)
+    Operators_array_sorted.sort(function (a, b) b.length - a.length)
     while this.position.index < this.data.length {
         # Operators
-        let Operators_array_sorted = Array(Operators)
-        Operators_array_sorted.sort(function (a, b) b.length - a.length)
         for operator in Operators_array_sorted
           if this.detect(operator) {
             let start = this.pos()
