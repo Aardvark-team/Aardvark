@@ -306,9 +306,9 @@ class Lexer as this {
             })
           # Handle escape sequences
           if backslash {
-            if this.current_character == '\\' value = value + '\\'
-            else if this.current_character == 'n' value = value + '\n'
-            else value = value + this.current_character
+            if this.current_character == '\\' value += '\\'
+            else if this.isQuote() value += this.current_character
+            else value += "\\" + this.current_character
             backslash = false
           }
           # Handle template strings
