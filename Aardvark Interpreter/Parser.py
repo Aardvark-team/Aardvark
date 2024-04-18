@@ -81,7 +81,8 @@ class Parser:
             value
             if value
             else type_helper.get(
-                (Type.name if Type else "any") if not is_type else "ValueType", "[no suggestion]"
+                (Type.name if Type else "any") if not is_type else "ValueType",
+                "[no suggestion]",
             )
         )
         if type(value_type) == list:
@@ -247,7 +248,7 @@ class Parser:
     #   FunctionDefinition
     #   FunctionCall
 
-    def pPrimary(self, require=False, exclude=[]):
+    def pPrimary(self, require=False, exclude=[], eatLBs=False):
         tok = self.peek()
         ast_node = None
 
@@ -441,6 +442,8 @@ class Parser:
             ast_node = self.pClassDefinition()
 
         while ast_node:
+            if eatLBs:
+                self.eatLBs()
             # 5x, number-var mult
             if (
                 self.compare("Identifier")
@@ -460,6 +463,8 @@ class Parser:
                     },
                 }
             while self.compare(TokenTypes["Delimiter"], "."):
+                if eatLBs:
+                    self.eatLBs()
                 dot = self.eat(TokenTypes["Delimiter"])
                 property = None
                 self.eatLBs()
@@ -560,9 +565,27 @@ class Parser:
                         "end": property["positions"]["end"],
                     },
                 }
+                if eatLBs:
+                    self.eatLBs()
                 continue  # Check for others
             # Indexes
             if self.compare("Delimiter", "["):
+                if self.is_strict:
+                    self.err_handler.throw(
+                        "Syntax",
+                        "Indexing via brackets is not allowed in strict mode. Use `.()`.",
+                        {
+                            "lineno": ast_node["positions"]["start"]["line"],
+                            "marker": {
+                                "start": ast_node["positions"]["start"]["col"],
+                                "length": 1,
+                            },
+                            "underline": {
+                                "start": ast_node["positions"]["start"]["col"],
+                                "end": ast_node["positions"]["end"]["col"],
+                            },
+                        },
+                    )
                 self.eat("Delimiter")
                 property = self.pExpression(eatLBs=True)
                 self.eat("Delimiter", "]")
@@ -637,7 +660,7 @@ class Parser:
     ):
         # TODO: only make a list of values and operators and handle it at execution using Operators.py
         if level < 0:
-            left = self.pPrimary(require=False, exclude=exclude)
+            left = self.pPrimary(require=False, exclude=exclude, eatLBs=eatLBs)
         else:
             left = self.pExpression(
                 level - 1, require=False, exclude=exclude, eatLBs=eatLBs
@@ -655,7 +678,9 @@ class Parser:
             op = self.eat("Operator")
             if eatLBs:
                 self.eatLBs()
-            right = self.pExpression(level - 1, require=False, exclude=exclude)
+            right = self.pExpression(
+                level - 1, require=False, exclude=exclude, eatLBs=eatLBs
+            )
             if not left and not right:
                 # Just an operator by itself.
                 self.err_handler.throw(
@@ -685,9 +710,11 @@ class Parser:
             }
         if left == None and require:
             if level < 0:
-                left = self.pPrimary(require=require, exclude=exclude)
+                left = self.pPrimary(require=require, exclude=exclude, eatLBs=eatLBs)
             else:
-                left = self.pExpression(level - 1, require=require, exclude=exclude)
+                left = self.pExpression(
+                    level - 1, require=require, exclude=exclude, eatLBs=eatLBs
+                )
         return left
 
     # Object:
