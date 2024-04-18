@@ -276,7 +276,7 @@ static class Parser as this {
                 continue
             }
             # Property access
-            if this.compare('Delimiter', '.') & this.peek().start.column == ast_node.position.end.column + 1 {
+            if this.compare('Delimiter', '.') {
                 ast_node = CHECK(this.parse_property_access(ast_node))
                 continue;
             }
@@ -386,6 +386,7 @@ static class Parser as this {
     }
     function parse_property_access(ast_node) {
         let dot = this.eat()
+        this.eat_line_breaks()
         let property
         if this.compare('Identifier') {
             let token = this.eat()
@@ -999,6 +1000,7 @@ let parser_tests = {
     operator_extending: "extending +(Number x, String y) -> String {}",
     reassignment: "x = y = z = 5",
     template_string: "$'Hello, {name}!'",
+    multiline_property_access: "x.\n    y.\n    z"
 }
 let error_tests = {
     multiple_decimal_points: "5.4.3",
@@ -1006,7 +1008,7 @@ let error_tests = {
     assign_value: "let 5 = x",
     else_without_if: "else { x }",
     anonymous_function_extension: "extending function {}",
-    many_errors: "5.5.5\n6.6.6\nlet 5 = x\n\nelse {}\n\n"
+    many_errors: "5.4.3\n5_4_3\nlet 5 = x\n\nelse {}\n\n"
 }
 function test(String code) {
     let lexer = Lexer(false, false)
@@ -1027,13 +1029,21 @@ function test(String code) {
     return AST
 }
 # stdout.log(test(parser_tests.empty_object))
+# let ultimate = ""
 for test_name:code in parser_tests {
+    # ultimate += code + "\n"
     let passed = test(code)
     if passed
         stdout.log("PASSED:", test_name)
     else
         stdout.log("FAILED:", test_name)
 }
+# let passed = test(ultimate)
+# if passed
+#     stdout.log("PASSED: ULTIMATE")
+# else
+#     stdout.log("FAILED: ULTIMATE")
+
 # for test_name:code in error_tests {
 #     test(code)
 # }

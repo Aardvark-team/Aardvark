@@ -73,7 +73,7 @@ class Parser:
 
     # Unexpected EOF
 
-    def eofError(self, Type, value=None, is_type=False):
+    def eofError(self, Type=None, value=None, is_type=False):
         last_tok = self.tokens[self.pos - 1]
         curr_line = self.err_handler.code.split("\n")[last_tok.line - 1]
         line_len = len(curr_line)
@@ -81,7 +81,7 @@ class Parser:
             value
             if value
             else type_helper.get(
-                Type.name if not is_type else "ValueType", "[no suggestion]"
+                (Type.name if Type else "any") if not is_type else "ValueType", "[no suggestion]"
             )
         )
         if type(value_type) == list:
@@ -459,12 +459,12 @@ class Parser:
                         "variable": var,
                     },
                 }
-            while (
-                self.compare(TokenTypes["Delimiter"], ".")
-                and self.peek(1).start["col"] == self.peek().start["col"] + 1
-            ):
+            while self.compare(TokenTypes["Delimiter"], "."):
                 dot = self.eat(TokenTypes["Delimiter"])
                 property = None
+                self.eatLBs()
+                if self.peek() == None:
+                    return self.eofError(TokenTypes["Identifier"])
                 if self.compare("Identifier"):
                     tok = self.eat("Identifier")
                     property = {

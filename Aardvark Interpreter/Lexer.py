@@ -10,7 +10,7 @@ from Data import (
     NotIncluded,
 )
 import Error
-
+# from numba.experimental import jitclass
 sortedPureOperators = sorted(PureOperators, key=len, reverse=True)
 
 
@@ -47,14 +47,14 @@ class Token:
             f" {self.end['line']}:{self.end['col']})"
         )
 
-
+# @jitclass
 class Lexer:
     def __init__(
         self,
         singleline: str,
         multilines: str,
         multilinee: str,
-        errorhandler: Error.ErrorHandler,
+        errorhandler: bool,
         useIndents=False,
         tokenizeComments=False,
         strict=True,
@@ -92,6 +92,7 @@ class Lexer:
         return char in Delimiters
 
     def detect(self, text):
+        # return ''.join(self.data[self.index:self.index+len(text)]) == text
         if self.curChar == text[0]:
             for i in range(len(text) - 1):
                 if not self.peek(i + 1) == text[i + 1]:
@@ -183,26 +184,26 @@ class Lexer:
                     self.empty = True
 
             # Indents
-            elif self.isWhitespace() and self.empty and self.useIndents:
-                value = ""
-                start = self.index
-                startcolumn = self.column
-                while self.isWhitespace() and not self.AtEnd:
-                    value += self.curChar
-                    self.advance()
-                if not self.isNewline():
-                    self.advance(-1)
-                    self.addToken(
-                        "Indent",
-                        start,
-                        self.index,
-                        self.line,
-                        value=value,
-                        columnstart=startcolumn,
-                        columnend=self.column,
-                    )
-                else:
-                    self.advance(-1)
+            # elif self.useIndents and self.isWhitespace() and self.empty:
+            #     value = ""
+            #     start = self.index
+            #     startcolumn = self.column
+            #     while self.isWhitespace() and not self.AtEnd:
+            #         value += self.curChar
+            #         self.advance()
+            #     if not self.isNewline():
+            #         self.advance(-1)
+            #         self.addToken(
+            #             "Indent",
+            #             start,
+            #             self.index,
+            #             self.line,
+            #             value=value,
+            #             columnstart=startcolumn,
+            #             columnend=self.column,
+            #         )
+            #     else:
+            #         self.advance(-1)
 
             # Delimiters
             elif self.isDelimiter():
@@ -436,3 +437,18 @@ class Lexer:
             return self.data[self.index + amt]
         else:
             return None
+
+if __name__ == "__main__":
+    import cProfile
+    from pathlib import Path
+    current_directory = Path(__file__).resolve().parent
+
+    path = current_directory / "../Aardvark Compiler/new-Parser.adk"
+    path = path.resolve()
+    code = path.read_text(encoding="utf-8")
+    def tokenize():
+        for i in range(20):
+            lexer = Lexer("#", "#*", "*#", False, False, False, True)
+            lexer.tokenize(code)
+    cProfile.run("tokenize()", sort="tottime")
+  

@@ -261,7 +261,7 @@ class Executor:
         text = file.read_text(encoding="utf-8")
         lexer_start = time.time()
         errorhandler = Error.ErrorHandler(text, file, py_error=True)
-        lexer = Lexer.Lexer("#", "#*", "*#", errorhandler, False)
+        lexer = Lexer.Lexer("#", "#*", "*#", True, False)
         toks = lexer.tokenize(text)
         lexer_end = time.time()
         self.lexer_time += lexer_end - lexer_start
@@ -443,18 +443,19 @@ class Executor:
                 return self.ExecExpr(var, main)
 
     def ExecExpr(self, expr: dict, scope: Scope, undefinedError=True):
-        match expr:
-            case {"type": "NumberLiteral"}:
+            if expr == None:
+                return Null
+            elif expr["type"] == "NumberLiteral":
                 return Number(expr["value"])
-            case {"type": "StringLiteral"}:
+            elif expr["type"] == "StringLiteral":
                 return String(expr["value"])
-            case {"type": "BooleanLiteral"}:
+            elif expr["type"] == "BooleanLiteral":
                 return Boolean(expr["value"])
-            case {"type": "VariableAccess"}:
+            elif expr["type"] == "VariableAccess":
                 return self.getVar(
                     scope, expr["value"], expr["positions"]["start"], undefinedError
                 )
-            case {"type": "PropertyAccess"}:
+            elif expr["type"] == "PropertyAccess":
                 obj = pyToAdk(self.ExecExpr(expr["value"], scope, undefinedError))
                 get_objname = lambda: (
                     obj.name
@@ -469,7 +470,7 @@ class Executor:
                     undefinedError,
                     message=lambda: f'Undefined property "{{name}}" of "{get_objname()}"',
                 )
-            case {"type": "Object"}:
+            elif expr["type"] == "Object":
                 obj = Object()
                 for k, v in expr["pairs"].items():
                     if k == ("...",) and v[0] == "...":
@@ -477,9 +478,9 @@ class Executor:
                     else:
                         obj[k] = self.ExecExpr(v, scope)
                 return obj
-            case {"type": "Set"}:
+            elif expr["type"] == "Set":
                 return Set({self.ExecExpr(item, scope) for item in expr["items"]})
-            case {"type": "Array"}:
+            elif expr["type"] == "Array":
                 items = []
                 for item in expr["items"]:
                     if item.get("type") == "Operator" and item.get("operator") == "...":
@@ -490,12 +491,12 @@ class Executor:
                     else:
                         items.append(self.ExecExpr(item, scope))
                 return Array(items)
-            case {"type": "DeleteStatement"}:
+            elif expr["type"] == "DeleteStatement":
                 self.getVar(
                     scope, expr["target"]["value"], expr["target"]["positions"]["start"]
                 )
                 del scope[expr["name"]]
-            case {"type": "FunctionCall"}:
+            elif expr["type"] == "FunctionCall":
                 funct = self.ExecExpr(expr["function"], scope)
                 if not getattr(funct, "is_macro", False):
                     self.traceback.append(
@@ -555,7 +556,7 @@ class Executor:
                     )
                 self.traceback = self.traceback[:-1]
                 return ret
-            case {"type": "Operator", "operator": "?"}:
+            elif expr["type"] == "Operator" and  expr["operator"] == "?":
                 left = self.ExecExpr(expr["left"], scope, False)
                 right = self.ExecExpr(expr["right"], scope)
                 return Operators["?"](
@@ -567,7 +568,8 @@ class Executor:
                     scope,
                     self,
                 )
-            case {"type": "Operator", "operator": operator}:
+            elif expr["type"] == "Operator":
+                operator = expr["operator"]
                 if operator in Operators:
                     op = Operators[operator]
                     if operator in [
@@ -633,13 +635,13 @@ class Executor:
                         f'Operator "{expr["operator"]}" not yet implemented.',
                         expr,
                     )
-            case {"type": "IfStatement"}:
+            elif expr["type"] == "IfStatement":
                 ifscope = Scope({}, parent=scope, scope_type="conditional")
                 if bool(self.ExecExpr(expr["condition"], scope)):
                     return self.Exec(expr["body"], ifscope)
                 elif expr["else_body"]:
                     return self.Exec(expr["else_body"], ifscope)
-            case {"type": "WhileLoop"}:
+            elif expr["type"] == "WhileLoop":
                 ret = []
                 while bool(self.ExecExpr(expr["condition"], scope)):
                     whilescope = Scope({}, parent=scope, scope_type="loop")
@@ -647,7 +649,7 @@ class Executor:
                     if whilescope._completed and not whilescope._has_been_continued:
                         break
                 return ret
-            case {"type": "ForLoop"}:
+            elif expr["type"] == "ForLoop":
                 iterable = self.ExecExpr(expr["iterable"], scope)
                 ret = []
                 for item in iterable:
@@ -674,7 +676,7 @@ class Executor:
                     if forscope._completed and not forscope._has_been_continued:
                         break
                 return ret
-            case {"type": "SPMObject"}:
+            elif expr["type"] == "SPMObject":
                 c = expr["pairs"]
                 define = {}
                 compare = {}
@@ -685,7 +687,7 @@ class Executor:
                     if v[0] == "Compare":
                         compare[k] = self.ExecExpr(v[1], scope)
                 return compare, define
-            case {"type": "CaseStatement"}:
+            elif expr["type"] == "CaseStatement":
                 casescope = Scope({}, parent=scope)
                 if expr["special"]:
                     self.defineVar(expr["special"], self.switch, casescope)
@@ -709,7 +711,7 @@ class Executor:
                     if self.switch == compare:
                         scope._has_been_broken = True
                         return self.Exec(expr["body"], casescope)
-            case {"type": "Assignments"}:
+            elif expr["type"] == "Assignments":
                 for assignment in expr["assignments"]:
                     value = (
                         self.ExecExpr(assignment["value"], scope)
@@ -724,19 +726,19 @@ class Executor:
                         expr,
                     )
                 return value
-            case {"type": "SwitchStatement"}:
+            elif expr["type"] == "SwitchStatement":
                 switchscope = Scope({}, parent=scope, scope_type="match")
                 self.switch = self.ExecExpr(expr["value"], scope)
                 self.Exec(expr["body"], switchscope)
                 if getattr(self, "switch", False):
                     del self.switch
-            case {"type": "FunctionDefinition"}:
+            elif expr["type"] == "FunctionDefinition":
                 funct = self.makeFunct(expr, scope)
                 return funct
-            case {"type": "MacroDefinition"}:
+            elif expr["type"] == "MacroDefinition":
                 funct = self.makeFunct(expr, scope, is_macro=True)
                 return funct
-            case {"type": "ClassDefinition"}:
+            elif expr["type"] == "ClassDefinition":
                 classcope = Class(
                     expr["name"],
                     lambda s: self.Exec(expr["body"], s),
@@ -747,21 +749,21 @@ class Executor:
                 if expr["name"]:
                     self.defineVar(expr["name"], classcope, scope)
                 return classcope
-            case {"type": "GetterSetterDefinition", "kind": "getter"}:
+            elif expr["type"] == "GetterSetterDefinition" and expr["kind"] == "getter":
                 prop_name = expr["function"]["name"]
                 expr["function"]["name"] = None
                 expr["function"]["special"] = False
 
                 scope.define_getter(prop_name, self.makeFunct(expr["function"], scope))
-            case {"type": "GetterSetterDefinition", "kind": "setter"}:
+            elif expr["type"] == "GetterSetterDefinition" and expr["kind"] == "setter":
                 prop_name = expr["function"]["name"]
                 expr["function"]["name"] = None
                 expr["function"]["special"] = False
 
                 scope.define_setter(prop_name, self.makeFunct(expr["function"], scope))
-            case {"type": "DeferStatement"}:
+            elif expr["type"] == "DeferStatement":
                 scope.addReturnAction(lambda: self.ExecExpr(expr["value"], scope))
-            case {"type": "ReturnStatement"}:
+            elif expr["type"] == "ReturnStatement":
                 val = self.ExecExpr(expr["value"], scope)
                 success = scope.complete("function", val)
                 if scope == self.Global or not success:
@@ -770,12 +772,12 @@ class Executor:
                         val = 0
                     sys.exit(int(val))
                 return scope._returned_value
-            case {"type": "Multiply"}:
+            elif expr["type"] ==  "Multiply":
                 # for (num)x mult
                 return self.ExecExpr(expr["number"], scope) * self.getVar(
                     scope, expr["variable"], expr["tokens"]["variable"].start
                 )
-            case {"type": "Index"}:
+            elif expr["type"] == "Index":
                 try:
                     return self.ExecExpr(expr["value"], scope)[
                         self.ExecExpr(expr["property"], scope)
@@ -806,7 +808,7 @@ class Executor:
                         )
                     else:
                         return None
-            case {"type": "IncludeStatement"}:
+            elif expr["type"] == "IncludeStatement":
                 file = expr["lib_name"]
                 try:
                     fscope = self.include(file)
@@ -833,7 +835,7 @@ class Executor:
                 else:
                     for k, v in expr["included"].items():
                         self.defineVar(v["local"], fscope[k], scope)
-            case {"type": "ThrowStatement"}:
+            elif expr["type"] == "ThrowStatement":
                 tothrow = self.ExecExpr(expr["tothrow"], scope)
                 if type(tothrow) != Types.Error:
                     self.errorhandler.throw(
@@ -872,7 +874,7 @@ class Executor:
                         "traceback": self.traceback,
                     },
                 )
-            case {"type": "TryCatch"}:
+            elif expr["type"] == "TryCatch":
                 stderr = sys.stderr
                 sys.stderr = open(os.devnull, "w+")
                 tryscope = Scope({}, parent=scope)
@@ -888,7 +890,7 @@ class Executor:
                             catchscope[expr["catchvar"]] = error
                         self.Exec(expr["catchbody"], catchscope)
                 sys.stderr = stderr
-            case {"type": "ExtendingStatement", "kind": "operator"}:
+            elif expr["type"] == "ExtendingStatement" and expr["kind"] == "operator":
                 ext_type, ext_name = expr["params"][0]
                 other_name = expr["params"][1][1]
 
@@ -936,7 +938,7 @@ class Executor:
                 adk_overloaded_classes[id(to_overload)][
                     expr["operator"]
                 ] = execute_inner
-            case {"type": "BreakStatement"}:
+            elif expr["type"] == "BreakStatement":
                 success = scope.complete("loop")
                 if not success:
                     self.errorhandler.throw(
@@ -956,7 +958,7 @@ class Executor:
                             "traceback": self.traceback,
                         },
                     )
-            case {"type": "ContinueStatement"}:
+            elif expr["type"] == "ContinueStatement":
 
                 def x(s):
                     s._has_been_continued = True
@@ -980,7 +982,7 @@ class Executor:
                             "traceback": self.traceback,
                         },
                     )
-            case {"type": "TemplateString"}:
+            elif expr["type"] == "TemplateString":
                 string = expr["value"]
                 replacements = reversed(expr["replacements"])
                 for rep in replacements:
@@ -999,9 +1001,7 @@ class Executor:
                         string[: rep["from"]] + str(value) + string[rep["to"] + 1 :]
                     )
                 return String(string)
-            case None:
-                return Null
-            case _:
+            else:
                 if expr == Null:
                     return Null
                 notImplemented(self.errorhandler, expr["type"], expr)

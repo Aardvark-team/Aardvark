@@ -235,9 +235,13 @@ def print_error(
 
     output = f"""{color}{symbol}  {type} in {pos["filename"]}:{pos["lineno"]}:{marker_pos if marker_pos != None else underline_start}
 {traceback}{styles["default"]}{code}{didyoumean}{note}"""
-    print(output, file=sys.stderr)
+    return output
 
-
+class Aardvark_Error(Exception):
+    def __init__(self, py_error, type, message, output):
+        self.output = output
+        self.py_error = py_error
+        super().__init__("py_error is " + ("True." if py_error else "False."), type, message)
 class ErrorHandler:
     def __init__(self, code: str, filename: str, py_error=False, silenced=False, mode="Error"):
         self.code = code
@@ -254,7 +258,7 @@ class ErrorHandler:
         options["linestart"] = options["lineno"] - (1 if options["lineno"] > 0 else 0)
         options["lineend"] = options["lineno"] + 1
 
-        print_error(
+        output = print_error(
             type + self.mode,
             options,
             message,
@@ -266,7 +270,7 @@ class ErrorHandler:
         if not self.py_error:
             exit(1)
         else:
-            exc = Exception("py_error is True.", type, message)
+            exc = Aardvark_Error(True, type, message, output)
             raise exc
 
 

@@ -2,7 +2,7 @@ import Data
 import Lexer
 import Parser
 import traceback
-from Error import ErrorHandler, Highlight
+from Error import ErrorHandler, Highlight, Aardvark_Error
 import Exec
 import sys
 from Exec import Executor, createGlobals
@@ -79,6 +79,7 @@ def run(
     safe=False,
     is_strict=False,
     time_stats=False,
+    bypass_eof=False
 ):
     lexer_time = 0
     parser_time = 0
@@ -88,7 +89,7 @@ def run(
     try:
         lexer_start = time.time()
         errorhandler = ErrorHandler(text, file, py_error=True)
-        lexer = Lexer.Lexer("#", "#*", "*#", errorhandler, False)
+        lexer = Lexer.Lexer("#", "#*", "*#", True, False)
         toks = lexer.tokenize(text)
         if printToks:
             print(prettify_ast(toks))
@@ -114,10 +115,11 @@ def run(
                 f"Lexer: {lexer_time}\nParser: {parser_time}\nExecutor: {executor_time}"
             )
         Global = executor.Global
-    except Exception as e:
+    except Aardvark_Error as e:
         error = str(e.args)
-        if "py_error is True" not in str(e):
-            traceback.print_exc()
+        if "Unexpected EOF." in error and bypass_eof:
+            raise e
+        print(e.output, file=sys.stderr)
     return {"return": ret, "Global": Global, "error": error}
 
 
@@ -162,7 +164,7 @@ def highlighted_input(
                     )
 
         errorhandler = ErrorHandler(buff, "<main>", py_error=True)
-        lexer = Lexer.Lexer("#", "</", "/>", errorhandler, True, True, False)
+        lexer = Lexer.Lexer("#", "</", "/>", True, True, True, False)
         tokens = lexer.tokenize(buff)
 
         attribTokens = tokens
@@ -338,31 +340,30 @@ def runLive(
                     text = f.read()
                 print(f"Running test {test_name}...")
 
-        # multiline support
-        openc = text.count("{") - text.count("}")
-        while openc > 0:
-            if experimental:
-                newl, input_history = highlighted_input(
-                    "... " + " " * openc * 2,
-                    saved_scope if saved_scope else createGlobals(safe),
-                    input_history,
+        while True:
+            try:
+                x = run(
+                    text,
+                    file,
+                    printToks,
+                    printAST,
+                    Global=saved_scope if saved_scope else None,
+                    safe=safe,
+                    is_strict=is_strict,
+                    bypass_eof=True
                 )
-            else:
-                newl = input("... " + " " * openc * 2)
-            openc += newl.count("{") - newl.count("}")
-            text += "\n" + newl
-
-        # errorhandler = ErrorHandler(text, file, py_error=True)
-
-        x = run(
-            text,
-            file,
-            printToks,
-            printAST,
-            Global=saved_scope if saved_scope else None,
-            safe=safe,
-            is_strict=is_strict,
-        )
+                break
+            except Aardvark_Error as e: # EOF
+                openc = text.count("{") - text.count("}")
+                if experimental:
+                    newl, input_history = highlighted_input(
+                        "... " + " " * openc * 2,
+                        saved_scope if saved_scope else createGlobals(safe),
+                        input_history,
+                    )
+                else:
+                    newl = input("... " + " " * openc * 2)
+                text += "\n" + newl
         if not noret:
             print(x["return"])
         saved_scope = x["Global"]
