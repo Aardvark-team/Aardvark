@@ -40,16 +40,10 @@ class Type:
     vars = {}
 
     def get(self, name, default=None):
-        if getattr(self, "parent", None):
-            return self.vars.get(name, self.parent.get(name, default))
-        else:
-            return self.vars.get(name, default)
+        return self.vars.get(name, default)
 
     def getAll(self):
-        if getattr(self, "parent", None):
-            return self.vars | self.parent.getAll()
-        else:
-            return self.vars
+        return self.vars
 
     def set(self, name, value):
         self.vars[name] = value
@@ -329,31 +323,30 @@ class _Null(Type):
 
 class String(str, Type):
     vars = {
-        "from_ordinal": lambda x: chr(x),
+        "from_ordinal": chr,
     }
 
     def __init__(self, value):
-        value = str(value)
+        str.__init__(value)
         self.vars = {
-            "length": len(value),
-            "split": lambda sep=" ": self.split(sep),
-            "slice": lambda start, end, step=1: String(
-                self[start : (end if end > 0 else len(value) + end) : step]
-            ),
-            "startsWith": lambda prefix: self.startswith(prefix),
-            "endsWith": lambda suffix: self.endswith(suffix),
-            "replace": lambda x, y="": self.replace(x, y),
+            "length": len(self),
+            "split": self.split,
+            "slice": lambda start, end, step=1: self[
+                start : (end if end > 0 else len(self) + end) : step
+            ],
+            "startsWith": self.startswith,
+            "endsWith": self.endswith,
+            "replace": self.replace,
             "contains": lambda x: x in self,
             "join": self.join,
             "indexOf": self.find,
             "rstrip": self.rstrip,
             "lstrip": self.lstrip,
             "strip": self.strip,
-            "copy": lambda: String(value),
+            "copy": lambda: String(self),
             "ordinal": lambda: ord(self),
-            "from_ordinal": lambda x: chr(x),
+            "from_ordinal": chr,
         }
-        str.__init__(self)
 
     def __sub__(self, other):
         return self.removesuffix(other)
@@ -375,9 +368,6 @@ class String(str, Type):
         return self.vars | (
             {x: self[x] for x in range(len(self))} if type(self) != type else {}
         )
-
-    def from_ordinal(self, x):
-        return chr(x)
 
 
 class Number(Type):
@@ -404,12 +394,12 @@ class Number(Type):
             # ),
             # methods and attributes here
         }
-        try:
-            self.vars["prime"] = value >= 1 and all(
-                self % i for i in range(2, int(self.value**0.5) + 1)
-            )
-        except OverflowError:
-            self.vars["prime"] = True
+        # try:
+        #     self.vars["prime"] = value >= 1 and all(
+        #         self % i for i in range(2, int(self.value**0.5) + 1)
+        #     )
+        # except OverflowError:
+        #     self.vars["prime"] = True
 
     def __repr__(self):
         return str(self)
