@@ -107,7 +107,7 @@ let Keywords = set{
     'static',
     'include',
     'await',
-    'async',
+    'pause-until',
     'yield',
     'let', # Statements
     'as',
