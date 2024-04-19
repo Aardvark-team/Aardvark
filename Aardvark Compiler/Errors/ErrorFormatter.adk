@@ -94,7 +94,11 @@ function format(source_lines, message, error_type, filename, location, markers) 
 }
 if is_main {
     include Highlight from SyntaxHighlighter
-    let code = Highlight("\n\n\n\n\n\n\n\n\n\nlet my_number = 1234\nlet my_string = 'string'\nstdout.write(my_number + my_string, '\\n')", {linenums: false})
+    from Lexer include Lexer
+    let code = "\n\n\n\n\n\n\n\n\n\nlet my_number = 1234\nlet my_string = 'string'\nstdout.write(my_number + my_string, '\\n')"
+    let lexer = Lexer(false, true, null)
+    let tokens = lexer.tokenize(code)
+    let code = Highlight(code, tokens, {linenums: false})
     stderr.write(format(code.split("\n"), "'+' is undefined for types 'Number' and 'String'", "TypeError", "<main>", {
         line: 2,
         column: 16

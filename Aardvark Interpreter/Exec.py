@@ -349,10 +349,13 @@ class Executor:
                 # if param["value_type"] != None:
                 #     notImplemented(self.errorhandler, "Type Checking", param)
                 functscope.vars[param["name"]] = arg
-                if self.is_strict or param.get("is_static", False):
-                    functscope.vars[param["name"]].is_static = True
-                else:
-                    functscope.vars[param["name"]].is_static = False
+                try:
+                    if self.is_strict or param.get("is_static", False):
+                        functscope.vars[param["name"]].is_static = True
+                    else:
+                        functscope.vars[param["name"]].is_static = False
+                except:
+                    pass
             ret = self.Exec(code, functscope)
             if is_macro:
                 return ret
@@ -1043,9 +1046,11 @@ def notImplemented(errorhandler: "ErrorHandler", item, expr):
 
 
 def findClosest(var: str, scope: Scope):
+    var = str(var)
     lowest = 9999999999999999
     ret = "<identifier>"
     for item in list(scope.getAll().keys()):
+        item = str(item)
         dist = edit_distance(var, item)
         if dist < lowest:
             ret = item

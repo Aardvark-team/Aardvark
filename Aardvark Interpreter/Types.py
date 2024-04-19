@@ -387,11 +387,11 @@ class Number(Type):
         self.value = value
         float.__init__(self)
         self.vars = {
-            # "digits": (
-            #     [int(x) if x in "0123456789" else x for x in str(value)]
-            #     if len(str(value)) > 1
-            #     else [value]
-            # ),
+            "digits": (
+                [int(x) if x in "0123456789" else x for x in str(value)]
+                if len(str(value)) > 1
+                else [value]
+            ),
             # methods and attributes here
         }
         # try:

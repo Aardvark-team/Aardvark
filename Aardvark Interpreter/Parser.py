@@ -1151,13 +1151,6 @@ class Parser:
         condition = self.pExpression(require=True)
         body = None
         lasti = condition["positions"]["end"]
-        print(
-            "HERE",
-            condition["type"],
-            self.peek(),
-            self.compare("Delimiter", "{"),
-            inline,
-        )
         if self.compare("Delimiter", "{") and not inline:
             body, lasti = self.eatBlockScope()
         elif not inline:
