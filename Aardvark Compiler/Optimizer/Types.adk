@@ -1,11 +1,11 @@
 static class FunctionSignature {
     let parameters = []
-    let String? return_type
+    let return_type
     let Object parameter_expansion
     let Object body
-    
 }
-static class FunctionValue {
+static class FunctionValue as this {
+    let type = this
     let [...FunctionSignature] signatures
 
 }
@@ -14,9 +14,61 @@ static class ObjectValue as this {
     Used for scopes and objects, anything with named values.
     *#
     let Object value
-    let Scope? parent
+    let Scope parent
+    let type = this
     $constructor(initial={}, parent?) {
         this.parent = parent
         this.value = initial
+    }
+    function declare(name, initial=null) {
+        this.value.(name) = null
+    }
+    function Set(name, value) {
+        if !(name in this.value) {
+            
+        }
+    }
+    function Get(name) {
+        return this.value.(name)
+    }
+    $string {
+        let string = "{"
+        for name:value in this.value {
+            string += name + ": " + value + ", "
+        }
+        string += "}"
+        return string
+    }
+}
+
+class NumberValue as this {
+    let value
+    let type = this
+    $constructor(value) {
+        this.value = value
+    }
+}
+
+static class ValuePossibility as this {
+    let conditions = []
+    let value
+    let position
+    let value_possibilities = [this]
+    $constructor(value, position, conditions=[]) {
+        this.value = value
+        this.position = position
+        this.conditions = conditions
+    }
+}
+static class Identifier as this {
+    let value_possibilities = []
+    get type_possibilities {
+        return this.value_possibilities.map(x => type_of(x.value))
+    }
+    $constructor((ValuePossibility | Array) value_possibilities) {
+        if type_of(value_possibilities) == Array
+            this.value_possibilities = value_possibilities
+        else
+            this.value_possibilities = [value_possibilities]
     }
 }

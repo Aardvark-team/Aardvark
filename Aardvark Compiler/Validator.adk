@@ -134,7 +134,7 @@ class Validator as this {
   }
   function validate(expr, scope=this.scope) {
     # stdout.write(expr, '\n')
-	  switch expr {
+	  match expr {
       case {type: 'VariableAccess', $value, $position} {
         var = this.getVar(scope, value, position)
         if var != null

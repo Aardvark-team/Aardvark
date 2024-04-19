@@ -251,6 +251,8 @@ static class Parser as this {
                 ast_node = CHECK(this.parse_assignment())
             case 'layout'
                 ast_node = CHECK(this.parse_layout_type())
+            case 'embed'
+                ast_node = CHECK(this.parse_embed())
             case $default {
                 return this.Throw('SyntaxError', 'Unexpected keyword "' + this.peek().value + '"', position=this.peek().position)
             }
@@ -439,6 +441,10 @@ static class Parser as this {
                 end: property.position.end
             }
         }
+    }
+    function parse_embed() {
+        this.eat("Keyword", "embed")
+        # TODO
     }
     function parse_object() {
         let opening_curly_brace = CHECK(this.eat("Delimiter", "{"))
@@ -654,7 +660,7 @@ static class Parser as this {
             if !this.compare("Delimiter", ",") break
         }
         return {
-            type: "Assignment",
+            type: "Assignments",
             assignments,
             position: {
                 start: let_keyword.position.start,
@@ -1112,18 +1118,19 @@ function test(String code) {
         return false
     return AST
 }
+if is_main {
+    # stdout.log(test(error_tests.expression_in_class_scope))
+    for test_name:code in parser_tests {
+        # ultimate += code + "\n"
+        let passed = test(code)
+        # stdout.log(passed)
+        if passed
+            stdout.log("PASSED:", test_name)
+        else
+            stdout.log("FAILED:", test_name)
+    }
 
-stdout.log(test(error_tests.expression_in_class_scope))
-for test_name:code in parser_tests {
-    # ultimate += code + "\n"
-    let passed = test(code)
-    # stdout.log(passed)
-    if passed
-        stdout.log("PASSED:", test_name)
-    else
-        stdout.log("FAILED:", test_name)
+    # for test_name:code in error_tests {
+    #     test(code)
+    # }
 }
-
-# for test_name:code in error_tests {
-#     test(code)
-# }

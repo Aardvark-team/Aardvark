@@ -1,20 +1,113 @@
 from "../Errors" include ErrorHandler, ADK_Error
 from nlp include findClosest
-
+from Types include FunctionValue, FunctionSignature, Identifier, ObjectValue, ValuePossibility, NumberValue
 #*
 ## Test Program:
 
 *#
 #*
-
+let x = 5
 *#
-static class Identifier as this {
-    let value_possibilities = []
-    let type_possibilities = []
+class Optimizer as this {
+    let error_handler
+    let error_stack = []
+    $constructor(error_handler) {
+        this.error_handler = error_handler
+    }
+    function is_valid_type(expected_type, actual_type) {
+        if [FunctionValue, ObjectValue, NumberValue].contains(expected_type) {
+            return !actual_type.value_possibilities.map(function(x) expected_type == type_of(x.value)).contains(false)
+        }
+    }
+    function Throw(options) {
+        let error = ADK_Error(this.error_handler, options)
+        this.error_stack.add(error)
+        return error
+    }
+    function optimize(node, scope=null) {
+        if type_of(node) == ADK_Error {
+            return node
+        }
+        match node {
+            case {"type": "Program"} {
+                let global_scope = ObjectValue({
+                    Function: FunctionValue,
+                    Object: ObjectValue,
+                    Number: NumberValue
+                })
+                for statement in node.body {
+                    let x = optimize(statement, global_scope)
+                    if type_of(x) == ADK_Error {
+                        return [x]
+                    }
+                }
+                return global_scope
+            }
+            case {"type": "Assignments"} {
+                for assignment in node.assignments {
+                    optimize(assignment, scope)
+                }
+            }
+            case {"type": "Assignment"} {
+                for variable in node.variables {
+                    let type = optimize(variable.given_type, scope)
+                    let value = optimize(node.value, scope)
+                    if type & !is_valid_type(type, value)
+                        return this.Throw({
+                            error_type: "TypeError",
+                            message: "Type mismatch.",
+                            location: node.position.start,
+                            markers: [{
+                                line: variable.given_type.position.start.line - 1,
+                                column: variable.given_type.position.start.column - 1,
+                                length: variable.given_type.position.end.column - variable.given_type.position.start.column + 1,
+                                message: $"Set to type {variable.given_type.name}."
+                            },
+                            {
+                                line: node.value.position.start.line - 1,
+                                column: node.value.position.start.column - 1,
+                                length: node.value.position.end.column - node.value.position.start.column + 1,
+                                message: $"Type Number."
+                            }]
+                        })
+                    scope.declare()
+                }
+            }
+            case {"type": "NumberLiteral"} {
+                return ValuePossibility(NumberValue(node.value), node.position)
+            }
+            case {"type": "VariableAccess"} {
+                return scope.Get(node.name)
+            }
+            case null {
+                return null
+            }
+            case $default {
+                stdout.log("default.")
+            }
+        }
+    }
 }
+
 if is_main {
     include Parser from "../new-Parser"
     include Lexer from "../Lexer"
 
-    let code = 
+    let code = "let Number x = 5"
+    let lexer = Lexer(false, false)
+    let tokens = lexer.tokenize(code)
+    let error_handler = ErrorHandler(code, tokens, '<main>')
+    error_handler.tokens = tokens
+    let parser = Parser(code, tokens, error_handler)
+    let AST = parser.parse()
+    for error in lexer.error_stack + parser.error_stack {
+        if type_of(error) != ADK_Error 
+            error = ADK_Error(error_handler, error)
+        error.Throw()
+    }
+    let optimizer = Optimizer(error_handler)
+    let scope = optimizer.optimize(AST)
+    for error in optimizer.error_stack {
+        error.Throw()
+    }
 }
