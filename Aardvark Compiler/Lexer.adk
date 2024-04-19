@@ -17,9 +17,9 @@ class Token as this {
     $constructor(type, 
             start, 
             end,
-            value = null,
-            variation = null, 
-            insertions=null) 
+            value?,
+            variation?, 
+            insertions?) 
     {
     this.type = type
     this.length = end.index - start.index + 1
@@ -314,7 +314,7 @@ class Lexer as this {
             backslash = false
           }
           # Handle template strings
-          else if is_template_string and this.current_character == '{' {
+          else if is_template_string & this.current_character == '{' {
             let expression_text = ''
             let expression_start = this.pos()
             while !this.AtEnd and this.current_character != '}' {
@@ -369,14 +369,14 @@ class Lexer as this {
 
       # Identifiers, Keywords, and Operators
       else if this.otherwise() {
-        value = ''
-        start = this.pos()
+        let value = ''
+        let start = this.pos()
         while (this.otherwise() or this.isNumber()) & !this.AtEnd {
           value += this.current_character
           this.advance()
         }
         this.advance(-1)
-        type = 'Identifier'
+        let type = 'Identifier'
         (type = 'Operator') if value in Operators else
         (type = 'Keyword') if value in Keywords else
         (type = 'Boolean') if value in Booleans

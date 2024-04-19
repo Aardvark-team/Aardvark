@@ -6,6 +6,7 @@ static class FunctionSignature {
 }
 static class FunctionValue as this {
     let type = this
+    let type_name = "Function"
     let [...FunctionSignature] signatures
 
 }
@@ -16,6 +17,7 @@ static class ObjectValue as this {
     let Object value
     let Scope parent
     let type = this
+    let type_name = "Object"
     $constructor(initial={}, parent?) {
         this.parent = parent
         this.value = initial
@@ -44,6 +46,7 @@ static class ObjectValue as this {
 class NumberValue as this {
     let value
     let type = this
+    let type_name = "Number"
     $constructor(value) {
         this.value = value
     }
@@ -71,4 +74,41 @@ static class Identifier as this {
         else
             this.value_possibilities = [value_possibilities]
     }
+}
+static class Variable as this {
+
+}
+static class Expression as this {
+
+}
+static class TypeUnion as this {
+    let types = []
+    $constructor(...types) {
+        this.types = types
+    }
+    $string() {
+        return " | ".join(this.types.map(function(x) x.type_name))
+    }
+}
+
+static class BitsType as this {
+    let type_name = "Bits"
+}
+static class TypeType as this {
+    let type_name = "Type"
+}
+static class ArrayType as this {
+    let type_name = "Array"
+}
+function get_type_of(value) {
+    if [FunctionValue, ObjectValue, NumberValue, BitsType, TypeType].contains(value)
+        return TypeType
+    else
+        return type_of(value)
+}
+function get_type_name(x) {
+    if type_of(x) == TypeUnion
+        return $'Union({" | ".join(x.types.map(get_type_name))})'
+    else
+        return x.type_name
 }

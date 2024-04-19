@@ -1,13 +1,9 @@
 from "../Errors" include ErrorHandler, ADK_Error
+include Parser, CHECK from "../new-Parser"
 from nlp include findClosest
-from Types include FunctionValue, FunctionSignature, Identifier, ObjectValue, ValuePossibility, NumberValue
-#*
-## Test Program:
+from Types include FunctionValue, FunctionSignature, Identifier, ObjectValue, ValuePossibility, NumberValue, BitsType, Variable, Expression, TypeUnion, TypeType, get_type_of, ArrayType, get_type_name
 
-*#
-#*
-let x = 5
-*#
+
 class Optimizer as this {
     let error_handler
     let error_stack = []
@@ -15,8 +11,10 @@ class Optimizer as this {
         this.error_handler = error_handler
     }
     function is_valid_type(expected_type, actual_type) {
-        if [FunctionValue, ObjectValue, NumberValue].contains(expected_type) {
-            return !actual_type.value_possibilities.map(function(x) expected_type == type_of(x.value)).contains(false)
+        if [FunctionValue, ObjectValue, NumberValue, BitsType, TypeType].contains(expected_type) {
+            return !actual_type.value_possibilities.map(function(x) expected_type == get_type_of(x.value)).contains(false)
+        } else if type_of(expected_type) == TypeUnion {
+            return !actual_type.value_possibilities.map(function(x) expected_type.types.contains(get_type_of(x.value))).contains(false)
         }
     }
     function Throw(options) {
@@ -24,7 +22,7 @@ class Optimizer as this {
         this.error_stack.add(error)
         return error
     }
-    function optimize(node, scope=null) {
+    function optimize(node, scope?) {
         if type_of(node) == ADK_Error {
             return node
         }
@@ -33,7 +31,10 @@ class Optimizer as this {
                 let global_scope = ObjectValue({
                     Function: FunctionValue,
                     Object: ObjectValue,
-                    Number: NumberValue
+                    Number: NumberValue,
+                    Bits: BitsType,
+                    Type: TypeType,
+                    Array: ArrayType
                 })
                 for statement in node.body {
                     let x = optimize(statement, global_scope)
@@ -61,7 +62,7 @@ class Optimizer as this {
                                 line: variable.given_type.position.start.line - 1,
                                 column: variable.given_type.position.start.column - 1,
                                 length: variable.given_type.position.end.column - variable.given_type.position.start.column + 1,
-                                message: $"Set to type {variable.given_type.name}."
+                                message: $"Set to type {get_type_name(type)}."
                             },
                             {
                                 line: node.value.position.start.line - 1,
@@ -79,21 +80,29 @@ class Optimizer as this {
             case {"type": "VariableAccess"} {
                 return scope.Get(node.name)
             }
-            case null {
-                return null
+            case {"type": "Operator", "operator": "|"} {
+                let left = optimize(node.left, scope)
+                let right = optimize(node.right, scope)
+                if get_type_of(left) == TypeType & get_type_of(right) == TypeType {
+                    return TypeUnion(left, right)
+                }
+                return ADK_Error
             }
             case $default {
                 stdout.log("default.")
+                return node
             }
         }
     }
 }
-
+#*
+let x
+if 
+*#
 if is_main {
-    include Parser from "../new-Parser"
     include Lexer from "../Lexer"
 
-    let code = "let Number x = 5"
+    let code = "let (Function | Object) x = 5"
     let lexer = Lexer(false, false)
     let tokens = lexer.tokenize(code)
     let error_handler = ErrorHandler(code, tokens, '<main>')

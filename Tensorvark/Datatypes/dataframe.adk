@@ -1,6 +1,6 @@
 
 class Dataframe as self {
-    $constructor(row, col=1, initial=null) {
+    $constructor(row, col=1, initial?) {
       self.row = row
         if initial == None {
             arr = []

@@ -34,8 +34,8 @@ function printError(type, pos, msg, didyoumean, traceback, code, color=fg(255, 3
     underline_str = ""
     i = 0
     while i < Math.max(underline.length, marker.length) {
-        m = marker[i] if i < marker.length else space_symbol
-        u = underline[i] if i < underline.length else space_symbol
+        m = marker.(i) if i < marker.length else space_symbol
+        u = underline.(i) if i < underline.length else space_symbol
         if m == marker_symbol 
             underline_str += m
         else if u == underline_symbol
@@ -48,14 +48,14 @@ function printError(type, pos, msg, didyoumean, traceback, code, color=fg(255, 3
     underline_str = underline_str.rstrip()
     error_underline = " " * (padding + 3) + ef.bold + color + underline_str + underline_symbol + ">" + ef.rs + " " + color + msg
     code_lines = code.split("\n")
-    code_lines[lineno - 1] = code_lines[lineno - 1] + "\n" + error_underline + styles.default
+    code_lines.(lineno - 1) = code_lines.(lineno - 1) + "\n" + error_underline + styles.default
 
     linestart = pos.linestart - (1 if pos.linestart > 0 else 0)
     lineend = pos.lineend + (1 if pos.lineend + 1 < code_lines.length else 0)
 
     if didyoumean {
         lines_mean = code_lines.copy()
-        lines_mean[lineno - 1] = ' ' * (padding - String(lineno).length) + styles.default + String(lineno) + " │ " + Highlight(didyoumean, {linenums: false})
+        lines_mean.(lineno - 1) = ' ' * (padding - String(lineno).length) + styles.default + String(lineno) + " │ " + Highlight(didyoumean, {linenums: false})
         
         didyoumean = "\n".join(lines_mean.slice(linestart, lineend))
     }
@@ -65,7 +65,7 @@ function printError(type, pos, msg, didyoumean, traceback, code, color=fg(255, 3
 
     if traceback {
         i = 0
-        traced = getTraceLine(i-1, traceback[i-1]) while i++ < traceback.length
+        traced = getTraceLine(i-1, traceback.(i-1)) while i++ < traceback.length
 
         traceback = "\n".join(traced) + "\n\n"
     } else

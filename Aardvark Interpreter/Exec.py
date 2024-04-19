@@ -299,7 +299,7 @@ class Executor:
             start = expr["positions"]["start"]
             self.errorhandler.throw(
                 "Assignment",
-                "Cannot reassign a static variable.",
+                f"Cannot reassign a static variable: {name}.",
                 {
                     "traceback": self.traceback,
                     "lineno": start["line"],
@@ -313,6 +313,8 @@ class Executor:
         else:
             if getattr(scope[name], "is_static", None) == True:
                 is_static = True
+            # if name == "current_character":
+            #     print(is_static)
             scope[name] = pyToAdk(value)
             scope[name].is_static = is_static
 
@@ -375,10 +377,11 @@ class Executor:
         start=None,
         error=True,
         message='Undefined variable "{name}".',
+        just_a_check=False,
     ):
         val = scope.get(varname, None)
         success = val != None
-        if type(val) == _Undefined:
+        if type(val) == _Undefined and not just_a_check:
             if success and error:
                 message = 'Uninitialized variable "{name}". Add `?` to render uninitialized variables as null.'
                 line = self.codelines[start["line"] - 1]

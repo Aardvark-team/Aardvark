@@ -447,6 +447,7 @@ def assign(
                 x["positions"]["start"],
                 True,
                 'Undefined variable "{name}". Use `let` to declare a variable.',
+                True,
             )
         exec.defineVar(var, value, defscope, False, expr)
     elif var["type"] == "Array":
