@@ -1151,8 +1151,14 @@ class Parser:
         condition = self.pExpression(require=True)
         body = None
         lasti = condition["positions"]["end"]
-
-        if self.compare(TokenTypes["Delimiter"], "{") and not inline:
+        print(
+            "HERE",
+            condition["type"],
+            self.peek(),
+            self.compare("Delimiter", "{"),
+            inline,
+        )
+        if self.compare("Delimiter", "{") and not inline:
             body, lasti = self.eatBlockScope()
         elif not inline:
             statm = self.pStatement(True)
@@ -1773,13 +1779,11 @@ class Parser:
     # Statement:
     # 	VariableDefinition
 
-    def pStatement(self, require=False, eatLBs=True):
-        if eatLBs:
-            self.eatLBs()
+    def pStatement(self, require=False, eatLBs=False):
+        self.eatLBs()
 
         if self.compare("Keyword", "try"):
             return self.pTryCatch()
-
         if self.compare("Keyword", "throw"):
             return self.pThrow()
         if self.compare("Keyword", "static") and self.compare("Keyword", "function", 1):

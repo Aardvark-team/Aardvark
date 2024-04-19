@@ -24,6 +24,7 @@
         "require-type-annotations": true,
         "require-function-return-type-annotation": true,
         "force-pure-functions": false,
-        "allow-embeds": false
+        "allow-embeds": false,
+        "allow-keyword-arguments": false
     }
 }
