@@ -48,7 +48,7 @@ class AardvarkArgumentError(ValueError):
 
 current_dir = os.getcwd()
 searchDirs = [Path(__file__).parent / "../lib"]
-if os.environ["AARDVARK_INSTALL"]:
+if os.environ.get("AARDVARK_INSTALL", False):
     searchDirs.append(Path(os.environ["AARDVARK_INSTALL"] + "/lib/"))
 for i in range(len(searchDirs)):
     searchDirs[i] = searchDirs[i].resolve()
