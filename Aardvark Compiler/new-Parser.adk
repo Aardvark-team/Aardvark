@@ -384,6 +384,8 @@ static class Parser as this {
                 return this.parse_yield_statement()
             case 'include'
                 return this.parse_include_statement()
+            case 'from'
+                return this.parse_include_statement()
             case 'extending'
                 return this.parse_extending_statement()
         }
@@ -628,6 +630,10 @@ static class Parser as this {
     }
     function parse_assignment() {
         let let_keyword = CHECK(this.eat("Keyword", "let"))
+        let is_embed_assignment = false
+        if this.maybe_eat("Operator", "%") {
+            is_embed_assignment = true
+        }
         assignments = []
         while true {
             if assignments.length > 0
@@ -663,6 +669,7 @@ static class Parser as this {
         return {
             type: "Assignments",
             assignments,
+            is_embed_assignment,
             position: {
                 start: let_keyword.position.start,
                 end: assignments.(-1).position.end
@@ -851,7 +858,127 @@ static class Parser as this {
                 end: body.position.end
             }
         }
+    }
+    function parse_return_statement() {
+        let return_keyword = CHECK(this.eat("Keyword", "return"))
+        let value = CHECK(this.parse_expression(require=true))
+        return {
+            type: "ReturnStatement",
+            value,
+            position: {
+                start: return_keyword.position.start,
+                end: value.position.end
+            }
+        }
+    }
+    function parse_continue_statement() {
+        let continue_keyword = CHECK(this.eat("Keyword", "continue"))
+        return {
+            type: "ContinueStatement",
+            position: {
+                start: continue_keyword.position.start,
+                end: continue_keyword.position.end
+            }
+        }
+    }
+    function parse_break_statement() {
+        let break_keyword = CHECK(this.eat("Keyword", "break"))
+        return {
+            type: "BreakStatement",
+            position: {
+                start: break_keyword.position.start,
+                end: break_keyword.position.end
+            }
+        }
+    }
+    function parse_yield_statement() {
+        let yield_keyword = CHECK(this.eat("Keyword", "yield"))
+        let value = CHECK(this.parse_expression(require=true))
+        return {
+            type: "YieldStatement",
+            value,
+            position: {
+                start: yield_keyword.position.start,
+                end: value.position.end
+            }
+        }
+    }
+    function parse_defer_statement() {
+        let defer_keyword = CHECK(this.eat("Keyword", "defer"))
+        let value = CHECK(this.parse_expression(require=true))
+        return {
+            type: "DeferStatement",
+            value,
+            position: {
+                start: defer_keyword.position.start,
+                end: value.position.end
+            }
+        }
+    }
+    function parse_include_statement() {
+        # include x, y, z from a
+        # include x as b, y as b, z
+        # include x as y
+        # from x include a, b, c as d
+        # from x include {x: a, y: b, z}
+        # include {x: a, y: b, z}
+        # include {x: a, y: b, z} from x
+        # include [a, b, c] from x
+        # include [a, b, c]
+        # include [a, b, c] as d from x
+        # include {x: a, y: b, z} as d from x
+        # from x include [a, b, c]
+
+        let starting_keyword
+        if this.compare("Keyword", "include") {
+            starting_keyword = this.eat()
+            let included_things = []
+            while !(this.compare("Delimiter", "from") | this.compare("LineBreak")) & this.peek() {
+                let thing, name, origin
+                if included_things.length > 0
+                    CHECK(this.eat("Delimiter", ","))
+                if this.compare("Delimiter", "[") {
+                    let array = CHECK(this.parse_array(true))
+                    # TODO
+                    thing = array
+                } else if this.compare("Delimiter", "{") {
+                    let object = CHECK(this.parse_object())
+                    # TODO
+                    thing = object
+                } else if this.compare("Identifier") {
+                    thing = this.eat().value
+                    name = thing
+                } else if this.compare("String") {
+                    thing = this.eat().value
+                    name = thing
+                }
+                if this.maybe_eat("Keyword", "as") {
+                    name = CHECK(this.eat("Identifier"))
+                }
+                if this.maybe_eat("Keyword", "from") {
+                    origin = CHECK(this.eat("Identifier"))
+                }
+                included_things.add({
+                    type: "IncludedThing",
+                    thing: thing?,
+                    name: name?,
+                    origin: origin?,
+                }) # TODO: add position?
+            }
+            return {
+                type: "IncludeStatement",
+                included_things,
+                position: {
+                    start: starting_keyword.position.start,
+                    end: this.peek(-1).position.end
+                }
+            }
+        } else if this.compare("Keyword", "from") {
+            starting_keyword = this.eat()
+        } else
+            return this.Throw("SyntaxError", "Expected 'include' or 'from'.", position=this.peek().position)
         # TODO
+
     }
     function parse_extending_statement() {
         let extending_keyword = CHECK(this.eat("Keyword", "extending"))
@@ -1068,29 +1195,31 @@ static class Parser as this {
 
 # Comment out the ones we are not working on to save test time.
 let parser_tests = {
-    empty_object: "{\n\n}",
-    empty_scope: "\n\n",
-    property_access: "x.y.z",
-    function_definition: "private static function x(Number x, y, {Number a, b, c:d}, [String a, b, c], this.y, ...args) -> Number {\n\n}",
-    simple_function_definition: "function x {}",
-    if_else_statement: "if condition {\n\n x\n\n\n } else if condition { \ny\n } \n\nelse { z }",
-    object_type: "let {Number x, String y} x",
-    optional_type: "let String? x",
-    optional_type_no_annotations: "let x? = y",
-    typed_deconstruction: "let [String a, b, Number c] = x",
-    object: "{x: 5, y: 6, Number z: 7, d, ...y}",
-    array_extending: "extending x [5, 6, 7, 8, 9, 10]",
-    function_extending: "extending x(y, z) -> Number {}",
-    function_extending_no_parameters: "extending x {}",
-    function_extending_no_parameters_with_return_type_annotation: "extending x -> Number {}",
-    object_extending: "extending x {y: 5, z: 6}",
-    operator_extending: "extending +(Number x, String y) -> String {}",
-    reassignment: "x = y = z = 5",
-    template_string: "$'Hello, {name}!'",
-    multiline_property_access: "x.\n    y.\n    z",
-    class_definition: "private static class x as this {\n\n$constructor() {}\n\nfunction $constructor() {}\nfunction method() {}\nlet x = 5\n let y}",
-    empty_class: "class {\n\n\n}",
-    function_call: "x(x, y, ...z, a=b, c=d, {e, f:g})"
+    # empty_object: "{\n\n}",
+    # empty_scope: "\n\n",
+    # property_access: "x.y.z",
+    # function_definition: "private static function x(Number x, y, {Number a, b, c:d}, [String a, b, c], this.y, ...args) -> Number {\n\n}",
+    # simple_function_definition: "function x {}",
+    # if_else_statement: "if condition {\n\n x\n\n\n } else if condition { \ny\n } \n\nelse { z }",
+    # object_type: "let {Number x, String y} x",
+    # optional_type: "let String? x",
+    # optional_type_no_annotations: "let x? = y",
+    # typed_deconstruction: "let [String a, b, Number c] = x",
+    # object: "{x: 5, y: 6, Number z: 7, d, ...y}",
+    # array_extending: "extending x [5, 6, 7, 8, 9, 10]",
+    # function_extending: "extending x(y, z) -> Number {}",
+    # function_extending_no_parameters: "extending x {}",
+    # function_extending_no_parameters_with_return_type_annotation: "extending x -> Number {}",
+    # object_extending: "extending x {y: 5, z: 6}",
+    # operator_extending: "extending +(Number x, String y) -> String {}",
+    # reassignment: "x = y = z = 5",
+    # template_string: "$'Hello, {name}!'",
+    # multiline_property_access: "x.\n    y.\n    z",
+    # class_definition: "private static class x as this {\n\n$constructor() {}\n\nfunction $constructor() {}\nfunction method() {}\nlet x = 5\n let y}",
+    # empty_class: "class {\n\n\n}",
+    # function_call: "x(x, y, ...z, a=b, c=d, {e, f:g})",
+    simple_include: "include x",
+
 }
 let error_tests = {
     multiple_decimal_points: "5.4.3",

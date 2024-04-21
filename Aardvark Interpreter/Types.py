@@ -959,7 +959,7 @@ def dict_from_other(old):
     return context
 
 
-def pyToAdk(py):
+def pyToAdk(py, is_reference=False):
     try:
         if type(py) in Types:
             return py

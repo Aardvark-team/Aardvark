@@ -1,8 +1,8 @@
-include TokenTypes, Operators, Keywords, Quotes, Whitespaces, Booleans, Delimiters, NotIncluded, BaseNumsOrder from Data
+include TokenTypes, Operators, Keywords, Quotes, Whitespaces, Booleans, Delimiters, NotIncluded, BaseNumsOrder, SymbolOperators from Data
 include Errors
 
 
-let Operators_array_sorted = Array(Operators)
+let Operators_array_sorted = Array(SymbolOperators)
     Operators_array_sorted.sort(function (a, b) b.length - a.length)
 
 class Token as this {
@@ -96,7 +96,7 @@ class Lexer as this {
 
   function otherwise(char) {
     let character = char ? this.current_character
-    return !(this.isWhitespace(character) | this.isDelimiter(character) | this.isNewline(character) | character == '#' | character in Operators)
+    return !(this.isWhitespace(character) | this.isDelimiter(character) | this.isNewline(character) | character == '#' | character in SymbolOperators)
   }
   function detect(text) {
     if this.current_character == text.0 {

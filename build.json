@@ -11,6 +11,7 @@
             "architecture": "x86_64"
         }
     ],
+    "entrypoint": "source/main.adk",
     "optimizations": {
         "compile-time-calculations": false,
         "inlining": false
@@ -25,6 +26,8 @@
         "require-function-return-type-annotation": true,
         "force-pure-functions": false,
         "allow-embeds": false,
-        "allow-keyword-arguments": false
+        "allow-keyword-arguments": true,
+        "allow-positional-arguments": false,
+        "force-keyword-arguments": true
     }
 }

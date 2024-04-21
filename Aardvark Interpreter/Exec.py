@@ -506,7 +506,7 @@ class Executor:
         self.traceback = self.traceback[:-1]
         return ret
 
-    def ExecExpr(self, expr: dict, scope: Scope, undefinedError=True):
+    def ExecExpr(self, expr: dict, scope: Scope, undefinedError=True, reference=False):
         if expr == None:
             return Null
         elif expr["type"] == "NumberLiteral":

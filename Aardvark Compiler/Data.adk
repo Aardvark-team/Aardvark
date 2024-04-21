@@ -15,7 +15,7 @@ let Booleans = set{'true', 'false'}
 
 let NotIncluded = "`'\"~!@#$%^&*()-+=[]{}\\|:;,<.>/?"
 
-let Operators = set{
+let SymbolOperators = set{
   "=",   # equals
   "!",   # not,
   '~',   # about
@@ -28,26 +28,29 @@ let Operators = set{
   "~=",  # about equal to
   "&",   # and
   "|",   # or
-  "x|",  # xor (exculsive or)
   "+",   # add
   "-",   # subtract
   "/",   # divide
   "*",   # multiplication
-  "^",   # exponet 
+  "^",   # exponent 
   "%",   # mod
   "@",   # at. reference
   "?",   # x.y? will be null if x.y doesn't exist or if it is null
   "->",  # Return Type,
-  "not", # not
-  "and", # and
-  "or",  # or
-  "xor", # xor
-  "in",  # in
   '++',
   '--',
   "$=",
   "..."
 }
+let KeywordOperators = set{
+  "x|",  # xor (exclusive or)
+  "not", # not
+  "and", # and
+  "or",  # or
+  "xor", # xor
+  "in",  # in
+}
+let Operators = SymbolOperators + KeywordOperators
 
 let OrderOfOps = {
     0: ["?"],
@@ -74,13 +77,13 @@ let Whitespaces = set{
     ' ',  # figure space
     ' ',  # en space
     ' ',  # em space
-    '⠀'  # braile blank
+    '⠀'  # braille blank
 }
 
 let Delimiters = set{
     ":",  # Colon, used for defining blocks and for types
-    "(",  # lparen
-    ")",  # rparen
+    "(",  # left parenthesis
+    ")",  # right parenthesis
     ",",  # comma
     "{",  # lbrace
     "}",  # rbrace

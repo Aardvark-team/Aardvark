@@ -570,6 +570,7 @@ def reference(
 ):
     if x:
         return unexpectedOperand(x, errorhandler, line, expr)
+    right = exec.ExecExpr(y, scope, True, reference=True)
     errorhandler.throw(
         "Unimplemented",
         "The @ operator is not yet implemented.",
