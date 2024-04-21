@@ -1,0 +1,48 @@
+function render(object, formatting={}) {
+    if type_of(object) == Number
+        return String(object)
+    else if type_of(object) == String
+        return $'"{object.replace(`"`, `\\"`)}"'
+    else if object == null
+        return "null"
+    else if object == true
+        return "true"
+    else if object == false
+        return "false"
+    else if type_of(object) == Array
+        return "[" + ",".join(object.map(render)) + "]"
+    else if type_of(object) == Object {
+        let string = "{"
+        for key:value in object {
+            string += render(key) + ":" + render(value) + ","
+        }
+        return string.slice(0, -1) + "}"
+    } else if object.to_json?
+        return object.to_json()
+    else {
+        stderr.log("Cannot render object: ", object)
+        exit(1)
+    }
+}
+if is_main {
+    let tests = {
+        "true": true,
+        "false": false,
+        "null": null,
+        "Number": 5,
+        "String": "hello",
+        "Array": [1, 2, 3],
+        "Object": {
+            a: 1,
+            b: "hello",
+            c: {
+                d: [1, "hi", 3]
+            },
+            d: null 
+        }
+    }
+
+    for key:value in tests {
+        stdout.log(key, " -> ", render(value))
+    }
+}

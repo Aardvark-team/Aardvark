@@ -1,0 +1,189 @@
+class Parser as this {
+    let String code = ""
+    # let allow_comments = true
+    # let allow_trailing_comma = true
+    # let allow_single_quotes = true
+    # let allow_no_quotes = true
+    let String current_character = ""
+    let is_at_end = false
+    let allowed_id_start_characters
+    let allowed_id_characters
+    $constructor(code, settings={}) {
+        this.code = code
+        this.index = -1
+        # this.allow_comments = settings.allow_comments?true
+        # this.allow_trailing_comma = settings.allow_trailing_comma?true
+        # this.allow_single_quotes = settings.allow_single_quotes?true
+        # this.allow_no_quotes = settings.allow_no_quotes?true
+        this.allowed_id_characters = settings.allowed_id_characters?"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_0123456789"
+        this.allowed_id_start_characters = settings.allowed_id_start_characters?"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_"
+
+        this.advance()
+    }
+    function parse_number() {
+        let number_value = ""
+        while "0123456789".contains(this.current_character) & !this.is_at_end {
+            number_value += this.current_character
+            this.advance()
+        }
+        return Number(number_value)
+    }
+    function parse_string() {
+        let string_value = ""
+        let quote = this.current_character
+        this.advance()
+        while this.current_character != quote & !this.is_at_end {
+            string_value += this.current_character
+            if this.current_character == "\\" {
+                this.advance()
+                if "`'\"".contains(this.current_character) {
+                    string_value += this.current_character
+                    this.advance()
+                } else
+                    string_value += "\\"
+                continue
+            }
+            this.advance()
+        }
+        this.eat(quote)
+        return string_value
+    }
+    function parse_array() {
+        let array = []
+        let ate_comma = false
+        this.eat("[")
+        while !(this.current_character == "]") & !this.is_at_end {
+            this.eat_useless()
+            if array.length > 0 & !ate_comma {
+                this.eat(",")
+            }
+            let value = this.parse()
+            array.add(value)
+            ate_comma = false
+            this.eat_useless()
+            if this.current_character == "," {
+                this.advance()
+                ate_comma = true
+            }
+        }
+        this.eat_useless()
+        this.eat("]")
+        return array
+    }
+    function parse_object() {
+        let object = {}
+        let ate_comma = false
+        let items = 0
+        this.eat("{")
+        while !(this.current_character == "}") & !this.is_at_end {
+            this.eat_useless()
+            if items > 0 & !ate_comma {
+                this.eat(",")
+            }
+            let key = this.parse(allow_identifiers=true)
+            this.eat(":")
+            let value = this.parse()
+            object.(key) = value
+            items += 1
+            ate_comma = false
+            this.eat_useless()
+            if this.current_character == "," {
+                this.advance()
+                ate_comma = true
+                this.eat_useless()
+            }
+        }
+        this.eat_useless()
+        this.eat("}")
+        return object
+    } 
+    function parse_identifier() {
+        let identifier = ""
+        while this.allowed_id_characters.contains(this.current_character) & !this.is_at_end {
+            identifier += this.current_character
+            this.advance()
+        }
+        return identifier
+    }
+    function eat_useless() {
+        while " \t\r\n".contains(this.current_character) & !this.is_at_end {
+            this.advance()
+        }
+    }
+    function parse(allow_identifiers=false) {
+        this.eat_useless()
+        if this.is_at_end {
+            return null
+        }
+        if "0123456789".contains(this.current_character) {
+            return this.parse_number()
+        } else if "`'\"".contains(this.current_character) {
+            return this.parse_string()
+        } else if this.current_character == "[" {
+            return this.parse_array()
+        } else if this.current_character == "{" {
+            return this.parse_object()
+        } else if this.detect("true", true) {
+            this.eat("true")
+            return true
+        } else if this.detect("false", true) {
+            this.eat("false")
+            return false
+        } else if this.detect("null", true) {
+            this.eat("null")
+            return null
+        } else if allow_identifiers & this.allowed_id_start_characters.contains(this.current_character) {
+            return this.parse_identifier()
+        } else {
+            stderr.write("\033[31mUnexpected character at index ", this.index, "(parse failed): ", this.current_character, "\033[0m\n")
+            exit(1)
+        }
+    }
+    function advance(n=1) {
+        this.index += n
+        if this.index >= this.code.length {
+            this.is_at_end = true
+            this.current_character = ''
+            return ''
+        }
+        this.current_character = this.code.(this.index)
+        return this.code.slice(this.index - n, this.index)
+    }
+    function detect(string) {
+        return this.code.slice(this.index, this.index + string.length) == string
+    }
+    function eat(characters?, optional=false) {
+        if !characters
+            return this.advance()
+        else if this.detect(characters)
+            return this.advance(characters.length)
+        else if !optional {
+            stderr.write("\033[31mUnexpected character at index ", this.index, ": ", this.current_character, "\033[0m\n")
+            exit(1)
+        } else return false
+    }
+}
+
+
+
+if is_main {
+    let test_cases = {
+        number: "5",
+        string: "'hello'",
+        array: "[1, 2, 3]",
+        empty_object: "{}",
+        object: "{\"x\": 5, 'y': 6, z: 7}",
+        object_with_trailing_comma: "{x: 5, y: 6, }",
+        object_with_array: "{x: 5, y: 6, z: [1, 2, 3]}",
+        object_advanced: `{"hello": "world", "key": [1, null, true, false, {"key": "value"}]}`
+    }
+    function perform_test(code) {
+        let parser = Parser(code)
+        let value = parser.parse()
+        return value
+    }
+    for name:code in test_cases {
+        let value = perform_test(code)
+        stdout.log(name, type_of(value), value)
+    }
+}

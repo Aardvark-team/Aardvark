@@ -1,0 +1,33 @@
+include json
+
+let parser = json.Parser(`{"hello": "world", "key": [1, null, true, false, {"key": "value"}]}`)
+let value = parser.parse()
+
+stdout.log(value)
+
+
+let my_object = {
+    number: 1,
+    string: "hello",
+    array: [1, 2, 3, true, false, null],
+    empty_object: {},
+    object: {
+        a: 1,
+        b: true,
+        c: {
+            d: 5,
+            e: [1, 2, {
+                a: [
+                    {
+                        g: [
+                            {
+                                x: null
+                            }
+                        ]
+                    }
+                ]
+            }]
+        },
+    }
+}
+stdout.log(json.render(my_object))

@@ -975,6 +975,7 @@ static class Parser as this {
             }
         } else if this.compare("Keyword", "from") {
             starting_keyword = this.eat()
+            # TODO!
         } else
             return this.Throw("SyntaxError", "Expected 'include' or 'from'.", position=this.peek().position)
         # TODO
@@ -1195,30 +1196,30 @@ static class Parser as this {
 
 # Comment out the ones we are not working on to save test time.
 let parser_tests = {
-    # empty_object: "{\n\n}",
-    # empty_scope: "\n\n",
-    # property_access: "x.y.z",
-    # function_definition: "private static function x(Number x, y, {Number a, b, c:d}, [String a, b, c], this.y, ...args) -> Number {\n\n}",
-    # simple_function_definition: "function x {}",
-    # if_else_statement: "if condition {\n\n x\n\n\n } else if condition { \ny\n } \n\nelse { z }",
-    # object_type: "let {Number x, String y} x",
-    # optional_type: "let String? x",
-    # optional_type_no_annotations: "let x? = y",
-    # typed_deconstruction: "let [String a, b, Number c] = x",
-    # object: "{x: 5, y: 6, Number z: 7, d, ...y}",
-    # array_extending: "extending x [5, 6, 7, 8, 9, 10]",
-    # function_extending: "extending x(y, z) -> Number {}",
-    # function_extending_no_parameters: "extending x {}",
-    # function_extending_no_parameters_with_return_type_annotation: "extending x -> Number {}",
-    # object_extending: "extending x {y: 5, z: 6}",
-    # operator_extending: "extending +(Number x, String y) -> String {}",
-    # reassignment: "x = y = z = 5",
-    # template_string: "$'Hello, {name}!'",
+    empty_object: "{\n\n}",
+    empty_scope: "\n\n",
+    property_access: "x.y.z",
+    function_definition: "private static function x(Number x, y, {Number a, b, c:d}, [String a, b, c], this.y, ...args) -> Number {\n\n}",
+    simple_function_definition: "function x {}",
+    if_else_statement: "if condition {\n\n x\n\n\n } else if condition { \ny\n } \n\nelse { z }",
+    object_type: "let {Number x, String y} x",
+    optional_type: "let String? x",
+    optional_type_no_annotations: "let x? = y",
+    typed_deconstruction: "let [String a, b, Number c] = x",
+    object: "{x: 5, y: 6, Number z: 7, d, ...y}",
+    array_extending: "extending x [5, 6, 7, 8, 9, 10]",
+    function_extending: "extending x(y, z) -> Number {}",
+    function_extending_no_parameters: "extending x {}",
+    function_extending_no_parameters_with_return_type_annotation: "extending x -> Number {}",
+    object_extending: "extending x {y: 5, z: 6}",
+    operator_extending: "extending +(Number x, String y) -> String {}",
+    reassignment: "x = y = z = 5",
+    template_string: "$'Hello, {name}!'",
     # multiline_property_access: "x.\n    y.\n    z",
     # class_definition: "private static class x as this {\n\n$constructor() {}\n\nfunction $constructor() {}\nfunction method() {}\nlet x = 5\n let y}",
     # empty_class: "class {\n\n\n}",
     # function_call: "x(x, y, ...z, a=b, c=d, {e, f:g})",
-    simple_include: "include x",
+    # simple_include: "include x",
 
 }
 let error_tests = {

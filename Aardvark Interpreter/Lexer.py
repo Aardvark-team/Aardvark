@@ -10,6 +10,7 @@ from Data import (
     NotIncluded,
 )
 import Error
+
 # from numba.experimental import jitclass
 sortedPureOperators = sorted(PureOperators, key=len, reverse=True)
 
@@ -46,6 +47,7 @@ class Token:
             f" {self.start['line']}:{self.start['col']} to"
             f" {self.end['line']}:{self.end['col']})"
         )
+
 
 # @jitclass
 class Lexer:
@@ -305,7 +307,9 @@ class Lexer:
                     self.advance()
                     if self.AtEnd:
                         if self.strict:
-                            raise Exception("Error: Unexpected EOF")
+                            raise Exception(
+                                "Error: Unexpected EOF, line " + str(self.line)
+                            )
                         else:
                             self.advance(-1)
                             break
@@ -438,17 +442,20 @@ class Lexer:
         else:
             return None
 
+
 if __name__ == "__main__":
     import cProfile
     from pathlib import Path
+
     current_directory = Path(__file__).resolve().parent
 
     path = current_directory / "../Aardvark Compiler/new-Parser.adk"
     path = path.resolve()
     code = path.read_text(encoding="utf-8")
+
     def tokenize():
         for i in range(20):
             lexer = Lexer("#", "#*", "*#", False, False, False, True)
             lexer.tokenize(code)
+
     cProfile.run("tokenize()", sort="tottime")
-  
