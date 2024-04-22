@@ -15,6 +15,7 @@ class ADK_Error as this {
     this.initiated_from = options.initiated_from?
     this.error_number = options.error_number? -1
     this.show = options.show?true
+    this.error_number = options.error_number?0
     this.error = null
   }
   function Throw(kill=false) {
