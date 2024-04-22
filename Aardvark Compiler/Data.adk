@@ -40,7 +40,9 @@ let SymbolOperators = set{
   '++',
   '--',
   "$=",
-  "..."
+  "...",
+  "@=",
+  ">>="
 }
 let KeywordOperators = set{
   "x|",  # xor (exclusive or)
@@ -92,6 +94,12 @@ let Delimiters = set{
     ".",  # period
     ',',  # comma, for separating values.
     "$"   # dollar sign, used for special variables and methods
+}
+
+let Parenthesis = {
+    "(": ")",
+    "{": "}",
+    "[": "]"
 }
 
 let Keywords = set{

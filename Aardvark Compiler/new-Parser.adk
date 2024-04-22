@@ -1,4 +1,4 @@
-from Data include OrderOfOps
+from Data include OrderOfOps, Parenthesis
 include Token, Lexer from Lexer
 include ErrorHandler, ADK_Error from Errors
 
@@ -38,7 +38,7 @@ static class Parser as this {
     function advance(n=1) this.pos += n
 
     # Helper function for error throwing.
-    function Throw(type, message, options={}, note="", kill=true, position?, here_message="Here") {
+    function Throw(type, message, options={}, note="", kill=true, position?, here_message="Here", show=true) {
         let legacy_errors = false
         if legacy_errors {
             if !(options.underline? | options.marker?) {
@@ -69,6 +69,7 @@ static class Parser as this {
                 length: position.end.column - position.start.column + 1,
                 message: here_message
             }],
+            show,
             ...options
         })
         if store_errors {
@@ -118,10 +119,12 @@ static class Parser as this {
         # If it matches, eat and return it.
         let current_token = this.peek()
         if this.compare(token_type, value) {
-            if current_token.value in ["(", "[", "{"] & keep_track
+            if current_token.value in ["(", "[", "{"] & keep_track {
                 this.awaiting_match.add(current_token)
-            if current_token.value in [")", "]", "}"] & this.awaiting_match.length > 0 & this.awaiting_match.(-1).value == current_token.value & keep_track
+            }
+            if current_token.value in [")", "]", "}"] & this.awaiting_match.length > 0 & Parenthesis.(this.awaiting_match.(-1).value) == current_token.value & keep_track {
                 this.awaiting_match = this.awaiting_match.slice(0, -1)
+            }
             this.advance()
             return current_token
         }
@@ -129,9 +132,11 @@ static class Parser as this {
         # If we're at the end of the file, throw an error.
         if this.is_EOF()
             return this.throw_EOF_error(token_type, value);
-
-        if current_token.value in [")", "]", "}"] & this.awaiting_match.length > 0 & this.awaiting_match.(-1).value == current_token.value & this.error_stack.length > 0
+        let show_error = true
+        if current_token.value in [")", "]", "}"] & this.awaiting_match.length > 0 & Parenthesis.(this.awaiting_match.(-1).value) == current_token.value & this.error_stack.length > 0 {
             this.awaiting_match = this.awaiting_match.slice(0, -1)
+            show_error = false
+        }
 
         # Otherwise, throw an error because it didn't match.
         return this.Throw(
@@ -253,6 +258,8 @@ static class Parser as this {
                 ast_node = CHECK(this.parse_layout_type())
             case 'embed'
                 ast_node = CHECK(this.parse_embed())
+            case 'macro'
+                ast_node = CHECK(this.parse_function_definition("normal", false, "macro"))
             case $default {
                 return this.Throw('SyntaxError', 'Unexpected keyword "' + this.peek().value + '"', position=this.peek().position)
             }
@@ -325,7 +332,12 @@ static class Parser as this {
             return ast_node
         }
         if require {
-            return this.Throw('SyntaxError', 'Expected expression or statement', position=this.peek().position)
+            let show_error = true
+            if current_token.value in [")", "]", "}"] & this.awaiting_match.length > 0 & Parenthesis.(this.awaiting_match.(-1).value) == current_token.value & this.error_stack.length > 0 {
+                this.awaiting_match = this.awaiting_match.slice(0, -1)
+                show_error = false
+            }
+            return this.Throw('SyntaxError', 'Expected expression or statement', position=this.peek().position, show=show_error)
         }
     }
     function parse_expression(level=keys(OrderOfOps).length-1, require=false, exclude=[], eat_line_breaks=false, is_deconstruction=false) {
@@ -676,7 +688,7 @@ static class Parser as this {
             }
         }
     }
-    function parse_function_definition(mode="normal", found_static=false) {
+    function parse_function_definition(mode="normal", found_static=false, expected_keyword="function") {
         let is_static = found_static
         let is_private = false
         let parameters = []
@@ -699,9 +711,9 @@ static class Parser as this {
         }
         # the function keyword is required unless we're in a class scope or extending 
         if !["extending", "class_scope"].contains(mode)
-            function_keyword = CHECK(this.eat("Keyword", "function"))
+            function_keyword = CHECK(this.eat("Keyword", expected_keyword))
         else # Otherwise it's optional
-            function_keyword = this.maybe_eat("Keyword", "function")
+            function_keyword = this.maybe_eat("Keyword", expected_keyword)
         
         if mode == "class_scope" & this.compare("Delimiter", "$") {
             function_keyword = this.eat()
@@ -763,7 +775,7 @@ static class Parser as this {
         }
         body = CHECK(this.parse_statement_or_scope_body())
         return {
-            type: "FunctionDefinition",
+            type: "FunctionDefinition" if expected_keyword == "function" else if expected_keyword == "macro" "MacroDefinition",
             name: name?,
             parameters,
             parameter_expansion: parameter_expansion?,
@@ -928,8 +940,19 @@ static class Parser as this {
         # include [a, b, c] as d from x
         # include {x: a, y: b, z} as d from x
         # from x include [a, b, c]
-
         let starting_keyword
+        let global_origin
+        if this.compare("Keyword", "from") {
+            starting_keyword = this.eat()
+            if this.compare("Identifier")
+                global_origin = this.eat()
+            else if this.compare("String")
+                global_origin = this.eat()
+            else if this.compare("Number")
+                global_origin = this.eat()
+            else
+                return this.Throw("SyntaxError", "Expected 'Identifier' or 'String'.", position=this.peek().position, here_message="That is not a library name, at least not one that the compiler can recognize.")
+        }
         if this.compare("Keyword", "include") {
             starting_keyword = this.eat()
             let included_things = []
@@ -956,13 +979,32 @@ static class Parser as this {
                     name = CHECK(this.eat("Identifier"))
                 }
                 if this.maybe_eat("Keyword", "from") {
+                    if (global_origin?) {
+                        let cause = this.peek(1)?this.peek()
+                        return this.Throw("SyntaxError", "Unexpected 'from'.", {
+                            markers: [
+                            {
+                                line: global_origin.position.start.line - 1,
+                                column: global_origin.position.start.column - 1,
+                                length: global_origin.position.end.column - global_origin.position.start.column + 1,
+                                message: "You told us where to include this stuff this library."
+                            },
+                            {
+                                line: cause.position.start.line - 1,
+                                column: cause.position.start.column - 1,
+                                length: cause.position.end.column - cause.position.start.column + 1,
+                                message: "So what is this supposed to mean? I'm a compiler you know, I can't just read your thoughts."
+                            }
+                        ]
+                        }, position=this.peek().position)
+                    }
                     origin = CHECK(this.eat("Identifier"))
                 }
                 included_things.add({
                     type: "IncludedThing",
                     thing: thing?,
                     name: name?,
-                    origin: origin?,
+                    origin: (origin?(global_origin?)).value?null,
                 }) # TODO: add position?
             }
             return {
@@ -991,7 +1033,7 @@ static class Parser as this {
             extension = CHECK(this.parse_class_definition())
         if (extension?) {
             if (!extension.name?)
-                return this.Throw("ExtensionError", "Cannot extend an anonymous class.", position=extension.position)
+                return this.Throw("ExtensionError", "Cannot extend something anonymous.", position=extension.position, here_message="Anonymous")
             return {
                 type: "ExtendingStatement",
                 object: extension.name,
@@ -1141,10 +1183,10 @@ static class Parser as this {
             this.eat_line_breaks()
             if this.is_EOF() | (enclosing_curly_braces & this.compare("Delimiter", "}")) break;
             let statement
-            while !(statement? | this.is_EOF()) {
+            while !(statement? | this.is_EOF() | (this.compare("Delimiter", "}") & enclosing_curly_braces)) {
                 statement = this.parse_statement(true, false, mode)
                 if type_of(statement) == ADK_Error {
-                    while true {
+                    while !this.is_EOF() {
                         this.eat(keep_track=true)
                         if this.compare("LineBreak") | this.is_EOF() break
                     }
@@ -1152,7 +1194,7 @@ static class Parser as this {
                     statement = null;
                 }
             }
-            if (!statement?) break
+            if !(statement?) break
             statements.add(statement)
         }
 
@@ -1200,6 +1242,7 @@ let parser_tests = {
     empty_scope: "\n\n",
     property_access: "x.y.z",
     function_definition: "private static function x(Number x, y, {Number a, b, c:d}, [String a, b, c], this.y, ...args) -> Number {\n\n}",
+    macro_definition: "macro x(y) {}",
     simple_function_definition: "function x {}",
     if_else_statement: "if condition {\n\n x\n\n\n } else if condition { \ny\n } \n\nelse { z }",
     object_type: "let {Number x, String y} x",
@@ -1215,11 +1258,11 @@ let parser_tests = {
     operator_extending: "extending +(Number x, String y) -> String {}",
     reassignment: "x = y = z = 5",
     template_string: "$'Hello, {name}!'",
-    # multiline_property_access: "x.\n    y.\n    z",
-    # class_definition: "private static class x as this {\n\n$constructor() {}\n\nfunction $constructor() {}\nfunction method() {}\nlet x = 5\n let y}",
-    # empty_class: "class {\n\n\n}",
-    # function_call: "x(x, y, ...z, a=b, c=d, {e, f:g})",
-    # simple_include: "include x",
+    multiline_property_access: "x.\n    y.\n    z",
+    class_definition: "private static class x as this {\n\n$constructor() {}\n\nfunction $constructor() {}\nfunction method() {}\nlet x = 5\n let y}",
+    empty_class: "class {\n\n\n}",
+    function_call: "x(x, y, ...z, a=b, c=d, {e, f:g})",
+    simple_include: "include x",
 
 }
 let error_tests = {
@@ -1229,7 +1272,8 @@ let error_tests = {
     else_without_if: "else { x }",
     anonymous_function_extension: "extending function {}",
     many_errors: "5.4.3\n5_4_3\nlet 5 = x\n\nelse {}\n\n",
-    expression_in_class_scope: "class x {\nstdout.log(5 * 5)\n}"
+    expression_in_class_scope: "class x {\nstdout.log(5 * 5)\n}", 
+    include_double_from: "from x include y from z",
 }
 function test(String code) {
     let lexer = Lexer(false, false)
@@ -1243,12 +1287,15 @@ function test(String code) {
     for error in lexer.error_stack + parser.error_stack {
         if type_of(error) != ADK_Error 
             error = ADK_Error(error_handler, error)
-        error.Throw()
+        if error.show {
+            error.Throw()
+        }
     }
     if parser.error_stack.length > 0 | lexer.error_stack.length > 0
         return false
     return AST
 }
+# test(error_tests.anonymous_function_extension)
 if is_main {
     # stdout.log(test(error_tests.expression_in_class_scope))
     for test_name:code in parser_tests {
