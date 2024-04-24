@@ -8,9 +8,9 @@ class ADK_Error as this {
   $constructor(handler, options) {
     this.handler = handler
     this.options = options
-    this.message = options.message?
-    this.error_type = options.error_type?
-    this.filename = options.filename?
+    this.message = options.message?"This isn't valid."
+    this.error_type = options.error_type?"SyntaxError"
+    this.filename = options.filename?handler.filename
     this.location = options.location?
     this.initiated_from = options.initiated_from?
     this.error_number = options.error_number? -1
@@ -26,10 +26,10 @@ class ADK_Error as this {
     }
     this.error = format(
         this.handler.highlighted_code_lines, 
-        options.message?"This isn't valid.", 
-        options.error_type?"SyntaxError", 
-        options.filename?"<main>", 
-        options.location, 
+        this.message, 
+        this.error_type, 
+        this.filename, 
+        this.location, 
         options.markers?[], 
         options.color?fg(255, 30, 10), 
         options.symbol?'ⓧ'

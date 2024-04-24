@@ -141,7 +141,7 @@ static class Parser as this {
         # Otherwise, throw an error because it didn't match.
         return this.Throw(
             "Token",
-            $"Token {value ? $'of type {token_type}'} expected, but not found.",
+            $"Token {$'\"{value}\"' if value else $'of type {token_type}'} expected, but not found.",
             position = this.peek().position
         )
     }
@@ -149,12 +149,12 @@ static class Parser as this {
         this.eat() if this.compare(token_type, value) else null
     
     # Actually parse it
-    function parse_primary(Boolean require=false, exclude=[],is_deconstruction=false) {
+    function parse_primary(Boolean require=false, exclude=[], is_deconstruction=false, eat_line_breaks=false) {
         let current_token = this.peek()
         let ast_node
 
         if !current_token | this.is_EOF()
-            return this.throw_EOF_error('expression or statement') if require else null;
+            return this.throw_EOF_error('something to be here') if require else null;
         
         if this.compare("String")
            return this.parse_string()
@@ -194,7 +194,7 @@ static class Parser as this {
             this.eat('Delimiter', ')')
         }
         # 
-        if this.compare('Keyword')
+        else if this.compare('Keyword')
         match this.peek().value {
             case 'static' {
                 let next_token = this.peek(1)
@@ -300,13 +300,18 @@ static class Parser as this {
                 }, position=opening_bracket.position)
             }
             # inline statements. Don't continue because nothing can come after it.
-            if this.compare('Keyword') match this.peek().value {
-                case 'if'
-                    ast_node = CHECK(this.parse_if_statement(ast_node))
-                case 'while'
-                    ast_node = CHECK(this.parse_while_statement(ast_node))
-                case 'for'
-                    ast_node = CHECK(this.parse_for_statement(ast_node))
+            if this.compare('Keyword') {
+                match this.peek().value {
+                    case 'if'
+                        ast_node = CHECK(this.parse_if_statement(ast_node))
+                    case 'while'
+                        ast_node = CHECK(this.parse_while_statement(ast_node))
+                    case 'for'
+                        ast_node = CHECK(this.parse_for_statement(ast_node))
+                    # case $default {
+                    #     this.Throw('SyntaxError', 'Unexpected inline keyword "' + this.peek().value + '"', position=this.peek().position, here_message="What is this supposed to mean?")
+                    # }
+                }
             }
             # Return if none were found
             return ast_node
@@ -317,7 +322,7 @@ static class Parser as this {
                 this.awaiting_match = this.awaiting_match.slice(0, -1)
                 show_error = false
             }
-            return this.Throw('SyntaxError', 'Expected expression or statement', position=this.peek().position, show=show_error)
+            return this.Throw('SyntaxError', 'Something is supposed to go here', position=this.peek().position, show=show_error)
         }
     }
     function parse_expression(level=keys(OrderOfOps).length-1, require=false, exclude=[], eat_line_breaks=false, is_deconstruction=false) {
@@ -543,6 +548,37 @@ static class Parser as this {
             }
         }
     }
+    function parse_for_statement(ast_node?) {
+        let for_keyword = CHECK(this.eat("Keyword", "for"))
+        let variable = CHECK(this.parse_typed_variable(["KeyValuePair"]))
+        let in_keyword = CHECK(this.eat("Operator", "in"))
+        let iterable = CHECK(this.parse_expression(require=true))
+        let body = ast_node?CHECK(this.parse_statement_or_scope_body())
+        return {
+            type: "ForStatement",
+            iterable,
+            variable,
+            body,
+            position: {
+                start: for_keyword.position.start,
+                end: body.position.end
+            }
+        }
+    }
+    function parse_while_statement(ast_node?) {
+        let while_keyword = CHECK(this.eat("Keyword", "while"))
+        let condition = CHECK(this.parse_expression(require=true))
+        let body = ast_node?CHECK(this.parse_statement_or_scope_body())
+        return {
+            type: "WhileStatement",
+            condition,
+            body,
+            position: {
+                start: while_keyword.position.start,
+                end: body.position.end
+            }
+        }
+    }
     function parse_layout_type() {
         let layout_keyword = CHECK(this.eat("Keyword", `layout`))
         CHECK(this.eat("Delimiter", `(`))
@@ -637,8 +673,7 @@ static class Parser as this {
             else
                 return false
         }
-
-        return {
+        let ast_node = {
             type: "TypedVariable",
             given_type: first if second else null,
             variable: second?first,
@@ -647,6 +682,20 @@ static class Parser as this {
                 end: second.position.end if second else first.position.end
             }
         }
+        if accept_var.contains("KeyValuePair") & this.maybe_eat("Delimiter", ":") {
+            let value = CHECK(this.parse_typed_variable(accept_var, name, throw_error))
+            return {
+                type: "KeyValuePair",
+                key: ast_node,
+                value,
+                position: {
+                    start: ast_node.position.start,
+                    end: value.position.end
+                }
+            }
+        }
+
+        return ast_node
 
 
     }
@@ -670,7 +719,7 @@ static class Parser as this {
             if this.maybe_eat("Keyword", "static")
                 is_static = true
             let variables = []
-            variables.add(CHECK(this.parse_typed_variable()))
+            variables.add(CHECK(this.parse_typed_variable(["KeyValuePair"])))
             let value
             # TODO: allow chaining: let x = y = 5
             if this.maybe_eat("Operator", "=")
@@ -755,7 +804,9 @@ static class Parser as this {
             if (!first_keyword?)
                 first_keyword = opening_parenthesis
             while !this.compare("Delimiter", ")") {
+                this.eat_line_breaks()
                 if parameters.length > 0 CHECK(this.eat("Delimiter", ","))
+                this.eat_line_breaks()
                 if this.compare("Operator", "...") {
                     let operator = this.eat()
                     parameter_expansion = CHECK(this.parse_primary(true))
@@ -803,6 +854,7 @@ static class Parser as this {
     }
     function parse_statement_or_scope_body(mode="normal") {
         let body
+        this.eat_line_breaks()
         if this.compare("Delimiter", "{") {
             let previous_store_errors_state = this.store_errors
             this.store_errors = true
@@ -825,7 +877,8 @@ static class Parser as this {
         let body, else_body
         if ast_node 
             body = ast_node
-        body = CHECK(this.parse_statement_or_scope_body())
+        else
+            body = CHECK(this.parse_statement_or_scope_body())
         this.eat_line_breaks()
         # Handle else statements
         if this.compare("Keyword", "else") {
@@ -1226,49 +1279,63 @@ static class Parser as this {
 
 # Comment out the ones we are not working on to save test time.
 let parser_tests = {
-    empty_object: "{\n\n}",
-    empty_scope: "\n\n",
-    property_access: "x.y.z",
-    function_definition: "private static function x(Number x, y, {Number a, b, c:d}, [String a, b, c], this.y, ...args) -> Number {\n\n}",
-    macro_definition: "macro x(y) {}",
-    simple_function_definition: "function x {}",
-    if_else_statement: "if condition {\n\n x\n\n\n } else if condition { \ny\n } \n\nelse { z }",
-    object_type: "let {Number x, String y} x",
-    optional_type: "let String? x",
-    optional_type_no_annotations: "let x? = y",
-    typed_deconstruction: "let [String a, b, Number c] = x",
-    object: "{x: 5, y: 6, Number z: 7, d, ...y}",
-    array_extending: "extending x [5, 6, 7, 8, 9, 10]",
-    function_extending: "extending x(y, z) -> Number {}",
-    function_extending_no_parameters: "extending x {}",
-    function_extending_no_parameters_with_return_type_annotation: "extending x -> Number {}",
-    object_extending: "extending x {y: 5, z: 6}",
-    operator_extending: "extending +(Number x, String y) -> String {}",
-    reassignment: "x = y = z = 5",
-    template_string: "$'Hello, {name}!'",
-    multiline_property_access: "x.\n    y.\n    z",
-    class_definition: "private static class x as this {\n\n$constructor() {}\n\nfunction $constructor() {}\nfunction method() {}\nlet x = 5\n let y}",
-    empty_class: "class {\n\n\n}",
-    function_call: "x(x, y, ...z, a=b, c=d, {e, f:g})",
-    simple_include: "include x",
-    include_from: "from x include y",
-    include_a_lot: "include x, y, z from a
-include x as b, y as b, z
-include x as y
-from x include a, b, c as d
-from x include {x: a, y: b, z}
-include {x: a, y: b, z}
-include {x: a, y: b, z} from x
-include [a, b, c] from x
-include [a, b, c]
-include [a, b, c] as d from x
-include {x: a, y: b, z} as d from x
-from x include [a, b, c]",
-    return_value: "return whatever()",
-    defer_something: "defer whatever()",
-    defer_block: "defer { whatever() }",
-    break_test: "break",
-    continue_test: "continue",
+#     simple_declaration: "let x",
+#     empty_object: "{\n\n}",
+#     empty_scope: "\n\n",
+#     property_access: "x.y.z",
+#     function_definition: "private static function x(Number x, y, {Number a, b, c:d}, [String a, b, c], this.y, ...args) -> Number {\n\n}",
+#     macro_definition: "macro x(y) {}",
+#     simple_function_definition: "function x {}",
+#     if_else_statement: "if condition {\n\n x\n\n\n } else if condition { \ny\n } \n\nelse { z }",
+#     inline_if: "x if condition else y",
+#     object_type: "let {Number x, String y} x",
+#     optional_type: "let String? x",
+#     optional_type_no_annotations: "let x? = y",
+#     typed_deconstruction: "let [String a, b, Number c] = x",
+#     object: "{x: 5, y: 6, Number z: 7, d, ...y}",
+#     array_extending: "extending x [5, 6, 7, 8, 9, 10]",
+#     function_extending: "extending x(y, z) -> Number {}",
+#     function_extending_no_parameters: "extending x {}",
+#     function_extending_no_parameters_with_return_type_annotation: "extending x -> Number {}",
+#     object_extending: "extending x {y: 5, z: 6}",
+#     operator_extending: "extending +(Number x, String y) -> String {}",
+#     reassignment: "x = y = z = 5",
+#     template_string: "$'Hello, {name}!'",
+#     multiline_property_access: "x.\n    y.\n    z",
+#     simple_class_definition: "class x {\n\n$constructor() {}\n\nfunction $constructor() {}\nfunction method() {}\nlet x = 5\n let y}",
+#     class_definition: "private static class x as this {\n\n$constructor() {}\n\nfunction $constructor() {}\nfunction method() {}\nlet x = 5\n let y}",
+#     empty_class: "class {\n\n\n}",
+#     function_call: "x(x, y, ...z, a=b, c=d, {e, f:g})",
+#     simple_include: "include x",
+#     include_from: "from x include y",
+#     include_a_lot: "include x, y, z from a
+# include x as b, y as b, z
+# include x as y
+# from x include a, b, c as d
+# from x include {x: a, y: b, z}
+# include {x: a, y: b, z}
+# include {x: a, y: b, z} from x
+# include [a, b, c] from x
+# include [a, b, c]
+# include [a, b, c] as d from x
+# include {x: a, y: b, z} as d from x
+# from x include [a, b, c]",
+#     return_value: "return whatever()",
+#     defer_something: "defer whatever()",
+#     defer_block: "defer { whatever() }",
+#     break_test: "break",
+#     continue_test: "continue",
+#     for_loop: "for x in y z",
+#     for_loop_with_block: "for x in y {\n\n z \n\n}",
+#     inline_for_loop: "z for x in y",
+#     while_loop: "while condition code",
+#     while_loop_with_block: "while condition {\n\n z \n\n}",
+#     inline_while_loop: "z while condition",
+#     key_value_deconstruction: "let keys:values = {x: 1, y: 2, z: 3}",
+#     key_value_deconstruction_in_for_loop: "for key:value in {a: 1, b: 2, c: 3} {
+#         stdout.log(key, value)
+#     }",
+    lexer: open("Lexer.adk").readAll(),
 }
 let error_tests = {
     multiple_decimal_points: "5.4.3",
@@ -1280,11 +1347,12 @@ let error_tests = {
     expression_in_class_scope: "class x {\nstdout.log(5 * 5)\n}", 
     include_double_from: "from me include that from you",
 }
-function test(String code) {
+function test(String code, String filename="<main>") {
     let lexer = Lexer(false, false)
     let tokens = lexer.tokenize(code)
-    let error_handler = ErrorHandler(code, tokens, '<main>')
+    let error_handler = ErrorHandler(code, tokens, filename)
     error_handler.tokens = tokens
+    # stdout.log()
     # stdout.write(tokens, '\n')
     let parser = Parser(code, tokens, error_handler)
     let AST = parser.parse()
@@ -1305,7 +1373,7 @@ if is_main {
     # stdout.log(test(error_tests.expression_in_class_scope))
     for test_name:code in parser_tests {
         # ultimate += code + "\n"
-        let passed = test(code)
+        let passed = test(code, test_name+".adk")
         # stdout.log(passed)
         if passed
             stdout.log("PASSED:", test_name)
