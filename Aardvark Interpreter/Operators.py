@@ -255,13 +255,13 @@ def roundop(
     return round(y)
 
 
-@operator("?", left=True, right=True)
-def Exists(
-    x, y, errorhandler: "ErrorHandler", line: str, ast, scope: Scope, exec: "Executor"
-):
-    if x == Null:
-        return y
-    return x
+# @operator("?", left=True, right=True)
+# def Exists(
+#     x, y, errorhandler: "ErrorHandler", line: str, ast, scope: Scope, exec: "Executor"
+# ):
+#     if x == Null:
+#         return y
+#     return x
 
 
 @operator("!", "not", left=False, right=True)
