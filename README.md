@@ -23,8 +23,8 @@ The real version will be compiled. You can see our progress on development in th
 Run `adk help` in the terminal to get started.
 
 # Documentation
-Documentation is avaliable on the documentation repo: [https://github.com/Aardvark-team/Documentation]
-More, information, some of which is outdated can be found on our old documentation website: [https://aardvark-docs.replit.app/].
+Documentation is avaliable on the documentation repo: https://github.com/Aardvark-team/Documentation
+More, information, some of which is outdated can be found on our old documentation website: https://aardvark-docs.replit.app/.
 
 # AdkCode
 AdkCode is an online Aardvark code editor with the ability to run code. It is currently updated to Aardvark  Test 5.1
