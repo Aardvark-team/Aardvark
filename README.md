@@ -9,7 +9,7 @@ sh <(curl -fsSL https://raw.githubusercontent.com/Aardvark-team/Aardvark/main/in
 ```powershell
 & $([scriptblock]::Create((iwr https://raw.githubusercontent.com/Aardvark-team/Aardvark/main/install.ps1)))
 ```
-You can also add `-branch canary` to install the lastest changes (windows installer only).
+You can add `-branch canary` to install the lastest changes (windows installer only).
 
 This will add a `.adk` folder to your home directory which includes the Aardvark source.
 It will also add `~/.adk/bin` to your PATH, which gives you access to the commands `adk` and `adkc`.
@@ -20,15 +20,14 @@ This is an interpreted language meant to be easy and extensible.
 The real version will be compiled. You can see our progress on development in the Aardvark Compiler folder.
 
 ## Using the command
-Run `adk help` in the terminal to get help.
-
-I recommend running `adk run main.adk`.
-That will let you try the `main.adk` example file.
+Run `adk help` in the terminal to get started.
 
 # Documentation
-This site will give basic info on how to use the language: [Click Here](https://aardvark-docs.replit.app/).
+Documentation is avaliable on the documentation repo: [https://github.com/Aardvark-team/Documentation]
+More, information, some of which is outdated can be found on our old documentation website: [https://aardvark-docs.replit.app/].
 
 # AdkCode
+AdkCode is an online Aardvark code editor with the ability to run code. It is currently updated to Aardvark  Test 5.1
 You can try AdkCode [here](https://adkcode.replit.app/).
 
 ##### NOTE: filesystem access will be denied and certian abilities restricted within this enviroment.
@@ -39,4 +38,3 @@ For now it only provides syntax highlighting and a run button.
 
 # Contributing 
 View the list of things that need to be implemented [here](https://github.com/orgs/Aardvark-team/projects/3).
-Make sure to also read the Aardvark docs [here](https://aardvark-docs.replit.app/).
