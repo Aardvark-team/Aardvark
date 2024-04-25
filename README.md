@@ -24,6 +24,7 @@ Run `adk help` in the terminal to get started.
 
 # Documentation
 Documentation is avaliable on the documentation repo: https://github.com/Aardvark-team/Documentation
+
 More, information, some of which is outdated can be found on our old documentation website: https://aardvark-docs.replit.app/.
 
 # AdkCode
