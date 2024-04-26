@@ -169,7 +169,7 @@ class Lexer as this {
         let character = this.current_character
         this.addToken('LineBreak', this.pos(), this.pos(), character, character)
         this.advance()
-        if character = '\n' this.newline(); # Only increment the line if its a \n
+        if character == '\n' this.newline(); # Only increment the line if its a \n
         else this.empty = true
         continue
       }

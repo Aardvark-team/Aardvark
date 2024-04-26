@@ -143,7 +143,7 @@ static class Parser as this {
             this.awaiting_match = this.awaiting_match.slice(0, -1)
             show_error = false
         }
-        stdout.log(this.peek(-1), this.peek(), this.peek(1))
+        # stdout.log(token_type, value?, this.peek(-1).value, this.peek().value, this.peek(1).value)
         # Otherwise, throw an error because it didn't match.
         let x = (($'"{value}"')if value else $'of type {token_type}')
         return this.Throw(
@@ -252,7 +252,8 @@ static class Parser as this {
                 return this.Throw('SyntaxError', 'Unexpected keyword "' + this.peek().value + '"', position=this.peek().position)
             }
         }
-
+        # If there were lines after the statement, just return
+        if !(this.peek(-1).type == "LineBreak" & !eat_line_breaks)
         while ast_node?false {
             if eat_line_breaks
                 this.eat_line_breaks()
@@ -330,7 +331,7 @@ static class Parser as this {
                 this.awaiting_match = this.awaiting_match.slice(0, -1)
                 show_error = false
             }
-            return this.Throw('SyntaxError', 'A value supposed to go here', position=this.peek().position, show=show_error)
+            return this.Throw('SyntaxError', 'A value is supposed to go here', position=this.peek().position, show=show_error)
         }
     }
     function parse_expression(level=keys(OrderOfOps).length-1, require=false, exclude=[], eat_line_breaks=false, is_deconstruction=false) {
@@ -363,6 +364,7 @@ static class Parser as this {
         return left
     }
     function parse_statement(require=false, is_deconstruction=false, mode="normal") {
+
         this.eat_line_breaks()
         if mode == "class_scope" {
             if this.compare('Delimiter', "$")
@@ -897,8 +899,9 @@ static class Parser as this {
         let if_keyword = CHECK(this.eat("Keyword", "if"))
         let condition = CHECK(this.parse_expression(require=true))
         let body, else_body
-        if ast_node 
+        if ast_node {
             body = ast_node
+        }
         else
             body = CHECK(this.parse_statement_or_scope_body())
         this.eat_line_breaks()
@@ -1384,6 +1387,15 @@ let parser_tests = {
 #             this.tokenizeComments = tokenizeComments
 #         }
 #     }",
+    if_thing: "
+for operator in Operators_array_sorted
+if this.detect(operator) {
+    break
+}
+
+# Comment
+if this.isNewline() {}",
+    return_in_if: "function x() {\n  if x & y | !z\n    return 5;\n}"
 }
 let error_tests = {
     multiple_decimal_points: "5.4.3",
@@ -1416,21 +1428,12 @@ function test(String code, String filename="<main>") {
         return false
     return AST
 }
-include json as native_json
-let python_json = python.import("json") # Native Aardvark json is slow
-let json = {
-    render: native_json.render, # Python json can't handle Aardvark objects.
-    load_from_file: python_json.load,
-    load_from_string: python_json.loads
-}
-from path include Path
 function parse_file(String filename) {
     stdout.log("Reading", filename)
     let lexer_cache_file = Path(String(current_file.parent), filename+"lexercache")
     # stdout.log("Lexer cache file", lexer_cache_file)
     let tokens
     let code = open(filename).readAll()
-    stdout.log("Read content")
     if lexer_cache_file.exists() {
         stdout.log("Using lexer cache")
         let tokens = json.load_from_string(open(filename+"lexercache").readAll())
@@ -1449,8 +1452,15 @@ function parse_file(String filename) {
     let AST = parser.parse()
     return AST
 }
-stdout.log("Testing lexer")
-parse_file("Lexer.adk")
+# include json as native_json
+# let python_json = python.import("json") # Native Aardvark json is slow
+# let json = {
+#     render: native_json.render, # Python json can't handle Aardvark objects.
+#     load_from_file: python_json.load,
+#     load_from_string: python_json.loads
+# }
+# from path include Path
+# parse_file("Lexer.adk")
 
 
 
