@@ -156,13 +156,13 @@ class Lexer as this {
     while this.position.index < this.data.length {
         # Operators
         for operator in Operators_array_sorted
-          if this.detect(operator) {
-            let start = this.pos()
-            this.advance(operator.length - 1)
-            this.addToken("Operator", start, this.pos(), operator)
-            this.advance()
-            break
-          }
+        if this.detect(operator) {
+          let start = this.pos()
+          this.advance(operator.length - 1)
+          this.addToken("Operator", start, this.pos(), operator)
+          this.advance()
+          break
+        }
 
       # Newlines (\n or ;)
       if this.isNewline() {
@@ -281,6 +281,7 @@ class Lexer as this {
           value = value + this.current_character
           this.advance()
         }
+        this.advance(-1)
         if (this.tokenizeComments) this.addToken('Comment', start, this.pos(), value)
       }
 
