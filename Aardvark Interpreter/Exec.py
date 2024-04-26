@@ -223,6 +223,7 @@ class Executor:
             self.Global.set("open", adk_open)
         self.Global["include"] = self.include
         self.Global["is_main"] = is_main
+        self.Global["current_file"] = self.path
         self.errorhandler = errorhandler
         self.filestack[str(self.path)] = self.Global
 

@@ -1,8 +1,10 @@
 function render(object, formatting={}) {
     if type_of(object) == Number
         return String(object)
-    else if type_of(object) == String
-        return $'"{object.replace(`"`, `\\"`).replace("\n", "\\n")}"'
+    else if type_of(object) == String {
+        let obj = object.replace(`\\`, `\\\\`).replace(`"`, `\\"`).replace("\n", "\\n")
+        return $'"{obj}"'
+    }
     else if object == null
         return "null"
     else if object == true
@@ -30,7 +32,10 @@ if is_main {
         "false": false,
         "null": null,
         "Number": 5,
-        "String": "hello",
+        "String": `hello
+        "f"ds
+        
+        `,
         "Array": [1, 2, 3],
         "Object": {
             a: 1,

@@ -23,8 +23,8 @@ class Token as this {
     {
     this.type = type
     this.length = end.index - start.index + 1
-    this.start = start
-    this.end = end
+    # this.start = start
+    # this.end = end
     this.value = value
     this.variation = variation
     this.insertions = insertions
@@ -34,12 +34,24 @@ class Token as this {
     }
   }
   $string() {
-    return $"Token({this.type}, \"{this.value}\", from {this.start.line}:{this.start.column} to {this.end.line}:{this.end.column})"
+    return $"Token({this.type}, \"{this.value}\", from {this.position.start.line}:{this.position.start.column} to {this.position.end.line}:{this.position.end.column})"
   }
   function compare(type, value, startcol) {
       if (!type | this.type == type) & (!value | this.value == value) & (!startcol | this.start.column == startcol)
           return true;
       return false;
+  }
+  function to_json {
+    return {
+      type: this.type,
+      length: this.length,
+      # start: this.start,
+      # end: this.end,
+      position: this.position,
+      value: this.value.replace(`"`, `\\"`).replace("\n", "\\n"),
+      variation: this.variation,
+      insertions: this.insertions
+    }
   }
 }
 

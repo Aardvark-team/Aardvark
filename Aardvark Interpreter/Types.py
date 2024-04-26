@@ -166,10 +166,16 @@ class Object(Type):
             return self._string()
         if self._class:
             return self._class.childstr()
-        return self.vars.__str__()
 
-    def __add__(self, other):
-        return Object(self.vars | other.vars)
+        # if isinstance(self.vars, dict):
+        #     return str(
+        #         {
+        #             key: str(value) if not isinstance(value, Object) else "Object"
+        #             for key, value in self.vars.items()
+        #         }
+        #     )
+
+        return str(self.vars)
 
 
 class Scope(Object):
@@ -1000,7 +1006,9 @@ def pyToAdk(py, is_reference=False):
         elif callable(py):
             return Object(dict_from_other(py), call=py)
         else:
-            return Object(dict_from_other(py))
+            x = Object(dict_from_other(py))
+            x._string = py.__str__
+            return x
     except RecursionError:
         return py
 
