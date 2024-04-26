@@ -1,2 +1,10 @@
 from parser include Parser
 from renderer include render
+
+
+function load_from_string(String code) {
+    return Parser(code).parse()
+}
+function load_from_file(String filename) {
+    return load_from_string(open(filename).readAll())
+}
