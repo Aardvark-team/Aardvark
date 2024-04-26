@@ -1,0 +1,9 @@
+from "Errors/SyntaxHighlighter" include Highlight
+from "Lexer" include Lexer
+let file = open("Lexer.ansi", "w")
+
+let code = open("Lexer.adk").readAll()
+let tokens = Lexer(false, false).tokenize(code)
+let output = Highlight(code, tokens, {background: false, linenums: false})
+
+file.write(output)

@@ -24,6 +24,7 @@ from Types import (
 )
 import importlib
 import time
+import copy
 
 
 try:
@@ -161,6 +162,7 @@ def createGlobals(safe=False):
             "keys": lambda x: Array(x.vars.keys()),
             "values": lambda x: Array(x.values()),
             "mergeObjects": mergeObjects,
+            "copy": copy.copy,
         }
     )  # Define builtins here
     if not safe:

@@ -190,7 +190,7 @@ class Lexer as this {
         else this.advance(-1);
       }
 
-      #Numbers
+      # Numbers
       else if this.isNumber() {
         let start = this.pos()
         let base = 10
