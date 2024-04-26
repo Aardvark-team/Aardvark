@@ -3,7 +3,7 @@ include Errors
 
 
 let Operators_array_sorted = Array(SymbolOperators)
-    Operators_array_sorted.sort(function (a, b) b.length - a.length)
+Operators_array_sorted.sort(function (a, b) b.length - a.length)
 
 class Token as this {
     let String type

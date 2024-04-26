@@ -139,9 +139,10 @@ static class Parser as this {
         }
 
         # Otherwise, throw an error because it didn't match.
+        let x = (($'"{value}"')if value else $'of type {token_type}')
         return this.Throw(
             "Token",
-            $"Token {$'\"{value}\"' if value else $'of type {token_type}'} expected, but not found.",
+            $"Token {($'\"{value}\"')if value else $'of type {token_type}'} expected, but not found.",
             position = this.peek().position
         )
     }
@@ -271,11 +272,6 @@ static class Parser as this {
                 ast_node = CHECK(this.parse_property_access(ast_node))
                 continue;
             }
-            # Re-assignment
-            if this.compare("Operator", '=') & !exclude.contains('Reassignment') {
-                ast_node = CHECK(this.parse_reassignment(ast_node))
-                continue
-            }
 
             # Tell the user that x[] should be x.()
             if this.compare('Delimiter', '[') & this.peek().start.column == ast_node.position.end.column + 1 {
@@ -313,6 +309,11 @@ static class Parser as this {
                     # }
                 }
             }
+            # Re-assignment
+            if this.compare("Operator", '=') & !exclude.contains('Reassignment') {
+                ast_node = CHECK(this.parse_reassignment(ast_node))
+                continue
+            }
             # Return if none were found
             return ast_node
         }
@@ -322,7 +323,7 @@ static class Parser as this {
                 this.awaiting_match = this.awaiting_match.slice(0, -1)
                 show_error = false
             }
-            return this.Throw('SyntaxError', 'Something is supposed to go here', position=this.peek().position, show=show_error)
+            return this.Throw('SyntaxError', 'A value supposed to go here', position=this.peek().position, show=show_error)
         }
     }
     function parse_expression(level=keys(OrderOfOps).length-1, require=false, exclude=[], eat_line_breaks=false, is_deconstruction=false) {
@@ -475,8 +476,13 @@ static class Parser as this {
         # While there is no }
         while (this.peek() & !this.compare("Delimiter", "}") & !(this.compare("Delimiter", ",") & this.peek(1).value == "}")) {
             this.eat_line_breaks()
-            if pairs.length > 0 
-                CHECK(this.eat("Delimiter", ","))
+            if pairs.length > 0  {
+                let comma = this.eat("Delimiter", ",")
+                if type_of(comma) == ADK_Error {
+                    comma.error_number = 1
+                    return comma
+                }
+            }
             this.eat_line_breaks()
 
             # Expansion with ...
@@ -532,7 +538,7 @@ static class Parser as this {
                 CHECK(this.eat("Delimiter", ","))
             this.eat_line_breaks()
             if is_deconstruction
-                items.add(CHECK(this.parse_typed_variable()))
+                items.add(CHECK(this.parse_typed_variable(["..."])))
             else
                 items.add(CHECK(this.parse_expression(require=true)))
         }
@@ -600,7 +606,7 @@ static class Parser as this {
         let valid_operators = Set(accept_operators + ["|", "or", "?"])
         if expression == null | accept.contains(expression.type)
             return true
-        else if ["VariableAccess", "PropertyAccess", "LayoutType", "Array", "Object", "KeyValuePair"].contains(expression.type) | (expression.type == "Operator" & valid_operators.contains(expression.operator))
+        else if ["VariableAccess", "PropertyAccess", "LayoutType", "Array", "Object", "KeyValuePair", "TypedVariable"].contains(expression.type) | (expression.type == "Operator" & valid_operators.contains(expression.operator))
         match expression.type {
             case "VariableAccess"
                 return true
@@ -609,18 +615,20 @@ static class Parser as this {
             case "LayoutType"
                 return true
             case "Array"
-                return !expression.items.map(function (x) is_valid_type(x, [], Array(accept_operators)+["..."])).contains(false)
+                return !expression.items.map(function (x) is_valid_type(x, [], ["...", ...accept_operators])).contains(false)
             case "KeyValuePair"
                 return is_valid_type(expression.key)
             case "Object"
                 return !expression.pairs.map(is_valid_type).contains(false)
             case "Operator"
                 return is_valid_type(expression.left) & is_valid_type(expression.right)
+            case "TypedVariable"
+                return true
         }
         return false
     }
     function is_valid_variable_definition(expression, accept=[], accept_operators=[]) {
-        let valid_operators = accept_operators + ["?"]
+        let valid_operators = Set(accept_operators + ["?"])
         if expression == null | accept.contains(expression.type)
             return true
         else if ["VariableAccess", "PropertyAccess", "Array", "Object", "KeyValuePair", "TypedVariable"].contains(expression.type) | (expression.type == "Operator" & valid_operators.contains(expression.operator))
@@ -632,47 +640,35 @@ static class Parser as this {
             case "KeyValuePair"
                 return is_valid_variable_definition(expression.value)
             case "Array"
-                return !expression.items.map(function (x) is_valid_variable_definition(x, [], ["..."])).contains(false)
+                return !expression.items.map(function (x) is_valid_variable_definition(x, [], ["...", ...accept_operators])).contains(false)
             case "Object"
                 return !expression.pairs.map(is_valid_variable_definition).contains(false)
-            case "Operator"
-                return is_valid_type(expression.left) & is_valid_type(expression.right)
+            case "Operator" {
+                let is_left_valid = is_valid_variable_definition(expression.left, accept, accept_operators)
+                let is_right_valid = is_valid_variable_definition(expression.right, accept, accept_operators)
+                return is_left_valid & is_right_valid
+            }
             case "TypedVariable"
                 return true
         }
         return false
     }
-    function parse_typed_variable(accept_var=[], name="variable", throw_error=true) {
-        #* Valid forms:
-        Number x
-        x y
-        layout(Number) {} x
-        String this.y
-        x
-        y
-        this.y
-        a.b c.d
-        etc... you get the idea
-        *#
+    function parse_typed_variable(accept_var=[], name="variable") {
         # This may be the type or the variable, we don't know until we know IF there is a second expression.
         let first = CHECK(this.parse_expression(0, true, ["Reassignment"], false, is_deconstruction=true))
         let second = CHECK(this.parse_expression(0, false, ["Reassignment"], false, is_deconstruction=true))
-        if second & !is_valid_type(first) {
-            if throw_error
-                return this.Throw("SyntaxError", "Invalid syntax.", position=first.position, here_message= $"Expected type.")
-            else
-                return false
-        } else if !second & !is_valid_variable_definition(first, accept_var) {
-            if throw_error
-                return this.Throw("SyntaxError", $"Invalid syntax.", position=first.position, here_message= $"Expected {name}.")
-            else
-                return false
-        } else if second & !is_valid_variable_definition(second, accept_var) {
-            if throw_error
-                return this.Throw("SyntaxError", $"Invalid syntax.", position=second.position, here_message= $"Expected {name}.")
-            else
-                return false
+        if second {
+            let error
+            if !is_valid_type(first)
+                error = this.Throw("SyntaxError", "Invalid syntax.", position=first.position, here_message= $"Expected type.")
+            if !is_valid_variable_definition(second, accept_var, accept_var)
+                error = this.Throw("SyntaxError", $"Invalid syntax.", position=second.position, here_message= $"Expected {name}.")
+            if error?
+                return error
         }
+        else if !is_valid_variable_definition(first, accept_var, accept_var)
+            return this.Throw("SyntaxError", $"Invalid syntax.", position=first.position, here_message= $"Expected {name}.")
+
         let ast_node = {
             type: "TypedVariable",
             given_type: first if second else null,
@@ -683,7 +679,7 @@ static class Parser as this {
             }
         }
         if accept_var.contains("KeyValuePair") & this.maybe_eat("Delimiter", ":") {
-            let value = CHECK(this.parse_typed_variable(accept_var, name, throw_error))
+            let value = CHECK(this.parse_typed_variable(accept_var, name))
             return {
                 type: "KeyValuePair",
                 key: ast_node,
@@ -856,6 +852,18 @@ static class Parser as this {
         let body
         this.eat_line_breaks()
         if this.compare("Delimiter", "{") {
+            if this.peek(1).type == "Delimiter" & this.peek(1).value == "}" {
+                let start = this.eat()
+                let end = this.eat()
+                return {
+                    type: "ScopeBody",
+                    statements: [],
+                    position: {
+                        start: start.position.start,
+                        end: end.position.end
+                    }
+                }
+            }
             let previous_store_errors_state = this.store_errors
             this.store_errors = true
             let previous_position = this.pos
@@ -864,10 +872,10 @@ static class Parser as this {
             if type_of(body) == ADK_Error & body.error_number == 1 {
                 this.pos = previous_position
                 this.error_stack = this.error_stack.slice(0, -1)
-                extension = CHECK(this.parse_scope_body(true, mode))
+                body = CHECK(this.parse_scope_body(true, mode))
             }
         } else
-            body = CHECK(this.parse_statement(require=true))
+            body = CHECK(this.parse_statement(require=true, mode=mode))
         return body
     }
     function parse_if_statement(ast_node) {
@@ -1219,7 +1227,7 @@ static class Parser as this {
         if enclosing_curly_braces 
             opening_curly_brace = CHECK(this.eat("Delimiter", "{"))
         let statements = []
-        while (!enclosing_curly_braces | !this.compare("Delimiter", "}")) & !this.is_EOF() {
+        while !(enclosing_curly_braces & this.compare("Delimiter", "}")) & !this.is_EOF() {
             if statements.length > 0 & this.peek(-1).type != 'LineBreak' CHECK(this.eat('LineBreak'))
             this.eat_line_breaks()
             if this.is_EOF() | (enclosing_curly_braces & this.compare("Delimiter", "}")) break;
@@ -1279,19 +1287,23 @@ static class Parser as this {
 
 # Comment out the ones we are not working on to save test time.
 let parser_tests = {
+#     operator: "-x + y - 7*8?",
+#     expand_operator: "...x",
+#     array: "[x, y, \"string\", 7, ...z]",
 #     simple_declaration: "let x",
 #     empty_object: "{\n\n}",
 #     empty_scope: "\n\n",
 #     property_access: "x.y.z",
 #     function_definition: "private static function x(Number x, y, {Number a, b, c:d}, [String a, b, c], this.y, ...args) -> Number {\n\n}",
 #     macro_definition: "macro x(y) {}",
-#     simple_function_definition: "function x {}",
-#     if_else_statement: "if condition {\n\n x\n\n\n } else if condition { \ny\n } \n\nelse { z }",
+#     simple_function_definition: "function x {do_something()}",
+#     multi_function: "function x() {\n\nreturn a_value\n}\nfunction y() {\n\nreturn a_value\n}\nfunction z() {\n\nreturn a_value\n}",
+#     if_else_statement: "if condition {\n\n x()\n\n\n } else if condition { \ny()\n } \n\nelse { z() }",
 #     inline_if: "x if condition else y",
 #     object_type: "let {Number x, String y} x",
 #     optional_type: "let String? x",
 #     optional_type_no_annotations: "let x? = y",
-#     typed_deconstruction: "let [String a, b, Number c] = x",
+#     typed_deconstruction: "let [String a, b, Number c, ...d] = x",
 #     object: "{x: 5, y: 6, Number z: 7, d, ...y}",
 #     array_extending: "extending x [5, 6, 7, 8, 9, 10]",
 #     function_extending: "extending x(y, z) -> Number {}",
@@ -1300,10 +1312,11 @@ let parser_tests = {
 #     object_extending: "extending x {y: 5, z: 6}",
 #     operator_extending: "extending +(Number x, String y) -> String {}",
 #     reassignment: "x = y = z = 5",
+#     property_reassignment: "this.typename = typename = other_typename.xyz",
 #     template_string: "$'Hello, {name}!'",
 #     multiline_property_access: "x.\n    y.\n    z",
 #     simple_class_definition: "class x {\n\n$constructor() {}\n\nfunction $constructor() {}\nfunction method() {}\nlet x = 5\n let y}",
-#     class_definition: "private static class x as this {\n\n$constructor() {}\n\nfunction $constructor() {}\nfunction method() {}\nlet x = 5\n let y}",
+#     class_definition: "private static class x as this {\n\n$constructor() {}\n\nfunction $constructor() {}\nfunction method() {\n\nreturn a_value\n}\n$string {\nreturn $'Hello, world! {value}'\n}\nlet x = 5\n let y}",
 #     empty_class: "class {\n\n\n}",
 #     function_call: "x(x, y, ...z, a=b, c=d, {e, f:g})",
 #     simple_include: "include x",
@@ -1335,6 +1348,19 @@ let parser_tests = {
 #     key_value_deconstruction_in_for_loop: "for key:value in {a: 1, b: 2, c: 3} {
 #         stdout.log(key, value)
 #     }",
+#     array_assignment: "let [...Token] output",
+#     multi_assignment: "let Boolean useIndents
+#   let Boolean tokenizeComments
+#   let String data
+#   let Number index
+#   let Number line
+#   let Number column
+#   let [...Token] output
+#   let Boolean empty
+#   let Boolean AtEnd
+#   let String current_character
+#   let error_stack = []
+#   let position",
     lexer: open("Lexer.adk").readAll(),
 }
 let error_tests = {
@@ -1352,7 +1378,7 @@ function test(String code, String filename="<main>") {
     let tokens = lexer.tokenize(code)
     let error_handler = ErrorHandler(code, tokens, filename)
     error_handler.tokens = tokens
-    # stdout.log()
+    stdout.log("Lexed")
     # stdout.write(tokens, '\n')
     let parser = Parser(code, tokens, error_handler)
     let AST = parser.parse()

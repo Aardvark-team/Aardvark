@@ -55,8 +55,8 @@ let KeywordOperators = set{
 let Operators = SymbolOperators + KeywordOperators
 
 let OrderOfOps = {
-    0: ["?"],
-    1: ["~", "!", "@", "..."],
+    0: ["...", "?"],
+    1: ["~", "!", "@"],
     2: ["^"],
     3: ["*", "/"],
     4: ["-"],
