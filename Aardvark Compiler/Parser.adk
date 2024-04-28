@@ -41,6 +41,10 @@ static class Parser as this {
 
     # Helper function for error throwing.
     function Throw(type, message, options={}, note="", kill=true, position?, here_message="Here", show=true) {
+        if here_message == "Expected type." {
+            # stdout.log(this.store_errors, type, message, here_message, position)
+            # stdout.log(this.peek(-2), this.peek(-1), this.peek(), this.peek(1), this.peek(2), show)
+        }
         let legacy_errors = false
         if legacy_errors {
             if !(options.underline? | options.marker?) {
@@ -68,7 +72,7 @@ static class Parser as this {
             markers: options.markers?[{
                 line: position.start.line - 1, # The error formatter starts line counting at 0.
                 column: position.start.column - 1, # The error formatter starts column counting at 0.
-                length: position.end.column - position.start.column + 1,
+                length: (position.end.column - position.start.column + 1) if (position.end.line == position.start.line) else (this.code_lines.(position.start.line - 1).length - position.start.column + 2),
                 message: here_message
             }],
             show,
@@ -363,10 +367,8 @@ static class Parser as this {
             let operator = this.eat()
             this.eat_line_breaks() if eat_line_breaks;
             let right = CHECK(this.parse_expression(level - 1, false, excluded, eat_line_breaks, is_deconstruction, is_structural_pattern))
-            if !left and !right {
+            if !left and !right
                 return this.Throw('SyntaxError', "🤨 That's just an operator with nothing for it to operator on.", position=operator.position)
-                # Throw an error because its just an operator all by itself
-            }
             left = {
                 type: 'Operator',
                 left: left,
@@ -461,19 +463,19 @@ static class Parser as this {
         let opening_curly_brace = CHECK(this.eat("Delimiter", "{"))
         let pairs = []
         let expansions = []
+        let ate_comma = false
         this.eat_line_breaks()
         # While there is no }
-        while (this.peek() & !this.compare("Delimiter", "}") & !(this.compare("Delimiter", ",") & this.peek(1).value == "}")) {
-            this.eat_line_breaks()
-            if pairs.length > 0  {
+        while (this.peek() & !this.compare("Delimiter", "}")) {
+            if pairs.length > 0 & !ate_comma {
                 let comma = this.eat("Delimiter", ",")
                 if type_of(comma) == ADK_Error {
                     comma.error_number = 1
                     return comma
                 }
+                this.eat_line_breaks()
+                ate_comma = false
             }
-            this.eat_line_breaks()
-
             # Expansion with ...
             if this.maybe_eat("Operator", "...")
                 expansions.add(CHECK(this.parse_expression(require=(!is_structural_pattern))))
@@ -488,6 +490,7 @@ static class Parser as this {
                 let value
                 # There is a :, then the value is on the other side
                 if this.maybe_eat("Delimiter", ":") {
+                    this.eat_line_breaks()
                     value = CHECK(this.parse_expression(require=true, eat_line_breaks=true, is_structural_pattern=is_structural_pattern))
                 } else # Otherwise, the value is a variable access to the key value
                     value = key.variable
@@ -503,9 +506,12 @@ static class Parser as this {
                     }
                 })
             }
+            this.eat_line_breaks()
+            if this.maybe_eat("Delimiter", ",")
+                ate_comma = true
+            this.eat_line_breaks()
         }
-        if this.compare("Delimiter", ",")
-            this.eat()
+        this.eat_line_breaks()
         let closing_curly_brace = CHECK(this.eat("Delimiter", "}"))
         return {
             type: "Object",
@@ -522,13 +528,16 @@ static class Parser as this {
         let opening_bracket = CHECK(this.eat("Delimiter", "["))
         let items = []
         let expansions = []
+        let ate_comma = false
+        this.eat_line_breaks()
         # While there is no ]
         # TODO: allow types before values??
         while (this.peek() & !this.compare("Delimiter", "]") & !(this.compare("Delimiter", ",") & this.peek(1).value == "]")) {
-            this.eat_line_breaks()
-            if items.length > 0 
+            if items.length > 0 & !ate_comma  {
                 CHECK(this.eat("Delimiter", ","))
-            this.eat_line_breaks()
+                ate_comma = false
+                this.eat_line_breaks()
+            }
             if is_deconstruction
                 items.add(CHECK(this.parse_typed_variable(["..."])))
             else {
@@ -537,9 +546,12 @@ static class Parser as this {
                 else
                     items.add(CHECK(this.parse_expression(require=true, is_structural_pattern=is_structural_pattern)))
             }
+            this.eat_line_breaks()
+            if this.maybe_eat("Delimiter", ",") {
+                ate_comma = true
+                this.eat_line_breaks()
+            }
         }
-        if this.compare("Delimiter", ",")
-            this.eat()
         let closing_bracket = CHECK(this.eat("Delimiter", "]"))
         return {
             type: "Array",
@@ -712,13 +724,10 @@ static class Parser as this {
         let first = CHECK(this.parse_expression(0, true, ["Reassignment"], false, is_deconstruction=true))
         let second = CHECK(this.parse_expression(0, false, ["Reassignment"], false, is_deconstruction=true))
         if second {
-            let error
             if !is_valid_type(first)
-                error = this.Throw("SyntaxError", "Invalid syntax.", position=first.position, here_message= $"Expected type.")
+                return this.Throw("SyntaxError", "Invalid syntax.", position=first.position, here_message= $"Expected type.")
             if !is_valid_variable_definition(second, accept_var, accept_var)
-                error = this.Throw("SyntaxError", $"Invalid syntax.", position=second.position, here_message= $"Expected {name}.")
-            if error?
-                return error
+                return this.Throw("SyntaxError", $"Invalid syntax.", position=second.position, here_message= $"Expected {name}.")
         }
         else if !is_valid_variable_definition(first, accept_var, accept_var)
             return this.Throw("SyntaxError", $"Invalid syntax.", position=first.position, here_message= $"Expected {name}.")
@@ -855,10 +864,14 @@ static class Parser as this {
             let opening_parenthesis = this.eat()
             if (!first_keyword?)
                 first_keyword = opening_parenthesis
+            let ate_comma = false
+            this.eat_line_breaks()
             while !this.compare("Delimiter", ")") {
-                this.eat_line_breaks()
-                if parameters.length > 0 CHECK(this.eat("Delimiter", ","))
-                this.eat_line_breaks()
+                if parameters.length > 0 & !ate_comma {
+                    CHECK(this.eat("Delimiter", ","))
+                    ate_comma = false
+                    this.eat_line_breaks()
+                }
                 if this.compare("Operator", "...") {
                     let operator = this.eat()
                     parameter_expansion = CHECK(this.parse_primary(true))
@@ -875,8 +888,12 @@ static class Parser as this {
                 }
                 parameter.default = default?
                 parameters.add(parameter)
+                this.eat_line_breaks()
+                if this.maybe_eat("Delimiter", ",") {
+                    ate_comma = true
+                    this.eat_line_breaks()
+                }
             }
-            if this.compare("Delimiter", ",") this.eat()
             let closing_parenthesis = this.eat("Delimiter", ")")
         }
         # Parse labels
@@ -926,14 +943,18 @@ static class Parser as this {
                     }
                 }
             let previous_store_errors_state = this.store_errors
+            # stdout.log("Prev state: ", previous_store_errors_state)
             this.store_errors = true
             let previous_position = this.pos
             body = this.parse_object()
             this.store_errors = previous_store_errors_state
             if type_of(body) == ADK_Error & body.error_number == 1 {
+                # stdout.log("WAS BODY")
                 this.pos = previous_position
                 this.error_stack = this.error_stack.slice(0, -1)
                 body = CHECK(this.parse_scope_body(true, mode))
+            } else {
+                # stdout.log("BODY", body, this.error_stack)
             }
         } else
             body = CHECK(this.parse_statement(require=true, mode=mode))
@@ -1436,7 +1457,7 @@ let parser_tests = {
     optional_type: "let String? x",
     optional_type_no_annotations: "let x? = y",
     typed_deconstruction: "let [String a, b, Number c, ...d] = x",
-    object: "{x: 5, y: 6, Number z: 7, d, ...y}",
+    object: "{x: 5, y: 6, Number z: 7, d, ...y, }",
     array_extending: "extending x [5, 6, 7, 8, 9, 10]",
     function_extending: "extending x(y, z) -> Number {}",
     function_extending_no_parameters: "extending x {}",
@@ -1525,6 +1546,41 @@ let parser_tests = {
         case $default {}
         case $ {}
     }",
+    for_in_while: "
+    while x < y {
+        # Code
+        for x in y
+        if z {
+        }
+        # Code 2
+        if z {}
+    }",
+    object_with_comments: "
+    {
+        line: x, # Comment
+        column: y, # Comment
+    }",
+    big_object: "{
+        x: y,
+        message,
+        location: {
+            line: position.start.line - 1, # The error formatter starts line counting at 0.
+            column: position.start.column - 1, # The error formatter starts column counting at 0.
+        },
+        markers: options.markers?[{
+            line: position.start.line - 1, # The error formatter starts line counting at 0.
+            column: position.start.column - 1, # The error formatter starts column counting at 0.
+            length: (position.end.column - position.start.column + 1) if (position.end.line == position.start.line) else (this.code_lines.(position.start.line - 1).length - position.start.column + 2),
+            message: here_message
+        }],
+        show,
+        ...options
+    }",
+    array: `[
+        "(", 
+        "[", 
+        "{",
+    ]`
 }
 let error_tests = {
     multiple_decimal_points: "5.4.3",
@@ -1536,6 +1592,15 @@ let error_tests = {
     expression_in_class_scope: "class x {\nstdout.log(5 * 5)\n}", 
     include_double_from: "from me include that from you",
 }
+function show_errors(error_stack) {
+    for error in error_stack {
+        if type_of(error) != ADK_Error 
+            error = ADK_Error(error_handler, error)
+        if error.show {
+            error.Throw()
+        }
+    }
+}
 function test(String code, String filename="<main>") {
     let lexer = Lexer(false, false)
     let tokens = lexer.tokenize(code)
@@ -1545,17 +1610,12 @@ function test(String code, String filename="<main>") {
     let parser = Parser(code, tokens, error_handler, store_errors=true)
     let AST = parser.parse()
     # stdout.write("AST", prettify_ast(AST), "\n")
-    for error in lexer.error_stack + parser.error_stack {
-        if type_of(error) != ADK_Error 
-            error = ADK_Error(error_handler, error)
-        if error.show {
-            error.Throw()
-        }
-    }
+    show_errors(lexer.error_stack + parser.error_stack)
     if parser.error_stack.length > 0 | lexer.error_stack.length > 0
         return false
     return AST
 }
+let time = python.import("time")
 function parse_file(String filename) {
     stdout.log("Reading", filename)
     let lexer_cache_file = Path(String(current_file.parent), filename+"lexercache")
@@ -1563,9 +1623,11 @@ function parse_file(String filename) {
     let code = open(filename).readAll()
     if lexer_cache_file.exists() {
         stdout.log("Using lexer cache")
-        let tokens = json.load_from_string(open(filename+"lexercache").readAll())
+        let tokens = json.load_from_string(open(filename+"lexercache").readAll()).map(function(x) Token(x.type, x.position.start, x.position.end, x.value, x.variation, x.insertions))
     } else {
-        let tokens = Lexer(false, false).tokenize(code)
+        let lexer = Lexer(false, false)
+        let tokens = lexer.tokenize(code)
+        show_errors(lexer.error_stack)
         stdout.log($"Lexed {tokens.length} tokens")
         let rendered_tokens = json.render(tokens)
         stdout.log("Rendered tokens to JSON for caching.")
@@ -1574,8 +1636,13 @@ function parse_file(String filename) {
     }
     stdout.log("Got tokens")
     let error_handler = ErrorHandler(code, tokens, filename)
-    let parser = Parser(code, tokens, error_handler, store_errors=true)
+    let parse_start = time.time()
+    let parser = Parser(code, tokens, error_handler, store_errors=false)
     let AST = parser.parse()
+    let parse_end = time.time()
+    show_errors(parser.error_stack)
+    open(filename+"parsercache", "w").write(json.render(AST), flush="instant")
+    stdout.log("Parsed in", parse_end - parse_start, "seconds")
     return AST
 }
 # include json as native_json
