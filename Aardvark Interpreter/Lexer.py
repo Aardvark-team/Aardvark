@@ -449,7 +449,7 @@ if __name__ == "__main__":
 
     current_directory = Path(__file__).resolve().parent
 
-    path = current_directory / "../Aardvark Compiler/new-Parser.adk"
+    path = current_directory / "../Aardvark Compiler/Parser.adk"
     path = path.resolve()
     code = path.read_text(encoding="utf-8")
 

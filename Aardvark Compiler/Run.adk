@@ -1,6 +1,6 @@
 include ADK_Error, ErrorHandler from Errors
 include Lexer from Lexer
-include Parser from "new-Parser"
+include Parser from Parser
 include Optimizer
 
 function run_file(filename) {

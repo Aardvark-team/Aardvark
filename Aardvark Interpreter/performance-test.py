@@ -6,7 +6,7 @@ import os
 
 current_directory = Path(__file__).resolve().parent
 
-path = current_directory / "../Aardvark Compiler/new-Parser.adk"
+path = current_directory / "../Aardvark Compiler/Parser.adk"
 path = path.resolve()
 
 

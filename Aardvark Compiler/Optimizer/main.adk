@@ -1,5 +1,5 @@
 from "../Errors" include ErrorHandler, ADK_Error
-include Parser, CHECK from "../new-Parser"
+include Parser, CHECK from "../Parser"
 from nlp include findClosest
 from Types include FunctionValue, FunctionSignature, Identifier, ObjectValue, ValuePossibility, NumberValue, BitsType, Variable, Expression, TypeUnion, TypeType, get_type_of, ArrayType, get_type_name
 

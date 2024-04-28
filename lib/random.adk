@@ -1,0 +1,14 @@
+let python_random = python.import("random")
+
+let random_integer = python_random.randint
+
+let random = python_random.random
+
+let choose = python_random.choice
+
+let shuffle = python_random.shuffle
+
+let seed = python_random.seed
+
+let sample = python_random.sample
+
