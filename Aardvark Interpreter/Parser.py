@@ -1129,6 +1129,7 @@ class Parser:
         body = None
         lasti = condition["positions"]["end"]
         if not inline:
+            self.eatLBs()
             if self.compare(TokenTypes["Delimiter"], "{"):
                 body, lasti = self.eatBlockScope()
             else:
@@ -1151,6 +1152,7 @@ class Parser:
         condition = self.pExpression(require=True)
         body = None
         lasti = condition["positions"]["end"]
+        self.eatLBs()
         if self.compare("Delimiter", "{") and not inline:
             body, lasti = self.eatBlockScope()
         elif not inline:
@@ -1162,7 +1164,7 @@ class Parser:
         self.eatLBs()
         if self.compare(TokenTypes["Keyword"], "else"):
             self.eat(TokenTypes["Keyword"])
-
+            self.eatLBs()
             if self.compare(TokenTypes["Delimiter"], "{"):
                 else_body, lasti = self.eatBlockScope()
                 closing_pos = lasti
