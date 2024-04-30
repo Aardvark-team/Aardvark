@@ -62,13 +62,13 @@ class Optimizer as this {
                                 line: variable.given_type.position.start.line - 1,
                                 column: variable.given_type.position.start.column - 1,
                                 length: variable.given_type.position.end.column - variable.given_type.position.start.column + 1,
-                                message: $"Set to type {get_type_name(type)}."
+                                message: $"Set to type {get_type_name(type)}"
                             },
                             {
                                 line: node.value.position.start.line - 1,
                                 column: node.value.position.start.column - 1,
                                 length: node.value.position.end.column - node.value.position.start.column + 1,
-                                message: $"Type Number."
+                                message: $"Type Number"
                             }]
                         })
                     scope.declare()

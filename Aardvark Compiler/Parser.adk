@@ -743,7 +743,7 @@ static class Parser as this {
             if !is_valid_type(first)
                 return this.Throw("SyntaxError", "Invalid syntax.", position=first.position, here_message= $"Expected type.")
             if !is_valid_variable_definition(second, accept_var, accept_var)
-                return this.Throw("SyntaxError", $"Invalid syntax.", position=second.position, here_message= $"Expected a {name}. You can't assign a value to something; a value already has a value, because it is one.")
+                return this.Throw("SyntaxError", $"You can't assign a value to something; a value already has a value, because it is one.", position=second.position, here_message= $"Expected a {name}.")
         }
         else if !is_valid_variable_definition(first, accept_var, accept_var)
             return this.Throw("SyntaxError", $"You can't assign a value to something; a value already has a value, because it is one.", position=first.position, here_message= $"Expected a {name}.")
@@ -1598,7 +1598,7 @@ let parser_tests = {
 let error_tests = {
     multiple_decimal_points: "5.4.3",
     multiple_underscore: "5_4_3",
-    assign_value: "let 5 = x",
+    assign_value: "let 52 = x",
     else_without_if: "else { x }",
     anonymous_function_extension: "extending function {}",
     # many_errors: "5.4.3\n5_4_3\nlet 5 = x\n\nelse {}\n\n",
@@ -1629,7 +1629,7 @@ function test(String code, String filename="<main>") {
         return false
     return AST
 }
-test(error_tests.assign_value, "assign_value.adk")
+# test(error_tests.assign_value, "assign_value.adk")
 let time = python.import("time")
 function parse_file(String filename) {
     stdout.log("Reading", filename)
