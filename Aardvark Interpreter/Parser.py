@@ -1241,7 +1241,7 @@ class Parser:
         starter = self.eat("Delimiter", "{")
         body = []
 
-        while not self.compare("Delimiter", "}"):
+        while not self.compare("Delimiter", "}") and self.peek():
             if len(body) > 0 and self.peek(-1).type != TokenTypes["LineBreak"]:
                 self.eat(TokenTypes["LineBreak"])
             self.eatLBs()
