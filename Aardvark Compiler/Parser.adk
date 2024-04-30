@@ -743,10 +743,10 @@ static class Parser as this {
             if !is_valid_type(first)
                 return this.Throw("SyntaxError", "Invalid syntax.", position=first.position, here_message= $"Expected type.")
             if !is_valid_variable_definition(second, accept_var, accept_var)
-                return this.Throw("SyntaxError", $"Invalid syntax.", position=second.position, here_message= $"Expected {name}.")
+                return this.Throw("SyntaxError", $"Invalid syntax.", position=second.position, here_message= $"Expected a {name}. You can't assign a value to something; a value already has a value, because it is one.")
         }
         else if !is_valid_variable_definition(first, accept_var, accept_var)
-            return this.Throw("SyntaxError", $"Invalid syntax.", position=first.position, here_message= $"Expected {name}.")
+            return this.Throw("SyntaxError", $"You can't assign a value to something; a value already has a value, because it is one.", position=first.position, here_message= $"Expected a {name}.")
 
         let ast_node = {
             type: "TypedVariable",
@@ -1629,6 +1629,7 @@ function test(String code, String filename="<main>") {
         return false
     return AST
 }
+test(error_tests.assign_value, "assign_value.adk")
 let time = python.import("time")
 function parse_file(String filename) {
     stdout.log("Reading", filename)
