@@ -1,4 +1,4 @@
-let TokenTypes = set{
+let TokenTypes = [
   'String',
   'Number',
   'Keyword',
@@ -9,13 +9,13 @@ let TokenTypes = set{
   'Comment',
   'LineBreak',
   'Boolean'
-} # set
+]
 
-let Booleans = set{'true', 'false'}
+let Booleans = ['true', 'false']
 
 let NotIncluded = "`'\"~!@#$%^&*()-+=[]{}\\|:;,<.>/?"
 
-let SymbolOperators = set{
+let SymbolOperators = [
   "=",   # equals
   "!",   # not,
   '~',   # about
@@ -43,15 +43,15 @@ let SymbolOperators = set{
   "...",
   "@=",
   ">>="
-}
-let KeywordOperators = set{
+]
+let KeywordOperators = [
   "x|",  # xor (exclusive or)
   "not", # not
   "and", # and
   "or",  # or
   "xor", # xor
   "in",  # in
-}
+]
 let Operators = SymbolOperators + KeywordOperators
 
 let OrderOfOps = {
@@ -66,7 +66,7 @@ let OrderOfOps = {
     8: ["&", "|", "x|", "and", "or", "xor", "->"],
 }
 
-let Whitespaces = set{
+let Whitespaces = [
     ' ',  # Space
     '\t', # Tab
     '​',  # zero width space
@@ -80,9 +80,9 @@ let Whitespaces = set{
     ' ',  # en space
     ' ',  # em space
     '⠀'  # braille blank
-}
+]
 
-let Delimiters = set{
+let Delimiters = [
     ":",  # Colon, used for defining blocks and for types
     "(",  # left parenthesis
     ")",  # right parenthesis
@@ -94,7 +94,7 @@ let Delimiters = set{
     ".",  # period
     ',',  # comma, for separating values.
     "$"   # dollar sign, used for special variables and methods
-}
+]
 
 let Parenthesis = {
     "(": ")",
@@ -102,7 +102,7 @@ let Parenthesis = {
     "[": "]"
 }
 
-let Keywords = set{
+let Keywords = [
     'class',
     'extends',
     # 'type',
@@ -131,6 +131,6 @@ let Keywords = set{
     "set",
     "get",
     "macro"
-}
+]
 let BaseNumsOrder = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVQXYZ"
-let Quotes = set{'"', "'", "`"}
+let Quotes = ['"', "'", "`"]

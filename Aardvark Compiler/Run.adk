@@ -3,14 +3,22 @@ include Lexer from Lexer
 include Parser from Parser
 include Optimizer
 
+function show_errors(error_stack, error_handler) {
+    for error in error_stack {
+        if type_of(error) != ADK_Error 
+            error = ADK_Error(error_handler, error)
+        if error.show {
+            error.Throw()
+        }
+    }
+}
 function run_file(filename) {
-    let code = open(filename).read()
-    let error_handler = ErrorHandler(code, filename)
-    let lexer = Lexer(false, false, error_handler)
+    let code = open(filename).readAll()
+    let lexer = Lexer(false, false)
     let tokens = lexer.tokenize(code)
-    let parser = Parser(lexer, error_handler)
+    let error_handler = ErrorHandler(code, tokens, filename)
+    let parser = Parser(code, tokens, error_handler, store_errors=true)
     let AST = parser.parse()
+    show_errors(lexer.error_stack + parser.error_stack, error_handler)
     # TODO: Cache the AST and tokens
-
-
 }

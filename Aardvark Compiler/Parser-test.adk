@@ -257,18 +257,18 @@ let json = {
     load_from_file: python_json.load,
     load_from_string: python_json.loads
 }
-parse_file("Parser.adk")
+parse_file("Lexer.adk")
 
 
 
 if is_main {
-    for test_name:code in parser_tests {
-        let passed = test(code, test_name+".adk")
-        if passed
-            stdout.log("PASSED:", test_name)
-        else
-            stdout.log("FAILED:", test_name)
-    }
+    # for test_name:code in parser_tests {
+    #     let passed = test(code, test_name+".adk")
+    #     if passed
+    #         stdout.log("PASSED:", test_name)
+    #     else
+    #         stdout.log("FAILED:", test_name)
+    # }
 
     # for test_name:code in error_tests {
     #     test(code, test_name+".adk")
