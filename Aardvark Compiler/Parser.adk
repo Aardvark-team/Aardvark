@@ -11,9 +11,9 @@ static class Parser as this {
     let [...Token] tokens
     let Number pos = 0
     let [ErrorHandler, null] error_handler
-    let store_errors = true
-    let error_stack = []
-    let awaiting_match = []
+    let store_errors = true # If false, errors will be thrown immediately.
+    let error_stack = [] 
+    let awaiting_match = [] # If an error occurs on a line with an opening (, [, or {, it will be stored here to prevent errors with unmatched parentheses.
     $constructor(code, tokens, error_handler?, store_errors = true) {
         this.code = code # The code used by the lexer.
         this.code_lines = this.code.split("\n")
@@ -92,6 +92,7 @@ static class Parser as this {
     function throw_EOF_error(expected_token_type="any", expected_token_value?) {
         let current_line = this.code_lines.(-1)
         # Show the expected token if there is one.
+        stdout.log()
         let suggestion
         if expected_token_value
             suggestion = $'"{expected_token_value}"'
@@ -261,7 +262,8 @@ static class Parser as this {
             case 'macro'
                 ast_node = CHECK(this.parse_function_definition("normal", false, "macro"))
             case $default {
-                return this.Throw('SyntaxError', 'Unexpected keyword "' + this.peek().value + '"', position=this.peek().position)
+                return null
+                # return this.Throw('SyntaxError', 'Unexpected keyword "' + this.peek().value + '"', position=this.peek().position)
             }
         }
         # If there were lines after the statement, just return
@@ -483,8 +485,8 @@ static class Parser as this {
                     return comma
                 }
                 this.eat_line_breaks()
-                ate_comma = false
             }
+            ate_comma = false
             # Expansion with ...
             if this.maybe_eat("Operator", "...")
                 expansions.add(CHECK(this.parse_expression(require=false, eat_line_breaks=true, is_structural_pattern=is_structural_pattern)))
@@ -551,9 +553,9 @@ static class Parser as this {
         while (this.peek() & !this.compare("Delimiter", "]") & !(this.compare("Delimiter", ",") & this.peek(1).value == "]")) {
             if items.length > 0 & !ate_comma  {
                 CHECK(this.eat("Delimiter", ","))
-                ate_comma = false
                 this.eat_line_breaks()
             }
+            ate_comma = false
             if is_deconstruction
                 items.add(CHECK(this.parse_typed_variable(["..."])))
             else {
@@ -739,6 +741,9 @@ static class Parser as this {
         # This may be the type or the variable, we don't know until we know IF there is a second expression.
         let first = CHECK(this.parse_expression(0, true, ["Reassignment"], false, is_deconstruction=true))
         let second = CHECK(this.parse_expression(0, false, ["Reassignment"], false, is_deconstruction=true))
+        if !first {
+            return this.Throw("AssignmentError", $"There's nothing here...", position=this.peek().position, here_message= $"Expected a {name} or type.")
+        }
         if second {
             if !is_valid_type(first)
                 return this.Throw("SyntaxError", "Invalid syntax.", position=first.position, here_message= $"Expected type.")
@@ -1262,9 +1267,14 @@ static class Parser as this {
         let opening_parenthesis = CHECK(this.eat("Delimiter", "("))
         let arguments = []
         let keyword_arguments = []
+        let ate_comma = false
+        this.eat_line_breaks()
         while !this.compare("Delimiter", ")") {
-            if arguments.length > 0 | keyword_arguments.length > 0
+            if (arguments.length > 0 | keyword_arguments.length > 0) & !ate_comma {
                 CHECK(this.eat("Delimiter", ","))
+                this.eat_line_breaks()
+            }
+            ate_comma = false
             let value = CHECK(this.parse_expression(exclude=['Reassignment']))
             if this.maybe_eat("Operator", "=") {
                 let key = value
@@ -1282,6 +1292,11 @@ static class Parser as this {
                 })
             } else 
                 arguments.add(value)
+            this.eat_line_breaks()
+            if this.maybe_eat("Delimiter", ",") {
+                ate_comma = true
+                this.eat_line_breaks()
+            }
         }
         if this.compare("Delimiter", ",") this.eat()
         let closing_parenthesis = this.eat("Delimiter", ")")
@@ -1329,7 +1344,7 @@ static class Parser as this {
     function parse_case_statement() {
         let case_keyword = CHECK(this.eat("Keyword", "case"))
         let expression = CHECK(this.parse_expression(require=true, is_structural_pattern=true))
-        let body = CHECK(this.parse_scope_body(true))
+        let body = CHECK(this.parse_statement_or_scope_body())
         return {
             type: "CaseStatement",
             value: expression,
@@ -1430,7 +1445,7 @@ function prettify_ast(ast, indent=0) {
         return "null"
     else if type_of(ast) == Array {
         if ast.length == 0 return "[]"
-        else if ast.length == 1 return "[" + prettify_ast(ast[0], indent) + "]"
+        else if ast.length == 1 return "[" + prettify_ast(ast.0, indent) + "]"
         let text = "[\n"
         for value in ast {
             text += indent * " " + prettify_ast(value, indent+2) + ",\n"
@@ -1439,7 +1454,7 @@ function prettify_ast(ast, indent=0) {
         return text + indent * " " + "]"
     } else if type_of(ast) == Object {
         if keys(ast).length == 0 return "{}"
-        else if keys(ast).length == 1 return "{" + keys(ast)[0] + ": " + prettify_ast(ast[keys(ast)[0]], indent) + "}"
+        else if keys(ast).length == 1 return "{" + keys(ast).0 + ": " + prettify_ast(ast.(keys(ast).0), indent) + "}"
         let text = "{\n"
         # indent += 2
         for key:value in ast {
@@ -1483,7 +1498,10 @@ let parser_tests = {
     simple_class_definition: "class x {\n\n$constructor() {}\n\nfunction $constructor() {}\nfunction method() {}\nlet x = 5\n let y}",
     class_definition: "private static class x as this {\n\n$constructor() {}\n\nfunction $constructor() {}\nfunction method() {\n\nreturn a_value\n}\n$string {\nreturn $'Hello, world! {value}'\n}\nlet x = 5\n let y}",
     empty_class: "class {\n\n\n}",
-    function_call: "x(x, y, ...z, a=b, c=d, {e, f:g})",
+    function_call: "x(
+        x, 
+        y, 
+        ...z, a=b, c=d, {e, f:g})",
     simple_include: "include x",
     include_from: "from x include y",
     include_a_lot: "include x, y, z from a
@@ -1497,7 +1515,8 @@ let parser_tests = {
     include [a, b, c]
     include [a, b, c] as d from x
     include {x: a, y: b, z} as d from x
-    from x include [a, b, c]",
+    from x include [a, b, c]
+    from Data include OrderOfOps, Parenthesis",
     return_value: "return whatever()",
     defer_something: "defer whatever()",
     defer_block: "defer { whatever() }",
@@ -1605,6 +1624,7 @@ let error_tests = {
     expression_in_class_scope: "class x {\nstdout.log(5 * 5)\n}", 
     include_double_from: "from me include that from you",
     lone_operator: "+",
+    incorrect_property_access: "my_array[-1]",
 }
 function show_errors(error_stack, error_handler) {
     for error in error_stack {
@@ -1633,22 +1653,25 @@ function test(String code, String filename="<main>") {
 let time = python.import("time")
 function parse_file(String filename) {
     stdout.log("Reading", filename)
-    let lexer_cache_file = Path(String(current_file.parent), filename+"lexercache")
+    # let lexer_cache_file = Path(String(current_file.parent), filename+"lexercache")
     let tokens
     let code = open(filename).readAll()
-    if lexer_cache_file.exists() {
-        stdout.log("Using lexer cache")
-        let tokens = json.load_from_string(open(filename+"lexercache").readAll()).map(function(x) Token(x.type, x.position.start, x.position.end, x.value, x.variation, x.insertions))
-    } else {
+    # if false and lexer_cache_file.exists() {
+    #     stdout.log("Using lexer cache")
+    #     let tokens = json.load_from_string(open(filename+"lexercache").readAll()).map(function(x) Token(x.type, x.position.start, x.position.end, x.value, x.variation, x.insertions))
+    # } else {
+        stdout.log("Lexing...")
+        let lexer_start = time.time()
         let lexer = Lexer(false, false)
         let tokens = lexer.tokenize(code)
         show_errors(lexer.error_stack)
-        stdout.log($"Lexed {tokens.length} tokens")
-        let rendered_tokens = json.render(tokens)
-        stdout.log("Rendered tokens to JSON for caching.")
-        open(filename+"lexercache", "w").write(rendered_tokens, flush="instant")
-        stdout.log("Cached tokens.")
-    }
+        let lexer_end = time.time()
+        stdout.log($"Lexed {tokens.length} tokens in {lexer_end - lexer_start} seconds.")
+        # let rendered_tokens = json.render(tokens)
+        # stdout.log("Rendered tokens to JSON for caching.")
+        # open(filename+"lexercache", "w").write(String(tokens), flush="instant")
+        # stdout.log("Cached tokens.")
+    # }
     stdout.log("Got tokens")
     let error_handler = ErrorHandler(code, tokens, filename)
     let parse_start = time.time()
@@ -1656,19 +1679,18 @@ function parse_file(String filename) {
     let AST = parser.parse()
     let parse_end = time.time()
     show_errors(parser.error_stack, error_handler)
-    open(filename+"parsercache", "w").write(json.render(AST), flush="instant")
+    # open(filename+"parsercache", "w").write(json.render(AST), flush="instant")
     stdout.log("Parsed in", parse_end - parse_start, "seconds")
     return AST
 }
-# include json as native_json
-# let python_json = python.import("json") # Native Aardvark json is slow
-# let json = {
-#     render: native_json.render, # Python json can't handle Aardvark objects.
-#     load_from_file: python_json.load,
-#     load_from_string: python_json.loads
-# }
-# from path include Path
-# parse_file("Parser.adk")
+include json as native_json
+let python_json = python.import("json") # Native Aardvark json is slow
+let json = {
+    render: native_json.render, # Python json can't handle Aardvark objects.
+    load_from_file: python_json.load,
+    load_from_string: python_json.loads
+}
+parse_file("Parser.adk")
 
 
 

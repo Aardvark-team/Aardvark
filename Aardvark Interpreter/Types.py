@@ -1,6 +1,7 @@
 import types
 import io
-import time
+
+# import time
 import os
 import sys
 import inspect
@@ -136,7 +137,7 @@ class Object(Type):
         return self.get(name, Null)
 
     def __del__(self):
-        if self._delete:
+        if getattr(self, "_delete", False):
             self._delete()
 
     def delete(self, name):
@@ -374,6 +375,12 @@ class String(str, Type):
         return self.vars | (
             {x: self[x] for x in range(len(self))} if type(self) != type else {}
         )
+
+    def __repr__(self):
+        return f'"{self}"'
+
+    def __str__(self):
+        return super().__str__()
 
 
 class Number(Type):
@@ -966,43 +973,43 @@ def dict_from_other(old):
 
 
 def pyToAdk(py, is_reference=False):
+    if type(py) in Types:
+        return py
+    elif type(py) == type:
+        return py
+    elif py == None:
+        return Null
+    elif isinstance(py, bool):
+        return Boolean(py)
+    elif isinstance(py, int) or isinstance(py, float):
+        return Number(py)
+    elif isinstance(py, str):
+        return String(py)
+    elif isinstance(py, tuple):
+        return Array(py)
+    elif isinstance(py, list):
+        return Array(py)
+    elif isinstance(py, set):
+        return Set(py)
+    elif isinstance(py, dict):
+        return Object(py)
+    elif isinstance(py, type):
+        return Function(py)
+    elif (
+        isinstance(py, io.TextIOBase)
+        or isinstance(py, io.BufferedIOBase)
+        or isinstance(py, io.RawIOBase)
+        or isinstance(py, io.IOBase)
+        or isinstance(py, io.TextIOWrapper)
+    ):
+        return File(py)
+    elif inspect.isfunction(py):
+        return Function(py)
     try:
-        if type(py) in Types:
-            return py
-        if type(py) == type:
-            return py
-        elif py == None:
-            return Null
-        elif isinstance(py, bool):
-            return Boolean(py)
-        elif isinstance(py, int) or isinstance(py, float):
-            return Number(py)
-        elif isinstance(py, str):
-            return String(py)
-        elif isinstance(py, tuple):
-            return Array(list(py))
-        elif isinstance(py, list):
-            return Array(py)
-        elif isinstance(py, set):
-            return Set(py)
-        elif isinstance(py, dict):
-            return Object(py)
-        elif isinstance(py, type):
-            return Function(py)
-        elif isinstance(py, types.ModuleType):
+        if isinstance(py, types.ModuleType):
             return Object(dict_from_other(py))
-        elif (
-            isinstance(py, io.TextIOBase)
-            or isinstance(py, io.BufferedIOBase)
-            or isinstance(py, io.RawIOBase)
-            or isinstance(py, io.IOBase)
-            or isinstance(py, io.TextIOWrapper)
-        ):
-            return File(py)
         elif inspect.isclass(py):
             return Object(dict_from_other(py), call=py)
-        elif inspect.isfunction(py):
-            return Function(py)
         elif callable(py):
             return Object(dict_from_other(py), call=py)
         else:
@@ -1022,4 +1029,6 @@ def adkToPy(adk):
         return adk.vars
     elif isinstance(adk, Array):
         return adk.value
+    elif isinstance(adk, String):
+        return str(adk)
     # TODO: finish later

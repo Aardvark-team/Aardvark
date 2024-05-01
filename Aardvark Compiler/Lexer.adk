@@ -34,7 +34,7 @@ class Token as this {
     }
   }
   $string() {
-    return $"Token({this.type}, \"{this.value}\", from {this.position.start.line}:{this.position.start.column} to {this.position.end.line}:{this.position.end.column})"
+    return String(this.to_json())
   }
   function compare(type, value, startcol) {
       if (!type | this.type == type) & (!value | this.value == value) & (!startcol | this.start.column == startcol)
@@ -177,7 +177,7 @@ class Lexer as this {
       # Indents
       else if this.isWhitespace() & this.empty & this.useIndents {
         value = ''
-        start = this.position.index
+        start = this.pos()
         startcolumn = this.position.column
         while this.isWhitespace() & !this.AtEnd {
           value = value + this.current_character

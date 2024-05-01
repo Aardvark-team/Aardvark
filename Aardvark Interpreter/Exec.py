@@ -21,6 +21,7 @@ from Types import (
     File,
     Class,
     _Undefined,
+    adkToPy,
 )
 import importlib
 import time
@@ -177,6 +178,8 @@ def createGlobals(safe=False):
                         "math": math,
                         "random": random,
                         "sys": sys,
+                        "os": os,
+                        "time": time,
                     },
                 ),
             },
@@ -217,8 +220,8 @@ class Executor:
 
             def adk_open(path, *args, **kwargs):
                 # Make path relative to the file being executed.
-                if not Path(path).is_absolute():
-                    path = Path(Path(self.path).parent, path)
+                if not Path(str(path)).is_absolute():
+                    path = os.path.join(str(self.path.parent), str(path))
 
                 return open(path, *args, **kwargs)
 
@@ -316,8 +319,6 @@ class Executor:
         else:
             if getattr(scope[name], "is_static", None) == True:
                 is_static = True
-            # if name == "current_character":
-            #     print(is_static)
             scope[name] = pyToAdk(value)
             scope[name].is_static = is_static
 
@@ -354,13 +355,12 @@ class Executor:
                 # if param["value_type"] != None:
                 #     notImplemented(self.errorhandler, "Type Checking", param)
                 functscope.vars[param["name"]] = arg
-                try:
-                    if self.is_strict or param.get("is_static", False):
-                        functscope.vars[param["name"]].is_static = True
-                    else:
-                        functscope.vars[param["name"]].is_static = False
-                except:
-                    pass
+                if self.is_strict or param.get("is_static", False):
+                    setattr(functscope.vars[param["name"]], "is_static", True)
+                    # functscope.vars[param["name"]].is_static = True
+                else:
+                    setattr(functscope.vars[param["name"]], "is_static", False)
+                    # functscope.vars[param["name"]].is_static = False
             ret = self.Exec(code, functscope)
             if is_macro:
                 return ret
@@ -459,7 +459,7 @@ class Executor:
                     "name": Error.getAstText(expr["function"], self.codelines) + "()",
                     "line": expr["positions"]["start"]["line"],
                     "col": expr["positions"]["start"]["col"],
-                    "filename": Path(self.path).name,
+                    "filename": self.path.name,
                 }
             )
         args = []
