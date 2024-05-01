@@ -323,6 +323,8 @@ class Lexer as this {
           if backslash {
             if this.current_character == '\\' value += '\\'
             else if this.isQuote() value += this.current_character
+            else if is_template_string & this.current_character == "{"
+              value += this.current_character
             else value += "\\" + this.current_character
             backslash = false
           }
@@ -330,9 +332,12 @@ class Lexer as this {
           else if is_template_string & this.current_character == '{' {
             let expression_text = ''
             let expression_start = this.pos()
-            while !this.AtEnd and this.current_character != '}' {
+            let opener_count = 1
+            while !this.AtEnd & !(opener_count == 0) {
               expression_text += this.current_character
               this.advance()
+              if this.current_character == "{" opener_count++
+              if this.current_character == "}" opener_count--
             }
             if this.AtEnd {
               this.Throw({
@@ -345,12 +350,13 @@ class Lexer as this {
                 markers: [{
                   line: this.pos().line - 1,
                   column: start.column - 1 if value.split('\n').length == 1 else 0,
-                  length: value.split('\n').(-1).length
+                  length: value.split('\n').(-1).length,
+                  message: "This is the string."
                 }]
               })
             }
             expression_text = expression_text.slice(1, 0)
-            let new_lexer = Lexer(expression_text, this.tokenizeComments)
+            let new_lexer = Lexer(this.useIndents, this.tokenizeComments)
             let expression_tokens = new_lexer.tokenize(expression_text)
             for token in expression_tokens {
               token.position.start.index += expression_start.index
@@ -360,7 +366,6 @@ class Lexer as this {
               token.position.end.line += expression_start.line - 1
               token.position.end.column += expression_start.column - 1
             }
-            # stdout.log(expression_tokens)
             insertions.add({
               position: value.length - 1,
               tokens: expression_tokens,

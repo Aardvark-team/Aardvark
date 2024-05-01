@@ -26,7 +26,7 @@ from Types import (
 import importlib
 import time
 import copy
-
+from jsonrender import render
 
 try:
     from bitarray import bitarray
@@ -164,6 +164,8 @@ def createGlobals(safe=False):
             "values": lambda x: Array(x.values()),
             "mergeObjects": mergeObjects,
             "copy": copy.copy,
+            "json_render": render,
+            "Path": Path,
         }
     )  # Define builtins here
     if not safe:
