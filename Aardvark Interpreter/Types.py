@@ -649,7 +649,7 @@ class Array(Type, list):
     def __repr__(self):
         return str(self)
 
-    def _filter(self, key):
+    def _filter(self, key=lambda x: x):
         new = []
         for i in self.value:
             if key(i):

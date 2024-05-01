@@ -236,9 +236,7 @@ function parse_file(String filename) {
         show_errors(lexer.error_stack)
         let lexer_end = time.time()
         stdout.log($"Lexed {tokens.length} tokens in {lexer_end - lexer_start} seconds. \nRendering to JSON for caching...")
-        let rendered_tokens = json.render(tokens)
-        stdout.log("Rendered tokens to JSON for caching.")
-        open(filename+"lexercache", "w").write(rendered_tokens, flush="instant")
+        open(filename+"lexercache", "w").write(json.render(tokens), flush="instant")
         stdout.log("Cached tokens.")
     }
     stdout.log("Got tokens")
@@ -248,7 +246,7 @@ function parse_file(String filename) {
     let AST = parser.parse()
     let parse_end = time.time()
     show_errors(parser.error_stack, error_handler)
-    # open(filename+"parsercache", "w").write(json.render(AST), flush="instant")
+    open(filename+"parsercache", "w").write(json.render(AST), flush="instant")
     stdout.log("Parsed in", parse_end - parse_start, "seconds")
     return AST
 }

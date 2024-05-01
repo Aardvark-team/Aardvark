@@ -2,15 +2,9 @@ include Lexer
 include Errors
 include Parser
 
-function generate_text(node, original_text) {
+function generate_text(node, original_text, options={}) {
+    options.current_indent_level = options.current_indent_level?0
     match node.type {
-        case "Program" {
-            text = ""
-            for node in node.body {
-                text += generate_text(node, original_text)?"" + "\n"
-            }
-            return text
-        }
         case "Operator" {
             return generate_text(node.left, original_text) + " " + node.operator + " " + generate_text(node.right, original_text)
         }
@@ -18,41 +12,89 @@ function generate_text(node, original_text) {
             return String(node.value)
         }
         case "StringLiteral" {
-            let quote = node.tokens.value.variation
+            let quote = node.quote_style
             return quote + node.value.replace("\n", "\\n") + quote
         }
         case "VariableAccess" {
-            return node.value
+            return node.name
         }
         case "FunctionCall" {
             let object = generate_text(node.object, original_text)
             let arguments = node.arguments.map(function (x) generate_text(x, original_text))
-            let keyword_arguments = node.keywordArguments.map(function(x) generate_text(x, original_text))
-            let spreads = node.spreads.map(function(x) generate_text(x, original_text))
-            let full_text = $"{object}({', '.join([', '.join(arguments), ', '.join(keyword_arguments), ', '.join(spreads)].filter(function(x) x != ``))})"
+            let keyword_arguments = node.keyword_arguments.map(function(x) generate_text(x, original_text))
+            let full_text = $"{object}({', '.join([', '.join(arguments), ', '.join(keyword_arguments)].filter())})"
             return full_text
         }
-        case $default {
-            # stdout.write(node, "\n")
-            # stdout.write(original_text.slice(node.position.start.index, node.position.end.index+1), "\n")
-            return original_text.slice(node.position.start.index, node.position.end.index+1)
+        case "ScopeBody" {
+            let code = ""
+            if node.enclosing_curly_braces {
+                code += "{\n"
+                options.current_indent_level += options.indent?2
+            }
+
+            for statement in node.statements {
+                code += options.current_indent_level * " " + generate_text(statement, original_text, options) + "\n"
+            }
+
+            if node.enclosing_curly_braces {
+                options.current_indent_level -= options.indent?2
+                code += "}\n"
+            }
+            return code
         }
+        case "Assignments" {
+            let code = "let" + "%" if node.is_embed_assignment else ""
+            for assignment in node.assignments {
+                if assignment.is_private
+                    code += " private"
+                if assignment.is_static
+                    code += " static"
+                code += " "
+                code += " = ".join(generate_text(variable, original_text, options) for variable in assignment.variables)
+                code += " = " + generate_text(assignment.value, original_text, options)
+            }
+            return code
+        }
+        case "FunctionDefinition" {
+            let code = ""
+            if node.is_private
+                code += " private"
+            if node.is_static
+                code += " static"
+            code += " function" if code else "function"
+            if (node.name?)
+                code += " " + generate_text(node.name, original_text, options)
+            if (node.parameters.length > 0 | node.parameter_expansion?) {
+                code += "("
+                # TODO
+            }
+            if (node.return_type?)
+                code += " -> " + generate_text(node.return_type, original_text, options)
+
+            code += " " + generate_text(node.body, original_text, options)
+
+            return code
+        }
+        case $default
+            return original_text.slice(node.position.start.index, node.position.end.index+1)
     }
 }
 
 
 function format_test(text) {
     errorHandler = Errors.ErrorHandler(text, '<main>')
-    lexer = Lexer.Lexer(false, false, errorHandler)
+    lexer = Lexer.Lexer(false, false)
     tokens = lexer.tokenize(text)
+    errorHandler.tokens = tokens
 
-    parser = Parser.Parser(lexer, null)
+    parser = Parser.Parser(text, tokens, errorHandler)
     AST = parser.parse()
     return generate_text(AST, text)
 }
 stdout.write(format_test("
 let x=0
-let y=1
+let%Number y=1
+let static private jn=`Hello`
 stdout.write('Hello World\n')
 function my_function() {
 return 5

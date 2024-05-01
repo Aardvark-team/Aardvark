@@ -176,8 +176,9 @@ static class Parser as this {
             ast_node = {
                 type: current_token.type + 'Literal',
                 position: current_token.position,
-                value: value,
+                value: value
             }
+            # TODO: separate Number and Boolean and provide Number base in ast_node.
         } else if is_structural_pattern & this.maybe_eat("Delimiter", "$") {
             let value = "";
             if this.compare("Identifier")
@@ -435,12 +436,7 @@ static class Parser as this {
     }
     # Parse a program
     function parse_program() {
-        let body = CHECK(this.parse_scope_body(false))
-        return {
-            type: "Program",
-            body: body.statements,
-            position: body.position
-        }
+        return CHECK(this.parse_scope_body(false))
     }
     function parse this.parse_program()
 
@@ -1424,6 +1420,7 @@ static class Parser as this {
         return {
             type: "ScopeBody",
             statements,
+            enclosing_curly_braces,
             position: {
                 start: start_position,
                 end: end_position

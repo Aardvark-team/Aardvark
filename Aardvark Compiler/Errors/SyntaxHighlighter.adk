@@ -59,8 +59,8 @@ function Highlight(code, tokens, opts={}) {
     return output
 }
 
-if is_main {
-    stdout.write(Highlight("function x(y, Number z) {
-    let x = 'Hello World'if true
-}", {linenums: false}), "\n")
-}
+# if is_main {
+#     stdout.write(Highlight("function x(y, Number z) {
+#     let x = 'Hello World'if true
+# }", {linenums: false}), "\n")
+# }
