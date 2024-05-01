@@ -439,17 +439,16 @@ class Executor:
         return Null
 
     def enterScope(self, var, scope: Scope, main):
-        match var:
-            case {"type": "PropertyAccess"}:
-                property = self.ExecExpr(var["property"], main)
-                scope = self.enterScope(var["value"], scope, main)
-                return self.getVar(scope, property, var["positions"]["start"])
-            case {"type": "Index"}:
-                property = self.ExecExpr(var["property"], main)
-                scope = self.enterScope(var["value"], scope, main)
-                return self.getVar(scope, property, var["positions"]["start"])
-            case _:
-                return self.ExecExpr(var, main)
+        if var["type"] == "PropertyAccess":
+            property = self.ExecExpr(var["property"], main)
+            scope = self.enterScope(var["value"], scope, main)
+            return self.getVar(scope, property, var["positions"]["start"])
+        elif var["type"] == "Index":
+            property = self.ExecExpr(var["property"], main)
+            scope = self.enterScope(var["value"], scope, main)
+            return self.getVar(scope, property, var["positions"]["start"])
+        else:
+            return self.ExecExpr(var, main)
 
     def ExecFunctionCall(self, expr: dict, scope: Scope):
         funct = self.ExecExpr(expr["function"], scope)

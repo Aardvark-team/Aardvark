@@ -79,7 +79,7 @@ def run(
     safe=False,
     is_strict=False,
     time_stats=False,
-    bypass_eof=False
+    bypass_eof=False,
 ):
     lexer_time = 0
     parser_time = 0
@@ -142,7 +142,7 @@ def runFile(file, *args, **kwargs):
 
 def highlighted_input(
     prompt: str, scope: Scope, input_history: list[str], eval_mode: bool = False
-) -> (str, list[str]):
+) -> tuple[str, list[str]]:
     buff = ""
 
     buff = ""
@@ -280,24 +280,24 @@ def highlighted_input(
             elif escape_code == [27, 91, 66]:
                 picked_completion += 1
 
-        if eval_mode:
-            print()
-            message = None
+        # if eval_mode:
+        #     print()
+        #     message = None
 
-            custom_builtins = {}
-            for name in dir(builtins):
-                custom_builtins[name] = getattr(builtins, name)
-            custom_builtins["print"] = fake_print
-            custom_builtins["exit"] = fake_exit
-            custom_builtins["quit"] = fake_exit
+        #     custom_builtins = {}
+        #     for name in dir(builtins):
+        #         custom_builtins[name] = getattr(builtins, name)
+        #     custom_builtins["print"] = fake_print
+        #     custom_builtins["exit"] = fake_exit
+        #     custom_builtins["quit"] = fake_exit
 
-            try:
-                res = eval(buff, {"__builtins__": custom_builtins}, eval_locals)
-                message = color_gray + str(res)
-            except Exception as e:
-                message = color_gray + str(e).replace("\n", "")
+        #     try:
+        #         res = eval(buff, {"__builtins__": custom_builtins}, eval_locals)
+        #         message = color_gray + str(res)
+        #     except Exception as e:
+        #         message = color_gray + str(e).replace("\n", "")
 
-            print("\33[2K\r" + str(message).replace("\n", "") + fg.rs, end="\33[1A")
+        #     print("\33[2K\r" + str(message).replace("\n", "") + fg.rs, end="\33[1A")
 
     print("\33[2K\r" + prompt + Highlight(buff, {"linenums": False}))
 
@@ -350,10 +350,10 @@ def runLive(
                     Global=saved_scope if saved_scope else None,
                     safe=safe,
                     is_strict=is_strict,
-                    bypass_eof=True
+                    bypass_eof=True,
                 )
                 break
-            except Aardvark_Error as e: # EOF
+            except Aardvark_Error as e:  # EOF
                 openc = text.count("{") - text.count("}")
                 if experimental:
                     newl, input_history = highlighted_input(

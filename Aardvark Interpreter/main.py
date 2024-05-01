@@ -5,6 +5,8 @@ import os
 import shutil
 import subprocess
 
+# CYTHON WONT WORK BUT USE gcc main.c -I/opt/homebrew/Cellar/python@3.12/3.12.3/Frameworks/Python.framework/Versions/3.12/include/python3.12
+
 if __name__ == "__main__":
     import ArgumentParser
     from sty import fg, ef, rs
