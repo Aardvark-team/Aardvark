@@ -165,21 +165,20 @@ static class Parser as this {
         
         if this.compare("String")
            ast_node = this.parse_string()
-
-        else if current_token.type in ["Number", "Boolean"] {
-            this.eat()
-            let value
-            if current_token.type == "Boolean"
-                value = current_token.value == "true"
-            else
-                value = Number(current_token.value)
+        else if this.maybe_eat("Number")
             ast_node = {
-                type: current_token.type + 'Literal',
+                type: "NumberLiteral",
+                value: Number(current_token.value),
+                base: current_token.variation,
                 position: current_token.position,
-                value: value
             }
-            # TODO: separate Number and Boolean and provide Number base in ast_node.
-        } else if is_structural_pattern & this.maybe_eat("Delimiter", "$") {
+        else if this.maybe_eat("Boolean")
+            ast_node = {
+                type: "BooleanLiteral",
+                value: current_token.value == "true",
+                position: current_token.position
+            }
+        else if is_structural_pattern & this.maybe_eat("Delimiter", "$") {
             let value = "";
             if this.compare("Identifier")
                 value = this.eat().value
@@ -259,10 +258,6 @@ static class Parser as this {
                 ast_node = CHECK(this.parse_embed())
             case 'macro'
                 ast_node = CHECK(this.parse_function_definition("normal", false, "macro"))
-            case $default {
-                return null
-                # return this.Throw('SyntaxError', 'Unexpected keyword "' + this.peek().value + '"', position=this.peek().position)
-            }
         }
         # If there were lines after the statement, just return
         if !(this.peek(-1).type == "LineBreak" & !eat_line_breaks)
@@ -1098,6 +1093,12 @@ static class Parser as this {
     function parse_include_statement() {
         let starting_keyword
         let global_origin
+        # TODO: handle .
+        #*
+        from units.length include inch, px, ft
+        include units.length as length_units
+        etc...
+        *#
         if this.compare("Keyword", "from") {
             starting_keyword = this.eat()
             if this.compare("Identifier")

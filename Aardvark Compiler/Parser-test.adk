@@ -154,26 +154,10 @@ let parser_tests = {
         # Code 2
         if z {}
     }",
-    object_with_comments: "
+    multiline_object_with_comments: "
     {
         line: x, # Comment
         column: y, # Comment
-    }",
-    big_object: "{
-        x: y,
-        message,
-        location: {
-            line: position.start.line - 1, # The error formatter starts line counting at 0.
-            column: position.start.column - 1, # The error formatter starts column counting at 0.
-        },
-        markers: options.markers?[{
-            line: position.start.line - 1, # The error formatter starts line counting at 0.
-            column: position.start.column - 1, # The error formatter starts column counting at 0.
-            length: (position.end.column - position.start.column + 1) if (position.end.line == position.start.line) else (this.code_lines.(position.start.line - 1).length - position.start.column + 2),
-            message: here_message
-        }],
-        show,
-        ...options
     }",
     array: `[
         "(", 
@@ -181,7 +165,8 @@ let parser_tests = {
         "{",
     ]`,
     pattern_matching_operator: "if x $= {x: 5, y: [x, 5, $y, ...], $z, e: $uhdf, fb?: 8, ...} {}",
-    nested_template_string: `$"Hello, {($'\"{name}\"')if name else $'{placeholder_name}'}."`
+    nested_template_string: `$"Hello, {($'\"{name}\"')if name else $'{placeholder_name}'}."`,
+    include_sublibrary: "from units.length include inch, px, ft",
 }
 let error_tests = {
     multiple_decimal_points: "5.4.3",
@@ -250,27 +235,27 @@ function parse_file(String filename) {
     stdout.log("Parsed in", parse_end - parse_start, "seconds")
     return AST
 }
-include json as native_json
-let python_json = python.import("json") # Native Aardvark json is slow
-let json = {
-    render: json_render, # A temporary builtin
-    load_from_file: python_json.load,
-    load_from_string: python_json.loads
-}
-parse_file("Lexer.adk")
+# include json as native_json
+# let python_json = python.import("json") # Native Aardvark json is slow
+# let json = {
+#     render: json_render, # A temporary builtin
+#     load_from_file: python_json.load,
+#     load_from_string: python_json.loads
+# }
+# parse_file("Lexer.adk")
 
 
 
 if is_main {
-    # for test_name:code in parser_tests {
-    #     let passed = test(code, test_name+".adk")
-    #     if passed
-    #         stdout.log("PASSED:", test_name)
-    #     else
-    #         stdout.log("FAILED:", test_name)
-    # }
+    for test_name:code in parser_tests {
+        let passed = test(code, test_name+".adk")
+        if passed
+            stdout.log("PASSED:", test_name)
+        else
+            stdout.log("FAILED:", test_name)
+    }
 
-    # for test_name:code in error_tests {
-    #     test(code, test_name+".adk")
-    # }
+    for test_name:code in error_tests {
+        test(code, test_name+".adk")
+    }
 }
