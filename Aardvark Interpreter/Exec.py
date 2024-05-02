@@ -357,12 +357,15 @@ class Executor:
                 # if param["value_type"] != None:
                 #     notImplemented(self.errorhandler, "Type Checking", param)
                 functscope.vars[param["name"]] = arg
-                if self.is_strict or param.get("is_static", False):
-                    setattr(functscope.vars[param["name"]], "is_static", True)
-                    # functscope.vars[param["name"]].is_static = True
-                else:
-                    setattr(functscope.vars[param["name"]], "is_static", False)
-                    # functscope.vars[param["name"]].is_static = False
+                try:
+                    if self.is_strict or param.get("is_static", False):
+                        setattr(functscope.vars[param["name"]], "is_static", True)
+                        # functscope.vars[param["name"]].is_static = True
+                    else:
+                        setattr(functscope.vars[param["name"]], "is_static", False)
+                        # functscope.vars[param["name"]].is_static = False
+                except:
+                    pass
             ret = self.Exec(code, functscope)
             if is_macro:
                 return ret
