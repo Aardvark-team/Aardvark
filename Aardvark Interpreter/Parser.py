@@ -555,7 +555,26 @@ class Parser:
                             + fg.rs,
                         },
                     )
-
+                if property == None:
+                    self.err_handler.throw(
+                        "Syntax",
+                        "Cannot get empty property",
+                        {
+                            "lineno": dot.end["line"],
+                            "marker": {"start": dot.end["col"], "length": 2},
+                            "underline": {
+                                "start": dot.end["col"],
+                                "end": len(self.codelines[dot.end["line"] - 1]),
+                            },
+                            "did_you_mean": Error.Highlight(
+                                self.codelines[dot.end["line"] - 1],
+                                {"background": None, "linenums": False},
+                            )
+                            + Error.styles["suggestion"]
+                            + "<value>"
+                            + fg.rs,
+                        },
+                    )
                 ast_node = {
                     "type": "PropertyAccess",
                     "property": property,
