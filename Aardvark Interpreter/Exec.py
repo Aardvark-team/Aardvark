@@ -305,16 +305,17 @@ class Executor:
             and type(scope[name]) != _Undefined
         ):
             start = expr["positions"]["start"]
+            name_length = len(str(name))
             self.errorhandler.throw(
                 "Assignment",
                 f"Cannot reassign a static variable: {name}.",
                 {
                     "traceback": self.traceback,
                     "lineno": start["line"],
-                    "marker": {"start": start["col"], "length": len(name)},
+                    "marker": {"start": start["col"], "length": name_length},
                     "underline": {
                         "start": start["col"] - 2,
-                        "end": start["col"] + len(name),
+                        "end": start["col"] + name_length,
                     },
                 },
             )
@@ -393,20 +394,21 @@ class Executor:
             if success and error:
                 message = 'Uninitialized variable "{name}". Add `?` to render uninitialized variables as null.'
                 line = self.codelines[start["line"] - 1]
+                varname_length = len(str(varname))
                 did_you_mean = (
-                    line[: start["col"] + len(varname) - 1]
+                    line[: start["col"] + varname_length - 1]
                     + "?"
-                    + line[start["col"] + len(varname) - 1 :]
+                    + line[start["col"] + varname_length - 1 :]
                 )
                 return self.errorhandler.throw(
                     "Value",
                     message.format(name=varname),
                     {
                         "lineno": start["line"],
-                        "marker": {"start": start["col"], "length": len(varname)},
+                        "marker": {"start": start["col"], "length": varname_length},
                         "underline": {
                             "start": start["col"] - 2,
-                            "end": start["col"] + len(varname),
+                            "end": start["col"] + varname_length,
                         },
                         "did_you_mean": Error.Highlight(
                             did_you_mean, {"linenums": False}
@@ -419,10 +421,11 @@ class Executor:
             return pyToAdk(val)
         elif error:
             line = self.codelines[start["line"] - 1]
+            varname_length = len(str(varname))
             did_you_mean = (
                 line[: start["col"] - 1]
                 + findClosest(varname, scope)
-                + line[start["col"] + len(varname) - 1 :]
+                + line[start["col"] + varname_length - 1 :]
             )
             # Check if the message is a function or lambda:
             if callable(message):
@@ -432,10 +435,10 @@ class Executor:
                 message.format(name=varname),
                 {
                     "lineno": start["line"],
-                    "marker": {"start": start["col"], "length": len(varname)},
+                    "marker": {"start": start["col"], "length": varname_length},
                     "underline": {
                         "start": start["col"] - 2,
-                        "end": start["col"] + len(varname),
+                        "end": start["col"] + varname_length,
                     },
                     "did_you_mean": Error.Highlight(did_you_mean, {"linenums": False}),
                     "traceback": self.traceback,

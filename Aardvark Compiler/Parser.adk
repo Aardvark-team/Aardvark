@@ -356,7 +356,7 @@ static class Parser as this {
                 is_structural_pattern = true
             this.eat_line_breaks() if eat_line_breaks;
             let right = CHECK(this.parse_expression(level - 1, false, excluded, eat_line_breaks, is_deconstruction, is_structural_pattern))
-            if !left and !right
+            if !left & !right
                 return this.Throw('SyntaxError', "Operators are invalid when lonely.", here_message="🤨 That's just an operator with nothing for it to operator on.", position=operator.position)
             left = {
                 type: 'Operator',
@@ -681,7 +681,7 @@ static class Parser as this {
     }
 
     function is_valid_type(expression, accept=[], accept_operators=[]) {
-        let valid_operators = Set(accept_operators + ["|", "or", "?"])
+        let valid_operators = Set(accept_operators + ["|", "x|", "or", "xor", "?"])
         if expression == null | accept.contains(expression.type)
             return true
         else if ["VariableAccess", "PropertyAccess", "LayoutType", "Array", "Object", "KeyValuePair", "TypedVariable"].contains(expression.type) | (expression.type == "Operator" & valid_operators.contains(expression.operator))
