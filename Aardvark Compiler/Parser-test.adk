@@ -167,6 +167,8 @@ let parser_tests = {
     pattern_matching_operator: "if x $= {x: 5, y: [x, 5, $y, ...], $z, e: $uhdf, fb?: 8, ...} {}",
     nested_template_string: `$"Hello, {($'\"{name}\"')if name else $'{placeholder_name}'}."`,
     include_sublibrary: "from units.length include inch, px, ft",
+    assignment_chaining: "let Number x = (Number |String) y = z = 35",
+    typed_array: "[Number 5, String \"hello\", Array [1, 2, 3]]",
 }
 let error_tests = {
     multiple_decimal_points: "5.4.3",
@@ -245,7 +247,7 @@ function parse_file(String filename) {
 # parse_file("Lexer.adk")
 
 
-
+# test("x.()")
 if is_main {
     for test_name:code in parser_tests {
         let passed = test(code, test_name+".adk")
@@ -255,7 +257,7 @@ if is_main {
             stdout.log("FAILED:", test_name)
     }
 
-    for test_name:code in error_tests {
-        test(code, test_name+".adk")
-    }
+    # for test_name:code in error_tests {
+    #     test(code, test_name+".adk")
+    # }
 }

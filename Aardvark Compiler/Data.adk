@@ -128,8 +128,6 @@ let Keywords = [
     "break",
     "continue",
     "private",
-    "set",
-    "get",
     "macro"
 ]
 let BaseNumsOrder = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVQXYZ"

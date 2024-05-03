@@ -22,7 +22,7 @@ class ADK_Error as this {
     if !this.handler.highlighted_code_lines
         this.handler.highlighted_code_lines = Highlight(this.handler.code, this.handler.tokens, {
             linenums: false
-        }).split("\n")
+        }).split("\n") # TODO: Don't highlight the whole thing, only highlight (and cache!) the parts surrounding the error location.
     this.error = format(
         this.handler.highlighted_code_lines, 
         this.message, 

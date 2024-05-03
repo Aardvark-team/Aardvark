@@ -7,3 +7,7 @@ Object parsing error. The Object could not be parsed.
 
 ### 2 – EOF Error
 The end of the file was reached unexpectedly.
+
+### 3 – Invalid Type
+
+### 4 – Invalid Name

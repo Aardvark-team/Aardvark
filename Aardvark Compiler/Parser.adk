@@ -10,7 +10,7 @@ static class Parser as this {
     let [...String] code_lines
     let [...Token] tokens
     let Number pos = 0
-    let [ErrorHandler, null] error_handler
+    let [ErrorHandler, null] error_handler 
     let store_errors = true # If false, errors will be thrown immediately.
     let error_stack = [] 
     let awaiting_match = [] # If an error occurs on a line with an opening (, [, or {, it will be stored here to prevent errors with unmatched parentheses.
@@ -537,7 +537,6 @@ static class Parser as this {
         let ate_comma = false
         this.eat_line_breaks()
         # While there is no ]
-        # TODO: allow types before values??
         while (this.peek() & !this.compare("Delimiter", "]") & !(this.compare("Delimiter", ",") & this.peek(1).value == "]")) {
             if items.length > 0 & !ate_comma  {
                 CHECK(this.eat("Delimiter", ","))
@@ -548,9 +547,9 @@ static class Parser as this {
                 items.add(CHECK(this.parse_typed_variable(["..."])))
             else {
                 if this.maybe_eat("Operator", "...")
-                    expansions.add(CHECK(this.parse_expression(require=(!is_structural_pattern))))
+                    expansions.add(CHECK(this.parse_expression(require=false, eat_line_breaks=true, is_structural_pattern=is_structural_pattern)))
                 else
-                    items.add(CHECK(this.parse_expression(require=true, is_structural_pattern=is_structural_pattern)))
+                    items.add(CHECK(this.parse_typed_variable(["*"],  is_structural_pattern=is_structural_pattern, name="value", var_level=keys(OrderOfOps).length-1, is_deconstruction=false)))
             }
             this.eat_line_breaks()
             if this.maybe_eat("Delimiter", ",") {
@@ -601,9 +600,18 @@ static class Parser as this {
         else if this.compare("Delimiter", "(") {
             let token = this.eat()
             property = CHECK(this.parse_statement(eat_line_breaks=true))
+            if !(property) {
+                return this.Throw("SyntaxError", "What kinda property is this? It's empty!", position=token.position)
+            }
             this.eat('Delimiter', ")")
         } else {
             return this.Throw("SyntaxError", "Expected property name", position=this.peek().position)
+        }
+        if !(property?) {
+            if this.peek()
+                return this.Throw("SyntaxError", "What kinda property is this?", position=this.peek().position)
+            else
+                return this.throw_EOF_error()
         }
         return {
             type: "PropertyAccess",
@@ -698,11 +706,11 @@ static class Parser as this {
         return false
     }
 
-    function is_valid_variable_definition(expression, accept=[], accept_operators=[]) {
-        let valid_operators = Set(accept_operators + ["?"])
-        if expression == null | accept.contains(expression.type)
+    function is_valid_variable_definition(expression, accept=[]) {
+        let acceptable = Set(accept + ["?"])
+        if expression == null | accept.contains(expression.type) | acceptable.contains("*")
             return true
-        else if ["VariableAccess", "PropertyAccess", "Array", "Object", "KeyValuePair", "TypedVariable"].contains(expression.type) | (expression.type == "Operator" & valid_operators.contains(expression.operator))
+        else if ["VariableAccess", "PropertyAccess", "Array", "Object", "KeyValuePair", "TypedVariable"].contains(expression.type) | (expression.type == "Operator" & acceptable.contains(expression.operator))
         match expression.type {
             case "VariableAccess"
                 return true
@@ -711,12 +719,12 @@ static class Parser as this {
             case "KeyValuePair"
                 return is_valid_variable_definition(expression.value)
             case "Array"
-                return !expression.items.map(function (x) is_valid_variable_definition(x, [], ["...", ...accept_operators])).contains(false)
+                return !expression.items.map(function(x) is_valid_variable_definition(x, ["...", ...acceptable])).contains(false)
             case "Object"
-                return !expression.pairs.map(is_valid_variable_definition).contains(false)
+                return !expression.pairs.map(function(x) is_valid_variable_definition(x, acceptable)).contains(false)
             case "Operator" {
-                let is_left_valid = is_valid_variable_definition(expression.left, accept, accept_operators)
-                let is_right_valid = is_valid_variable_definition(expression.right, accept, accept_operators)
+                let is_left_valid = is_valid_variable_definition(expression.left, acceptable)
+                let is_right_valid = is_valid_variable_definition(expression.right, acceptable)
                 return is_left_valid & is_right_valid
             }
             case "TypedVariable"
@@ -725,21 +733,21 @@ static class Parser as this {
         return false
     }
 
-    function parse_typed_variable(accept_var=[], name="variable") {
+    function parse_typed_variable(accept_var=[], name="variable", var_level=0, is_structural_pattern=false, is_deconstruction=true) {
         # This may be the type or the variable, we don't know until we know IF there is a second expression.
-        let first = CHECK(this.parse_expression(0, true, ["Reassignment"], false, is_deconstruction=true))
-        let second = CHECK(this.parse_expression(0, false, ["Reassignment"], false, is_deconstruction=true))
+        let first = CHECK(this.parse_expression(var_level, true, ["Reassignment"], false, is_deconstruction=is_deconstruction, is_structural_pattern=is_structural_pattern))
+        let second = CHECK(this.parse_expression(var_level, false, ["Reassignment"], false, is_deconstruction=is_deconstruction, is_structural_pattern=is_structural_pattern))
         if !first {
             return this.Throw("AssignmentError", $"There's nothing here...", position=this.peek().position, here_message= $"Expected a {name} or type.")
         }
         if second {
             if !is_valid_type(first)
-                return this.Throw("SyntaxError", "Invalid syntax.", position=first.position, here_message= $"Expected type.")
-            if !is_valid_variable_definition(second, accept_var, accept_var)
-                return this.Throw("SyntaxError", $"You can't assign a value to something; a value already has a value, because it is one.", position=second.position, here_message= $"Expected a {name}.")
+                return this.Throw("SyntaxError", "Invalid syntax.", position=first.position, here_message= $"Expected type.", error_number=3)
+            if !is_valid_variable_definition(second, accept_var)
+                return this.Throw("SyntaxError", $"You can't assign a value to something; a value already has a value, because it is one.", position=second.position, here_message= $"Expected a {name}.", error_number=41)
         }
-        else if !is_valid_variable_definition(first, accept_var, accept_var)
-            return this.Throw("SyntaxError", $"You can't assign a value to something; a value already has a value, because it is one.", position=first.position, here_message= $"Expected a {name}.")
+        else if !is_valid_variable_definition(first, accept_var)
+            return this.Throw("SyntaxError", $"You can't assign a value to something; a value already has a value, because it is one.", position=first.position, here_message= $"Expected a {name}.", error_number=40)
 
         let ast_node = {
             type: "TypedVariable",
@@ -751,7 +759,7 @@ static class Parser as this {
             }
         }
         if accept_var.contains("KeyValuePair") & this.maybe_eat("Delimiter", ":") {
-            let value = CHECK(this.parse_typed_variable(accept_var, name))
+            let value = CHECK(this.parse_typed_variable(accept_var, name, var_level, is_structural_pattern=is_structural_pattern))
             return {
                 type: "KeyValuePair",
                 key: ast_node,
@@ -764,8 +772,6 @@ static class Parser as this {
         }
 
         return ast_node
-
-
     }
 
     function parse_assignment() {
@@ -788,11 +794,29 @@ static class Parser as this {
             if this.maybe_eat("Keyword", "static")
                 is_static = true
             let variables = []
-            variables.add(CHECK(this.parse_typed_variable(["KeyValuePair"])))
             let value
-            # TODO: allow chaining: let x = y = 5
-            if this.maybe_eat("Operator", "=")
-                value = CHECK(this.parse_expression(require=true, exclude=["Reassignment"]))
+            while true {
+                let previous_store_errors_state = this.store_errors
+                let previous_position = this.pos
+                this.store_errors = true
+                let x = this.parse_typed_variable(["KeyValuePair"])
+                if (type_of(x) == ADK_Error & [3, 40].contains(x.error_number)) | (!this.compare("Operator", "=") & variables.length > 0) {
+                    this.store_errors = previous_store_errors_state
+                    this.error_stack = this.error_stack.slice(0, -1)
+                    this.pos = previous_position
+                    value = CHECK(this.parse_expression(require=true, exclude=["Reassignment"]))
+                    break
+                } else if type_of(x) == ADK_Error 
+                    return x
+                else
+                    variables.add(x)
+                if !(value?) & variables.length == 1 & !this.compare("Operator", "=")
+                    break
+                CHECK(this.eat("Operator", "="))
+            }
+            if !(value?) & variables.length > 1 {
+                return this.Throw("AssignmentError", "No Value was given", position=variables.(-1).position)
+            }
             assignments.add({
                 type: "Assignment",
                 variables,
@@ -1089,26 +1113,14 @@ static class Parser as this {
             }
         }
     }
-
     function parse_include_statement() {
         let starting_keyword
         let global_origin
-        # TODO: handle .
-        #*
-        from units.length include inch, px, ft
-        include units.length as length_units
-        etc...
-        *#
         if this.compare("Keyword", "from") {
             starting_keyword = this.eat()
-            if this.compare("Identifier")
-                global_origin = this.eat()
-            else if this.compare("String")
-                global_origin = this.eat()
-            else if this.compare("Number")
-                global_origin = this.eat()
-            else
-                return this.Throw("SyntaxError", "Expected 'Identifier' or 'String'.", position=this.peek().position, here_message="That is not a library name, at least not one that the compiler can recognize.")
+            global_origin = CHECK(this.parse_primary(require=true, exclude=["as"]))
+            if !is_valid_variable_definition(global_origin)
+                return this.Throw("SyntaxError", "Expected 'Identifier' or 'String'.", position=global_origin.position, here_message="That is not a library name, at least not one that the compiler can recognize.")
         }
         if this.compare("Keyword", "include") {
             starting_keyword = this.eat()
@@ -1117,19 +1129,9 @@ static class Parser as this {
                 let thing, name, origin
                 if included_things.length > 0
                     CHECK(this.eat("Delimiter", ","))
-                if this.compare("Delimiter", "[") {
-                    let array = CHECK(this.parse_array(true))
-                    thing = array
-                } else if this.compare("Delimiter", "{") {
-                    let object = CHECK(this.parse_object())
-                    thing = object
-                } else if this.compare("Identifier") {
-                    thing = this.eat().value
-                    name = thing
-                } else if this.compare("String") {
-                    thing = this.eat().value
-                    name = thing
-                }
+                thing = CHECK(this.parse_primary(require=true, exclude=["as"], is_deconstruction=true))
+                if !is_valid_variable_definition(thing)
+                    return this.Throw("SyntaxError", "Expected 'Identifier' or 'String'.", position=thing.position, here_message="That is not a library name, at least not one that the compiler can recognize.")
                 if this.maybe_eat("Keyword", "as") {
                     name = CHECK(this.eat("Identifier"))
                 }
