@@ -118,7 +118,6 @@ let Keywords = [
     'static',
     'include',
     'await',
-    'pause-until',
     'yield',
     'let', # Statements
     'as',

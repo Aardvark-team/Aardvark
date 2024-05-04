@@ -635,11 +635,17 @@ static class Parser as this {
         let in_keyword = CHECK(this.eat("Operator", "in"))
         let iterable = CHECK(this.parse_expression(require=true))
         let body = ast_node?CHECK(this.parse_statement_or_scope_body())
+        let else_body
+        if this.compare("Keyword", "else") {
+            let else_keyword = this.eat()
+            else_body = CHECK(this.parse_statement_or_scope_body())
+        }
         return {
             type: "ForStatement",
             iterable,
             variable,
             body,
+            else_body: else_body?,
             position: {
                 start: for_keyword.position.start,
                 end: body.position.end
