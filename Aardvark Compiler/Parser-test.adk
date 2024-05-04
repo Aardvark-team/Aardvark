@@ -169,6 +169,7 @@ let parser_tests = {
     include_sublibrary: "from units.length include inch, px, ft",
     assignment_chaining: "let Number x = (Number |String) y = z = 35",
     typed_array: "[Number 5, String \"hello\", Array [1, 2, 3]]",
+    include_all: "include ... from x"
 }
 let error_tests = {
     multiple_decimal_points: "5.4.3",
