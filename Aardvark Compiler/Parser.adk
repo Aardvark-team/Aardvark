@@ -657,10 +657,16 @@ static class Parser as this {
         let while_keyword = CHECK(this.eat("Keyword", "while"))
         let condition = CHECK(this.parse_expression(require=true))
         let body = ast_node?CHECK(this.parse_statement_or_scope_body())
+        let else_body
+        if this.compare("Keyword", "else") {
+            let else_keyword = this.eat()
+            else_body = CHECK(this.parse_statement_or_scope_body())
+        }
         return {
             type: "WhileStatement",
             condition,
             body,
+            else_body: else_body?,
             position: {
                 start: while_keyword.position.start,
                 end: body.position.end
