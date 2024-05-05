@@ -37,12 +37,20 @@ let SymbolOperators = [
   "@",   # at. reference
   "?",   # x.y? will be null if x.y doesn't exist or if it is null
   "->",  # Return Type,
-  '++',
-  '--',
-  "$=",
-  "...",
-  "@=",
-  ">>="
+  "<-",
+  '++',  # Increment
+  '--',  # Decrement
+  "$=",  # Structural Pattern Matching
+  "...", # Spread
+  "@=",  # Is the same reference
+  ">>=",
+  ">>",
+  "<<",
+  "<<=",
+  ">>>",
+  ">>>=",
+  "<<<",
+  "<<<=",
 ]
 let KeywordOperators = [
   "x|",  # xor (exclusive or)
@@ -63,13 +71,13 @@ let OrderOfOps = {
     5: ["-", "+", "%"],
     6: ["++", "--", "=", "+=", "-=", "*=", "/=", "^=", "%="],
     7: ["~=", "<", ">", "<=", ">=", "!=", "in", "==", "$="],
-    8: ["&", "|", "x|", "and", "or", "xor", "->"],
+    8: ["&", "|", "x|", "and", "or", "xor", "->", "<-", ">>", ">>=", "<<", "<<=", ">>>", ">>>=", "<<<", "<<<="],
 }
 
 let Whitespaces = [
     ' ',  # Space
     '\t', # Tab
-    '​',  # zero width space
+    '​',   # zero width space
     ' ',  # hair space
     ' ',  # six per em space
     ' ',  # thin space

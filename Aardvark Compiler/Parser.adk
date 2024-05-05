@@ -691,7 +691,18 @@ static class Parser as this {
             }
         }
     }
-
+    function parse_await_statement() {
+        let await_keyword = CHECK(this.eat("Keyword", "await"))
+        let expression = CHECK(this.parse_expression(require=true))
+        return {
+            type: "AwaitStatement",
+            expression,
+            position: {
+                start: await_keyword.position.start,
+                end: expression.position.end
+            }
+        }
+    }
     function is_valid_type(expression, accept=[], accept_operators=[]) {
         let valid_operators = Set(accept_operators + ["|", "x|", "or", "xor", "?"])
         if expression == null | accept.contains(expression.type)
