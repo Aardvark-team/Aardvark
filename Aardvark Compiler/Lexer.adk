@@ -270,12 +270,27 @@ class Lexer as this {
             }
             value = ''
             this.advance()
+            if !characters.contains(this.current_character)
+              this.Throw({
+                message: $"This character is not supported in base {base}.",
+                error_type: "SyntaxError",
+                location: {
+                  line: this.position.line - 1,
+                  column: this.position.column - 1
+                },
+                markers: [{
+                  line: this.position.line - 1,
+                  column: this.position.column - 1,
+                  length: 1,
+                  message: $"Not a base {base} character."
+                }]
+              })
             continue
           }
           value += this.current_character
           this.advance()
         }
-        if value.(-1) == "." {
+        if value.length > 0 & value.(-1) == "." {
           value = value.slice(0, -1)
           this.advance(-1)
         }

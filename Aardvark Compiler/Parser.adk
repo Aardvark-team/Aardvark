@@ -168,7 +168,7 @@ static class Parser as this {
         else if this.maybe_eat("Number")
             ast_node = {
                 type: "NumberLiteral",
-                value: Number(current_token.value),
+                value: current_token.value,
                 base: current_token.variation,
                 position: current_token.position,
             }

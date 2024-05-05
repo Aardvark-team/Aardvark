@@ -252,15 +252,18 @@ function parse_file(String filename) {
 
 # test(error_tests.unsupported_number_base, "unsupported_number_base.adk")
 if is_main {
-    for test_name:code in parser_tests {
-        let passed = test(code, test_name+".adk")
-        if passed
-            stdout.log("PASSED:", test_name)
-        else
-            stdout.log("FAILED:", test_name)
-    }
+    # for test_name:code in parser_tests {
+    #     let passed = test(code, test_name+".adk")
+    #     if passed
+    #         stdout.log("PASSED:", test_name)
+    #     else
+    #         stdout.log("FAILED:", test_name)
+    # }
 
     # for test_name:code in error_tests {
     #     test(code, test_name+".adk")
     # }
+    while true {
+        stdout.log(prettify_ast(test(stdin.prompt("\n> "), "<stdin>")))
+    }
 }
