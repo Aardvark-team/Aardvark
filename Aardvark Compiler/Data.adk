@@ -138,4 +138,9 @@ let Keywords = [
     "macro"
 ]
 let BaseNumsOrder = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVQXYZ"
+let lowercase_characters = "abcdefghijklmnopqrstuvwxyz"
+let uppercase_characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+let numbers = "0123456789"
+let base64_characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+let base58_characters = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
 let Quotes = ['"', "'", "`"]

@@ -183,6 +183,7 @@ let error_tests = {
     include_double_from: "from me include that from you",
     lone_operator: "+",
     incorrect_property_access: "my_array[-1]",
+    unsupported_number_base: "43_39f",
 }
 function show_errors(error_stack, error_handler) {
     for error in error_stack {
@@ -249,7 +250,7 @@ function parse_file(String filename) {
 # parse_file("Lexer.adk")
 
 
-# test("x.()")
+# test(error_tests.unsupported_number_base, "unsupported_number_base.adk")
 if is_main {
     for test_name:code in parser_tests {
         let passed = test(code, test_name+".adk")

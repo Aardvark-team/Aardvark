@@ -1139,7 +1139,6 @@ static class Parser as this {
     function parse_include_statement() {
         let starting_keyword
         let global_origin
-        # TODO: Handle include ... from x
         if this.compare("Keyword", "from") {
             starting_keyword = this.eat()
             global_origin = CHECK(this.parse_primary(require=true, exclude=["as"]))
@@ -1186,7 +1185,9 @@ static class Parser as this {
                         ]
                         }, position=this.peek().position)
                     }
-                    origin = CHECK(this.eat("Identifier"))
+                    origin = CHECK(this.parse_primary(require=true, exclude=["as"]))
+                    if !is_valid_variable_definition(origin)
+                        return this.Throw("SyntaxError", "Expected 'Identifier' or 'String'.", position=origin.position, here_message="That is not a library name, at least not one that the compiler can recognize.")
                 }
                 included_things.add({
                     type: "IncludedThing",

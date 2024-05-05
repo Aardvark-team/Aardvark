@@ -1,4 +1,4 @@
-include TokenTypes, Operators, Keywords, Quotes, Whitespaces, Booleans, Delimiters, NotIncluded, BaseNumsOrder, SymbolOperators from Data
+include TokenTypes, Operators, Keywords, Quotes, Whitespaces, Booleans, Delimiters, NotIncluded, BaseNumsOrder, SymbolOperators, lowercase_characters, uppercase_characters, numbers, base64_characters, base58_characters from Data
 include Errors
 
 
@@ -244,7 +244,30 @@ class Lexer as this {
           else if this.current_character == '_' {
             underscore_position = this.pos();
             base = Number(value)
-            characters = BaseNumsOrder.slice(0, base)
+            if base == 58 {
+              characters = base58_characters
+            } else if base == 64 {
+              characters = base64_characters
+            } else if base <= 36 {
+              characters = numbers.slice(0, base)
+              if base > 10
+                characters += lowercase_characters.slice(0, base - 10) + uppercase_characters.slice(0, base - 10)
+            } else {
+              this.Throw({
+                message: "Unsupported number base.\nHint: We support all bases <= 36, as well as base 58 and base 64.",
+                error_type: "FormatError",
+                location: {
+                  line: this.position.line - 1,
+                  column: this.position.column - 1
+                },
+                markers: [{
+                  line: start.line - 1,
+                  column: start.column - 1,
+                  length: value.length,
+                  message: "Number base."
+                }]
+              })
+            }
             value = ''
             this.advance()
             continue
