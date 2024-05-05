@@ -368,6 +368,8 @@ class String(str, Type):
             index = int(name)
             if index >= len(self):
                 return default
+            if index < 0 and len(self) == 0:
+                return default
             return self[index]
         return self.vars.get(name, default)
 
@@ -698,7 +700,9 @@ class Array(Type, list):
             type(name) in [str, String] and name.isdigit()
         ):
             index = int(name)
-            if index >= len(self.value):
+            if index >= len(self):
+                return default
+            if index < 0 and len(self) == 0:
                 return default
             return self.value[index]
         return self.vars.get(name, default)
