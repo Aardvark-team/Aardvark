@@ -32,8 +32,9 @@ function Highlight(code, tokens, opts={}) {
         if token.position.start.index > last + 1
             output += styles.default + code.slice(last+1, token.position.start.index)
 
-        if token.type == "String"
+        if token.type == "String" {
             output += styles.(token.type) + code.slice(token.position.start.index, token.position.end.index + 1)
+        }
 
         else if token.value == "\n" {
             line++

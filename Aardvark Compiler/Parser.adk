@@ -798,7 +798,7 @@ static class Parser as this {
         let is_embed_assignment = false
         if this.maybe_eat("Operator", "%")
             is_embed_assignment = true
-        assignments = []
+        let assignments = []
         while true {
             if assignments.length > 0
                 CHECK(this.eat("Delimiter", ","))

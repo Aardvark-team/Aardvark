@@ -303,6 +303,7 @@ class Executor:
             name in list(scope.vars.keys())
             and getattr(scope[name], "is_static", False)
             and type(scope[name]) != _Undefined
+            and expr
         ):
             start = expr["positions"]["start"]
             name_length = len(str(name))
@@ -320,9 +321,32 @@ class Executor:
                 },
             )
         else:
+            value = pyToAdk(value)
+            if (
+                self.is_strict
+                and name in list(scope.vars.keys())
+                and type(scope[name]) != _Undefined
+                and type(scope[name]) != type(value)
+                and expr
+            ):
+                start = expr["positions"]["start"]
+                name_length = len(str(name))
+                self.errorhandler.throw(
+                    "Type",
+                    f"Cannot reassign a variable with a different type: {name}. Old type: {type(scope[name])}, New type: {type(value)}.",
+                    {
+                        "traceback": self.traceback,
+                        "lineno": start["line"],
+                        "marker": {"start": start["col"], "length": name_length},
+                        "underline": {
+                            "start": start["col"] - 2,
+                            "end": start["col"] + name_length,
+                        },
+                    },
+                )
             if getattr(scope[name], "is_static", None) == True:
                 is_static = True
-            scope[name] = pyToAdk(value)
+            scope[name] = value
             scope[name].is_static = is_static
 
     def makeFunct(self, expr, parent: Scope, is_macro=False):
@@ -359,7 +383,7 @@ class Executor:
                 #     notImplemented(self.errorhandler, "Type Checking", param)
                 functscope.vars[param["name"]] = arg
                 try:
-                    if self.is_strict or param.get("is_static", False):
+                    if param.get("is_static", False):
                         setattr(functscope.vars[param["name"]], "is_static", True)
                         # functscope.vars[param["name"]].is_static = True
                     else:

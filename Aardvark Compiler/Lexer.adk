@@ -176,9 +176,9 @@ class Lexer as this {
 
       # Indents
       else if this.isWhitespace() & this.empty & this.useIndents {
-        value = ''
-        start = this.pos()
-        startcolumn = this.position.column
+        let value = ''
+        let start = this.pos()
+        let startcolumn = this.position.column
         while this.isWhitespace() & !this.AtEnd {
           value = value + this.current_character
           this.advance()
@@ -300,8 +300,8 @@ class Lexer as this {
 
       # Multiline comments
       else if this.detect('#*') {
-        value = ''
-        start = this.pos()
+        let value = ''
+        let start = this.pos()
         while !this.detect('*#') & !this.AtEnd {
             value = value + this.current_character
             if this.current_character == '\n' this.newline()
@@ -313,8 +313,8 @@ class Lexer as this {
 
       # Single line comments
       else if this.current_character == '#' {
-        value = ''
-        start = this.pos()
+        let value = ''
+        let start = this.pos()
         while this.current_character != '\n' & !this.AtEnd {
           value = value + this.current_character
           this.advance()
