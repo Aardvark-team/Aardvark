@@ -578,15 +578,20 @@ class Executor:
                 return self.ExecExpr(expr["right"], scope) if expr["right"] else Null
             else:
                 return left
-            # return Operators["?"](
-            #     left,
-            #     right,
-            #     self.errorhandler,
-            #     self.codelines[expr["positions"]["start"]["line"] - 1],
-            #     expr,
-            #     scope,
-            #     self,
-            # )
+        elif expr["type"] == "Operator" and expr["operator"] == "?=":
+            left = self.ExecExpr(expr["left"], scope, False)
+            if left == Null:
+                return pyToAdk(
+                    Operators["="](
+                        expr["left"],
+                        expr["right"],
+                        self.errorhandler,
+                        self.codelines[expr["positions"]["start"]["line"] - 1],
+                        expr,
+                        scope,
+                        self,
+                    )
+                )
         elif expr["type"] == "Operator":
             operator = expr["operator"]
             if operator in Operators:

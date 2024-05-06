@@ -35,6 +35,7 @@ PureOperators = {
     "/=",
     "^=",
     "%=",
+    "?=",
     "++",
     "--",
     "!",  # not
@@ -48,12 +49,12 @@ PureOperators = {
     "~=",  # about equal to
     "&",  # and
     "|",  # or
-    "x|",  # xor (exculsive or)
+    "x|",  # xor (exclusive or)
     "+",  # add
     "-",  # subtract
     "/",  # divide
     "*",  # multiplication
-    "^",  # exponet
+    "^",  # exponent
     "%",  # mod
     "@",  # at. reference
     "?",  # x.y? will be null if x.y doesn't exist or if it is null
@@ -69,7 +70,7 @@ PureOperators = {
 Operators = PureOperators | {
     "not",  # not operator
     "and",  # and operator
-    "or",  # or operATOR
+    "or",  # or operator
     "xor",  # XOR
     "in",
 }
@@ -80,7 +81,7 @@ OrderOfOps = {
     3: ["*", "/"],
     4: ["-"],
     5: ["-", "+", "%"],
-    6: ["++", "--", "=", "+=", "-=", "*=", "/=", "^=", "%="],
+    6: ["++", "--", "=", "+=", "-=", "*=", "/=", "^=", "%=", "?="],
     7: ["~=", "<", ">", "<=", ">=", "!=", "in", "=="],
     8: ["&", "|", "x|", "and", "or", "xor", "->"],
 }
