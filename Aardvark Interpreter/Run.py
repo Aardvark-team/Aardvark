@@ -120,6 +120,9 @@ def run(
         if "Unexpected EOF." in error and bypass_eof:
             raise e
         print(e.output, file=sys.stderr)
+    except KeyboardInterrupt:
+        print("\n\x1b[31;1mInterrupted.\x1b[0m", file=sys.stderr)
+        exit(1)
     return {"return": ret, "Global": Global, "error": error}
 
 
