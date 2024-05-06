@@ -110,17 +110,12 @@ class Lexer as this {
     let character = char ? this.current_character
     return !(this.isWhitespace(character) | this.isDelimiter(character) | this.isNewline(character) | character == '#' | character in SymbolOperators)
   }
-  function detect(text) {
-    if this.current_character == text.0 {
-        for i in sequence(1, 1, text.length - 1) {
-            if this.peek(i) != text.(i) | i > this.data.length return false;
-        }
-    } else return false;
-    return true
-  }
+  function detect(text)
+    text == this.data.slice(this.position.index, this.position.index + text.length)
+  
   function newline() {
     this.empty = true
-    this.position.line += 1
+    this.position.line++
     this.position.column = 1
   }
   function advance(amt = 1) {
@@ -180,7 +175,7 @@ class Lexer as this {
         let start = this.pos()
         let startcolumn = this.position.column
         while this.isWhitespace() & !this.AtEnd {
-          value = value + this.current_character
+          value += this.current_character
           this.advance()
         }
         if !this.isNewline() {
@@ -303,7 +298,7 @@ class Lexer as this {
         let value = ''
         let start = this.pos()
         while !this.detect('*#') & !this.AtEnd {
-            value = value + this.current_character
+            value += this.current_character
             if this.current_character == '\n' this.newline()
             this.advance()
         }
@@ -316,7 +311,7 @@ class Lexer as this {
         let value = ''
         let start = this.pos()
         while this.current_character != '\n' & !this.AtEnd {
-          value = value + this.current_character
+          value += this.current_character
           this.advance()
         }
         this.advance(-1)
@@ -413,7 +408,7 @@ class Lexer as this {
           else {
             if (this.current_character == '\\') backslash = true
             else if this.current_character == variation break
-            else value = value + this.current_character
+            else value += this.current_character
           }
         }
         this.addToken('String', start, this.pos(), value, variation, insertions)

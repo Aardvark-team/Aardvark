@@ -43,7 +43,9 @@ let SymbolOperators = [
   "$=",  # Structural Pattern Matching
   "...", # Spread
   "@=",  # Is the same reference
-  "?=",
+  "?=",  # Assign if null
+  "=>",
+  "=<",
   ">>=",
   ">>",
   "<<",
@@ -60,6 +62,8 @@ let KeywordOperators = [
   "or",  # or
   "xor", # xor
   "in",  # in
+  "references",
+  "is",
 ]
 let Operators = SymbolOperators + KeywordOperators
 
@@ -113,30 +117,32 @@ let Parenthesis = {
 
 let Keywords = [
     'class',
-    'extends',
-    # 'type',
-    'extending',
-    'function',
+    'extends', # ? use from
+    'extending', # ? use let
+    'function', # ? use let
     'for',
     'while',
     'match',
-    'case',
+    'case', # ? use if?????
     'if',
-    'else',  # Blocks
+    'else',
     'return',
     'static',
     'include',
     'await',
     'yield',
-    'let', # Statements
-    'as',
-    'from', # other
-    'defer',
-    "layout",
+    'let',
+    'as', # ? use =
+    'from',
+    'defer', # ? not essential
+    "layout", # ? layout keyword not needed
     "break",
     "continue",
-    "private",
-    "macro"
+    "private", # ? nothing needs to be private
+    "embed",
+    "macro", # ? merge with embeds
+    "with",
+    "construct"
 ]
 let BaseNumsOrder = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVQXYZ"
 let lowercase_characters = "abcdefghijklmnopqrstuvwxyz"
