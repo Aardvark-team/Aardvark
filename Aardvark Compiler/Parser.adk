@@ -53,9 +53,7 @@ static class Parser as this {
                     length: 1 + position.end.column - position.start.column
                 }
             }
-            if !(options.lineno? | options.line_number? | options.linestart?) {
-                options.line_number = position.start.line
-            }
+            options.line_number ?= options.lineno?(options.linestart?position.start.line)
             this.error_handler.Throw(type, message, options, note, kill)
         }
         let error = ADK_Error(this.error_handler, {
@@ -165,13 +163,26 @@ static class Parser as this {
         
         if this.compare("String")
            ast_node = this.parse_string()
-        else if this.maybe_eat("Number")
+        
+        else if this.maybe_eat("Number") {
+            let multiplied_by = this.parse_primary(require=false, exclude=["Keyword", "Object", "Array"])
             ast_node = {
                 type: "NumberLiteral",
                 value: current_token.value,
                 base: current_token.variation,
                 position: current_token.position,
             }
+            if (multiplied_by?)
+                ast_node = {
+                    type: "Multiply",
+                    left: ast_node,
+                    right: multiplied_by,
+                    position: {
+                        start: ast_node.position.start,
+                        end: multiplied_by.position.end
+                    }
+                }
+        }
         else if this.maybe_eat("Boolean")
             ast_node = {
                 type: "BooleanLiteral",
@@ -194,8 +205,6 @@ static class Parser as this {
             ast_node = CHECK(this.parse_object(is_structural_pattern=is_structural_pattern))
         else if this.compare('Delimiter', '[') & !exclude.contains('Array')
             ast_node = CHECK(this.parse_array(is_deconstruction, is_structural_pattern=is_structural_pattern))
-        else if this.compare("Keyword", "set") & this.compare("Delimiter", "{", 1)
-            ast_node = CHECK(this.parse_set(is_structural_pattern=is_structural_pattern))
         
         # Variables
         else if !exclude.contains('VariableAccess') & this.maybe_eat("Identifier")
@@ -212,7 +221,7 @@ static class Parser as this {
             this.eat('Delimiter', ')')
         }
         # Statements that return a value?????
-        else if this.compare('Keyword')
+        else if this.compare('Keyword') & !exclude.contains('Keyword')
         match this.peek().value {
             case 'static' {
                 let next_token = this.peek(1)
@@ -264,19 +273,6 @@ static class Parser as this {
         while ast_node?false {
             if eat_line_breaks
                 this.eat_line_breaks()
-            # side-by-side multiply (i.e. 2x)
-            if this.compare("Identifier") & this.peek().position.start.column == ast_node.position.end.column + 1 {
-                let token = this.eat()
-                ast_node = {
-                    type: "Multiply",
-                    value: ast_node,
-                    variable: token.value,
-                    position: {
-                        start: ast_node.position.start,
-                        end: token.position.end
-                    }
-                }
-            }
             # Function calls
             if this.compare("Delimiter", '(') & this.peek().position.start.column == ast_node.position.end.column + 1 & !exclude.contains('FunctionCall') {
                 ast_node = CHECK(this.parse_function_call(ast_node))
@@ -285,7 +281,7 @@ static class Parser as this {
             # Property access
             if this.compare('Delimiter', '.') {
                 ast_node = CHECK(this.parse_property_access(ast_node))
-                continue;
+                continue
             }
 
             # Tell the user that x[] should be x.()
@@ -800,9 +796,8 @@ static class Parser as this {
     function parse_assignment() {
         let let_keyword = CHECK(this.eat("Keyword", "let"))
         let is_embed_assignment = false
-        if this.maybe_eat("Operator", "%") {
+        if this.maybe_eat("Operator", "%")
             is_embed_assignment = true
-        }
         assignments = []
         while true {
             if assignments.length > 0
@@ -837,9 +832,9 @@ static class Parser as this {
                     break
                 CHECK(this.eat("Operator", "="))
             }
-            if !(value?) & variables.length > 1 {
+            if !(value?) & variables.length > 1
                 return this.Throw("AssignmentError", "No Value was given", position=variables.(-1).position)
-            }
+
             assignments.add({
                 type: "Assignment",
                 variables,
@@ -1162,9 +1157,8 @@ static class Parser as this {
                     if !is_valid_variable_definition(thing)
                         return this.Throw("SyntaxError", "Expected 'Identifier' or 'String'.", position=thing.position, here_message="That is not a library name, at least not one that the compiler can recognize.")
                 }
-                if this.maybe_eat("Keyword", "as") {
+                if this.maybe_eat("Keyword", "as")
                     name = CHECK(this.eat("Identifier"))
-                }
                 if this.maybe_eat("Keyword", "from") {
                     if (global_origin?) {
                         let cause = this.peek(1)?this.peek()
@@ -1271,13 +1265,12 @@ static class Parser as this {
                     end: body.position.end
                 }
             }
-        } else if this.compare("Delimiter", "(") {
+        } else if this.compare("Delimiter", "(")
             extension = CHECK(this.parse_function_definition("extending", is_static))
-        } else if this.compare("Delimiter", "[") {
+        else if this.compare("Delimiter", "[")
             extension = CHECK(this.parse_array())
-        } else {
+        else
             extension = CHECK(this.parse_statement_or_scope_body())
-        }
 
 
         return {
