@@ -1780,7 +1780,7 @@ class Parser:
         }
 
     def pMacroDefinition(self):
-        macro_keyword = self.eat("Keyword", "macro")
+        construct_keyword = self.eat("Keyword", "construct")
         name = self.eat("Identifier")
         parameters = []
         if self.compare("Delimiter", "("):
@@ -1866,7 +1866,7 @@ class Parser:
             "parameters": parameters,
             "body": body,
             "positions": {
-                "start": macro_keyword.start,
+                "start": construct_keyword.start,
                 "end": lasti,
             },
         }
@@ -1987,7 +1987,7 @@ class Parser:
                     "end": funct["positions"]["end"],
                 },
             }
-        if self.compare("Keyword", "macro"):
+        if self.compare("Keyword", "construct"):
             return self.pMacroDefinition()
 
         return self.pExpression(require=require, eatLBs=eatLBs)
