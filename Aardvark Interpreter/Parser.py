@@ -369,22 +369,43 @@ class Parser:
                 },
             }
 
-        if tok.type in [TokenTypes["String"], TokenTypes["Number"]]:
+        if tok.type == TokenTypes["String"]:
             self.eat(tok.type)
-
-            value = tok.value
-            if tok.type == TokenTypes["Number"]:
-                if "." in tok.value:
-                    value = float(value)
-                else:
-                    value = int(value)
             ast_node = {
                 # StringLiteral, NumberLiteral, etc...
                 "type": tok.type.name + "Literal",
+                "value": tok.value,
+                "positions": {"start": tok.start, "end": tok.end},
+                "tokens": {"value": tok},
+            }
+
+        elif tok.type == TokenTypes["Number"]:
+            self.eat(tok.type)
+            value = tok.value
+            if "." in tok.value:
+                value = float(value)
+            else:
+                value = int(value)
+            ast_node = {
+                "type": "NumberLiteral",
                 "value": value,
                 "positions": {"start": tok.start, "end": tok.end},
                 "tokens": {"value": tok},
             }
+            if (
+                self.compare("Identifier")
+                and self.peek().start["col"] == ast_node["positions"]["end"]["col"] + 1
+            ):
+                value = self.pExpression(2, True)
+                ast_node = {
+                    "type": "Multiply",
+                    "number": ast_node,
+                    "value": value,
+                    "positions": {
+                        "start": ast_node["positions"]["start"],
+                        "end": value["positions"]["end"],
+                    },
+                }
 
         elif tok.type == TokenTypes["Boolean"]:
             self.eat(tok.type)
@@ -447,24 +468,6 @@ class Parser:
         while ast_node:
             if eatLBs:
                 self.eatLBs()
-            # 5x, number-var mult
-            if (
-                self.compare("Identifier")
-                and self.peek().start["col"] == ast_node["positions"]["end"]["col"] + 1
-            ):
-                var = self.eat(TokenTypes["Identifier"])
-                ast_node = {
-                    "type": "Multiply",
-                    "number": ast_node,
-                    "variable": var.value,
-                    "positions": {
-                        "start": ast_node["positions"]["start"],
-                        "end": var.end,
-                    },
-                    "tokens": {
-                        "variable": var,
-                    },
-                }
             while self.compare(TokenTypes["Delimiter"], "."):
                 if eatLBs:
                     self.eatLBs()

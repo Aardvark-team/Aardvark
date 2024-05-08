@@ -830,8 +830,8 @@ class Executor:
             return scope._returned_value
         elif expr["type"] == "Multiply":
             # for (num)x mult
-            return self.ExecExpr(expr["number"], scope) * self.getVar(
-                scope, expr["variable"], expr["tokens"]["variable"].start
+            return self.ExecExpr(expr["number"], scope) * self.ExecExpr(
+                expr["value"], scope
             )
         elif expr["type"] == "Index":
             try:

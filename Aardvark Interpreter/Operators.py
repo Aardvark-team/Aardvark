@@ -350,6 +350,22 @@ def logicalxor(
     return (x or y) and not (x and y)
 
 
+@operator("^", left=True, right=True)
+def power(
+    x, y, errorhandler: "ErrorHandler", line: str, ast, scope: Scope, exec: "Executor"
+):
+    if x == Null:
+        return missingOperand(
+            True, errorhandler, line, ast, f"<{str(type(y or 0).__name__)}>"
+        )
+    if y == Null:
+        return missingOperand(
+            False, errorhandler, line, ast, f"<{str(type(y or 0).__name__)}>"
+        )
+    # TODO: add if y and x equal none
+    return x**y
+
+
 @operator("in", left=True, right=True)
 def inop(
     x, y, errorhandler: "ErrorHandler", line: str, ast, scope: Scope, exec: "Executor"
