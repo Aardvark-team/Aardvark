@@ -1046,48 +1046,11 @@ class Parser:
                 starter = return_type["positions"]["start"]
         self.eatLBs()
         inline = None
-        if assignment:
-            if self.compare("Operator", "="):
-                self.eat("Operator")
-                inline = True
-                body = self.pStatement(require=True)
-                lasti = body["positions"]["end"]
-            elif self.compare("Operator", "=>"):
-                self.eat("Operator")
-                body, lasti = self.eatBlockScope()
-                inline = False
-            else:
-                return self.err_handler.throw(
-                    "Syntax",
-                    "Expected `=` or `=>`",
-                    {
-                        "lineno": (
-                            self.peek().start["line"]
-                            if self.peek()
-                            else self.peek(-1).start["line"]
-                        ),
-                        "marker": {
-                            "start": (
-                                self.peek().start["col"]
-                                if self.peek()
-                                else self.peek(-1).start["col"]
-                            ),
-                            "length": 1,
-                        },
-                        "underline": {
-                            "start": (
-                                self.peek().start["col"]
-                                if self.peek()
-                                else self.peek(-1).start["col"]
-                            ),
-                            "end": (
-                                self.peek().end["col"]
-                                if self.peek()
-                                else self.peek(-1).end["col"]
-                            ),
-                        },
-                    },
-                )
+        if assignment and self.compare("Operator", "="):
+            self.eat("Operator")
+            inline = True
+            body = self.pStatement(require=True)
+            lasti = body["positions"]["end"]
         else:
             if self.compare("Delimiter", "{"):
                 old = self.pos
