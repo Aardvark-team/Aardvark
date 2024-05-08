@@ -165,7 +165,7 @@ static class Parser as this {
            ast_node = this.parse_string()
         
         else if this.maybe_eat("Number") {
-            let multiplied_by = this.parse_primary(require=false, exclude=["Keyword", "Object", "Array"])
+            let multiplied_by = this.parse_expression(2, require=false, exclude=["Keyword", "Object", "Array"])
             ast_node = {
                 type: "NumberLiteral",
                 value: current_token.value,

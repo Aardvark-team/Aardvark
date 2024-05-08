@@ -328,6 +328,32 @@ class _Null(Type):
         return super().__setattr__(name, value)
 
 
+def create_aardvark_generator(value):
+    # Returns a function that yields the next value on every call.
+    iterator = iter(value)
+    cache = []
+    index = -1
+
+    def generator():
+        nonlocal index
+        index += 1
+        try:
+            cache.append(next(iterator))
+        except StopIteration:
+            aardvark_generator.vars["has_ended"] = True
+        if index < len(cache):
+            try:
+                cache.append(next(iterator))
+            except StopIteration:
+                aardvark_generator.vars["has_ended"] = True
+        return cache[index]
+
+    aardvark_generator = Function(generator)
+    aardvark_generator.vars["has_ended"] = False
+
+    return generator
+
+
 class String(str, Type):
     vars = {
         "from_ordinal": chr,
@@ -383,6 +409,9 @@ class String(str, Type):
 
     def __str__(self):
         return super().__str__()
+
+    def __call__(self):
+        return create_aardvark_generator(self)
 
 
 class Number(Type):
@@ -710,6 +739,9 @@ class Array(Type, list):
     def __getitem__(self, name):
         return self.get(name, Null)
 
+    def __call__(self):
+        return create_aardvark_generator(self)
+
 
 class Set(Type, list):
     vars = {}
@@ -777,6 +809,9 @@ class Set(Type, list):
             s += str(i) + ", "
         s = s[:-2]
         return f"set{{{s}}}"
+
+    def __call__(self):
+        return create_aardvark_generator(self)
 
 
 class File(Type):
