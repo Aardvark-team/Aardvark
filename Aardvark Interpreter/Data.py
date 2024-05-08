@@ -190,7 +190,11 @@ Keywords = {
     "with",
     "embed",
     "structure",
+    "template",
     "loop",
+    "lambda",
+    "option",
+    "expose",
 }
 
 # https://replit.com/@Programit/Redesign

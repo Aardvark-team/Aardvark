@@ -369,6 +369,9 @@ class Parser:
                 },
             }
 
+        elif self.compare("Keyword", "lambda") and self.compare("Delimiter", "(", 1):
+            self.eat("Keyword", "lambda")
+            ast_node = self.pFunctionDefinition(assignment=True, anonymous=True)
         if tok.type == TokenTypes["String"]:
             self.eat(tok.type)
             ast_node = {
@@ -937,12 +940,12 @@ class Parser:
     # pFunctionDefinition:
     # 	function [identifier] ( [identifier] [identifier] ( , [identifier] [identifier] ) )
 
-    def pFunctionDefinition(self, special=False, assignment=False):
+    def pFunctionDefinition(self, special=False, assignment=False, anonymous=False):
         starter = None
         name = None
         parameters = []
         is_static = False
-        if not (special or assignment):
+        if not (special or assignment) and not anonymous:
             if self.compare("Keyword", "static"):
                 starter = self.eat("Keyword", "static").start
                 self.eat(TokenTypes["Keyword"], "function")
