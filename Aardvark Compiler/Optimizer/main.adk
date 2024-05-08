@@ -27,7 +27,7 @@ class Optimizer as this {
             return node
         }
         match node {
-            case {"type": "Program"} {
+            case {"type": "ScopeBody"} {
                 let global_scope = ObjectValue({
                     Function: FunctionValue,
                     Object: ObjectValue,
@@ -36,7 +36,7 @@ class Optimizer as this {
                     Type: TypeType,
                     Array: ArrayType
                 })
-                for statement in node.body {
+                for statement in node.statements {
                     let x = optimize(statement, global_scope)
                     if type_of(x) == ADK_Error {
                         return [x]
@@ -102,13 +102,14 @@ if
 if is_main {
     include Lexer from "../Lexer"
 
-    let code = "let (Function | Object) x = 5"
+    let code = "let Function x = 5"
     let lexer = Lexer(false, false)
     let tokens = lexer.tokenize(code)
     let error_handler = ErrorHandler(code, tokens, '<main>')
     error_handler.tokens = tokens
     let parser = Parser(code, tokens, error_handler)
     let AST = parser.parse()
+    stdout.log(AST)
     for error in lexer.error_stack + parser.error_stack {
         if type_of(error) != ADK_Error 
             error = ADK_Error(error_handler, error)

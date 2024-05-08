@@ -44,6 +44,12 @@ let SymbolOperators = [
   "...", # Spread
   "@=",  # Is the same reference
   "?=",  # Assign if null
+  "+=",
+  "-=",
+  "*=",
+  "/=",
+  "^=",
+  "%=",
   "=>",
   "=<",
   ">>=",

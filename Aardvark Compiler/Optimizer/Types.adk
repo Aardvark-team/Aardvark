@@ -66,7 +66,7 @@ static class ValuePossibility as this {
 static class Identifier as this {
     let value_possibilities = []
     get type_possibilities {
-        return this.value_possibilities.map(x => type_of(x.value))
+        return this.value_possibilities.map(function(x) type_of(x.value))
     }
     $constructor((ValuePossibility | Array) value_possibilities) {
         if type_of(value_possibilities) == Array

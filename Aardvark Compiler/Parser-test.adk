@@ -1,7 +1,6 @@
 from Parser include Parser
 from Lexer include Lexer, Token
 from Errors include ADK_Error, ErrorHandler
-
 function prettify_ast(ast, indent=0) {
     if type_of(ast) == String
         return $'"{ast}"'
@@ -203,7 +202,7 @@ function test(String code, String filename="<main>") {
     lexer_time += time.time() - lexer_start
     let error_handler = ErrorHandler(code, tokens, filename)
     error_handler.tokens = tokens
-    # stdout.write(tokens, '\n')
+    # stdout.log("Lexed")
     let parser_start = time.time()
     let parser = Parser(code, tokens, error_handler, store_errors=true)
     let AST = parser.parse()
@@ -258,8 +257,6 @@ function parse_file(String filename) {
 
 # test(error_tests.unsupported_number_base, "unsupported_number_base.adk")
 if is_main {
-    let i = 0
-    while ++i < 5
     for test_name:code in parser_tests {
         let passed = test(code, test_name+".adk")
         if passed

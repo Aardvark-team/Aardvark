@@ -441,6 +441,9 @@ class Parser:
         elif tok.type == TokenTypes["Keyword"] and tok.value == "class":
             ast_node = self.pClassDefinition()
 
+        # elif self.compare("Keyword", "structure"):
+        #     ast_node = self.pStructureDefinition()
+
         while ast_node:
             if eatLBs:
                 self.eatLBs()
@@ -622,6 +625,17 @@ class Parser:
                     },
                 }
                 continue  # Check for others
+            # if self.compare("Delimiter", "{"):
+            #     body, lasti = self.eatBlockScope()
+            #     ast_node = {
+            #         "type": "StructureInit",
+            #         "body": body,
+            #         "value": ast_node,
+            #         "positions": {
+            #             "start": ast_node["positions"]["start"],
+            #             "end": lasti,
+            #         },
+            #     }
             # Function calls
             if (
                 self.compare(TokenTypes["Delimiter"], "(")
@@ -920,12 +934,12 @@ class Parser:
     # pFunctionDefinition:
     # 	function [identifier] ( [identifier] [identifier] ( , [identifier] [identifier] ) )
 
-    def pFunctionDefinition(self, special=False):
+    def pFunctionDefinition(self, special=False, assignment=False):
         starter = None
         name = None
         parameters = []
         is_static = False
-        if not special:
+        if not (special or assignment):
             if self.compare("Keyword", "static"):
                 starter = self.eat("Keyword", "static").start
                 self.eat(TokenTypes["Keyword"], "function")
@@ -1022,27 +1036,70 @@ class Parser:
                 starter = tok.start
 
         return_type = None
-        if self.compare("Operator"):
+        if self.compare("Operator", "->"):
             self.eat(TokenTypes["Operator"], "->")
             return_type = self.pExpression()
             if not starter:
                 starter = return_type["positions"]["start"]
         self.eatLBs()
         inline = None
-        if self.compare("Delimiter", "{"):
-            old = self.pos
-            inline = True
-            body = self.pObject(True)
-            if body == False:
-                self.pos = old
+        if assignment:
+            if self.compare("Operator", "="):
+                self.eat("Operator")
+                inline = True
+                body = self.pStatement(require=True)
+                lasti = body["positions"]["end"]
+            elif self.compare("Operator", "=>"):
+                self.eat("Operator")
                 body, lasti = self.eatBlockScope()
                 inline = False
             else:
-                lasti = body["positions"]["end"]
+                return self.err_handler.throw(
+                    "Syntax",
+                    "Expected `=` or `=>`",
+                    {
+                        "lineno": (
+                            self.peek().start["line"]
+                            if self.peek()
+                            else self.peek(-1).start["line"]
+                        ),
+                        "marker": {
+                            "start": (
+                                self.peek().start["col"]
+                                if self.peek()
+                                else self.peek(-1).start["col"]
+                            ),
+                            "length": 1,
+                        },
+                        "underline": {
+                            "start": (
+                                self.peek().start["col"]
+                                if self.peek()
+                                else self.peek(-1).start["col"]
+                            ),
+                            "end": (
+                                self.peek().end["col"]
+                                if self.peek()
+                                else self.peek(-1).end["col"]
+                            ),
+                        },
+                    },
+                )
         else:
-            body = self.pStatement(require=True)
-            lasti = body["positions"]["end"]
-            inline = True
+            if self.compare("Delimiter", "{"):
+                old = self.pos
+                inline = True
+                body = self.pObject(True)
+                if body == False:
+                    self.pos = old
+                    body, lasti = self.eatBlockScope()
+                    inline = False
+                else:
+                    lasti = body["positions"]["end"]
+            else:
+                body = self.pStatement(require=True)
+                lasti = body["positions"]["end"]
+                inline = True
 
             # self.pyError = {"type": "Unexpected token", "token_value": [":", "$", ","]}
             # try:
@@ -1316,6 +1373,16 @@ class Parser:
                 "start": starter.start,
                 "end": lasti,
             },
+        }
+
+    def pStructure(self):
+        starter = self.eat("Keyword", "structure")
+        body, lasti = self.eatBlockScope()
+
+        return {
+            "type": "StructureDefinition",
+            "body": body,
+            "positions": {"start": starter.start, "end": lasti},
         }
 
     # IncludeStatement:
@@ -1612,14 +1679,24 @@ class Parser:
         }
 
     def pAssignment(self):
-        letkw = self.eat("Keyword", "let")
+        letkw = None
+        if self.compare("Keyword", "let"):
+            letkw = self.eat("Keyword", "let")
+        elif not self.compare("Keyword", "mutable"):
+            raise SyntaxError("Expected 'let' or 'mutable'")
         assignments = []
         while True:
             is_static = False
             is_private = False
+            is_mutable = False
             var_type = None
             var_name = None
             value = None
+            if self.compare("Keyword", "mutable"):
+                tok = self.eat("Keyword")
+                is_mutable = True
+                if not letkw:
+                    letkw = tok
             if self.compare("Keyword", "static"):
                 self.eat("Keyword")
                 is_static = True
@@ -1652,6 +1729,9 @@ class Parser:
                     var_name = temp
             if not var_name and self.compare("Identifier"):
                 var_name = self.eat("Identifier")
+            if self.compare("Delimiter", "("):
+                self.pos -= 1
+                return self.pFunctionDefinition(assignment=True)
             if self.compare("Operator", "?"):
                 op = self.eat("Operator", "?")
                 var_type = {
@@ -1677,6 +1757,7 @@ class Parser:
                 {
                     "is_static": is_static,
                     "is_private": is_private,
+                    "is_mutable": is_mutable,
                     "var_type": var_type,
                     "var_name": var_name.value,
                     "value": value,
@@ -1795,7 +1876,24 @@ class Parser:
 
     def pStatement(self, require=False, eatLBs=False):
         self.eatLBs()
-
+        # if self.compare("Keyword", "loop"):
+        #     begin = self.eat("Keyword", "loop")
+        #     if self.compare("Delimiter", "{"):
+        #         body, lasti = self.eatBlockScope()
+        #         inline = False
+        #     else:
+        #         body = self.pStatement(require=True)
+        #         lasti = body["positions"]["end"]
+        #         inline = True
+        #     return {
+        #         "type": "Loop",
+        #         "body": body,
+        #         "inline": inline,
+        #         "positions": {
+        #             "start": begin.start,
+        #             "end": lasti,
+        #         },
+        #     }
         if self.compare("Keyword", "try"):
             return self.pTryCatch()
         if self.compare("Keyword", "throw"):
@@ -1838,6 +1936,9 @@ class Parser:
         if self.compare("Keyword", "class"):
             return self.pClassDefinition()
 
+        # if self.compare("Keyword", "structure"):
+        #     return self.pStructureDefinition()
+
         if self.compare("Keyword", "match"):
             return self.pSwitchCase()
         if self.compare("Keyword", "switch"):
@@ -1871,7 +1972,7 @@ class Parser:
                     "underline": {"start": 0, "end": e.end["col"] + 5},
                 },
             )
-        if self.compare("Keyword", "let"):
+        if self.compare("Keyword", "let") or self.compare("Keyword", "mutable"):
             return self.pAssignment()
 
         if self.compare("Keyword", "get") or self.compare("Keyword", "set"):

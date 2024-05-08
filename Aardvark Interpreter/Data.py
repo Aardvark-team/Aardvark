@@ -29,27 +29,17 @@ NotIncluded = "`'\"~!@#$%^&*()-+=[]{}\\|:;,<.>/?"
 
 PureOperators = {
     "=",  # equals
-    "+=",
-    "-=",
-    "*=",
-    "/=",
-    "^=",
-    "%=",
-    "?=",
-    "++",
-    "--",
-    "!",  # not
+    "!",  # not,
     "~",  # about
     "<",  # less than
     ">",  # more than
-    "==",
+    "==",  # equals
     "<=",  # less than or equal to
     ">=",  # more than or equal to
     "!=",  # not equal to
     "~=",  # about equal to
     "&",  # and
     "|",  # or
-    "x|",  # xor (exclusive or)
     "+",  # add
     "-",  # subtract
     "/",  # divide
@@ -58,10 +48,31 @@ PureOperators = {
     "%",  # mod
     "@",  # at. reference
     "?",  # x.y? will be null if x.y doesn't exist or if it is null
-    "->",  # For defining a function return type
-    "...",
+    "->",  # Return Type,
+    "<-",
+    "++",  # Increment
+    "--",  # Decrement
+    "$=",  # Structural Pattern Matching
+    "...",  # Spread
+    "@=",  # Is the same reference
+    "?=",  # Assign if null
+    "+=",
+    "-=",
+    "*=",
+    "/=",
+    "^=",
+    "%=",
+    "=>",
+    "=<",
+    ">>=",
+    ">>",
+    "<<",
+    "<<=",
+    ">>>",
+    ">>>=",
+    "<<<",
+    "<<<=",
     "$",
-    # "<-",  #idk, we can use it for something maybe.
 }
 #!& should be valid, not and.
 #!| should be valid, not or.
@@ -75,15 +86,32 @@ Operators = PureOperators | {
     "in",
 }
 OrderOfOps = {
-    0: ["?"],
-    1: ["~", "!", "@", "..."],
+    0: ["...", "?"],
+    1: ["~", "!", "@"],
     2: ["^"],
     3: ["*", "/"],
     4: ["-"],
     5: ["-", "+", "%"],
     6: ["++", "--", "=", "+=", "-=", "*=", "/=", "^=", "%=", "?="],
-    7: ["~=", "<", ">", "<=", ">=", "!=", "in", "=="],
-    8: ["&", "|", "x|", "and", "or", "xor", "->"],
+    7: ["~=", "<", ">", "<=", ">=", "!=", "in", "==", "$="],
+    8: [
+        "&",
+        "|",
+        "x|",
+        "and",
+        "or",
+        "xor",
+        "->",
+        "<-",
+        ">>",
+        ">>=",
+        "<<",
+        "<<=",
+        ">>>",
+        ">>>=",
+        "<<<",
+        "<<<=",
+    ],
 }
 
 
@@ -157,6 +185,12 @@ Keywords = {
     "get",
     "set",
     "macro",
+    "mutable",
+    "construct",
+    "with",
+    "embed",
+    "structure",
+    "loop",
 }
 
 # https://replit.com/@Programit/Redesign

@@ -425,14 +425,6 @@ def assign(
     if var["type"] == "PropertyAccess":
         defscope = exec.enterScope(var["value"], scope, scope)
         var = exec.ExecExpr(var["property"], scope)
-        # if exec.is_strict:
-        #     exec.getVar(
-        #         defscope,
-        #         var,
-        #         x["positions"]["start"],
-        #         True,
-        #         'Undefined variable "{name}". Use `let` to declare a variable.',
-        #     )
         exec.defineVar(var, value, defscope, False, expr)
     elif var["type"] == "Index":
         defscope = exec.enterScope(var["value"], scope, scope)

@@ -697,6 +697,14 @@ class Executor:
                 if whilescope._completed and not whilescope._has_been_continued:
                     break
             return ret
+        elif expr["type"] == "Loop":
+            ret = []
+            while True:
+                loopscope = Scope({}, parent=scope, scope_type="loop")
+                ret.append(self.Exec(expr["body"], loopscope))
+                if loopscope._completed and not loopscope._has_been_continued:
+                    break
+            return ret
         elif expr["type"] == "ForLoop":
             iterable = self.ExecExpr(expr["iterable"], scope)
             ret = []
