@@ -324,14 +324,18 @@ def runLive(
 
     while True:
         file = "<main>"
-        if experimental:
-            text, input_history = highlighted_input(
-                ">>> ",
-                saved_scope if saved_scope else createGlobals(safe),
-                input_history,
-            )
-        else:
-            text = input(">>> ")
+        try:
+            if experimental:
+                text, input_history = highlighted_input(
+                    ">>> ",
+                    saved_scope if saved_scope else createGlobals(safe),
+                    input_history,
+                )
+            else:
+                text = input(">>> ")
+        except KeyboardInterrupt:
+            print("\n\x1b[31;1mInterrupted.\x1b[0m", file=sys.stderr)
+            exit(1)
         if debugmode:
             if text == "$clear":
                 print("\033[2J\033[H")
