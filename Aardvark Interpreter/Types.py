@@ -1,5 +1,6 @@
 import types
 import io
+import copy
 
 # import time
 import os
@@ -53,10 +54,10 @@ class Type:
         return self.set(name, value)
 
     def __getitem__(self, name):
-        if isinstance(self, type):
-            return self.get(self, name)
-        else:
-            return self.get(name)
+        # if isinstance(self, type):
+        #     return self.get(self, name)
+        # else:
+        return self.get(name)
 
 
 class Object(Type):
@@ -292,6 +293,7 @@ class Scope(Object):
 
 class _Undefined(Type):
     vars = {}
+    keys = {}
 
     def __repr__(self):
         return "null"
@@ -980,6 +982,68 @@ class Error(Type):
         return f"<{self.type}Error>"
 
 
+class Structure(Type):
+    def __init__(self, vars, template=None):
+        self.vars = vars
+        self.keys = list(vars.keys())
+        self.template = template
+
+    def getAll(self):
+        return self.keys
+
+    def set(self, name, value):
+        self.vars[name] = value
+        self.keys.append(name)
+
+    def __repr__(self):
+        return f"<structure from {self.template.name}>"
+
+
+class Template(Type):
+    def __init__(self, vars, name):
+        self.vars = vars
+        self.keys = list(vars.keys())
+        self.name = name
+
+    def __repr__(self):
+        return f"<Template {self.name}>"
+
+    def createStructure(self, args, kwargs):
+        vars = copy.copy(self.vars)
+        for i in range(len(args)):
+            vars[self.keys[i]] = args[i]
+        for k, v in kwargs.items():
+            vars[k] = v
+        return Structure(vars, self)
+
+    def getAll(self):
+        return self.keys
+
+    def set(self, name, value):
+        self.vars[name] = value
+        self.keys.append(name)
+
+
+class Option(Type):
+    def __init__(self, vars, name):
+        self.defaults = vars
+        self.vars = {}
+        for key, value in self.defaults.items():
+
+            def f(init_value=None, _key=key):
+                return init_value or self.defaults[_key]
+
+            self.vars[key] = Function(f)
+        self.keys = list(self.vars.keys())
+        self.name = name
+
+    def __repr__(self):
+        return f"<Option {self.name}>"
+
+    def getAll(self):
+        return self.keys
+
+
 # TODO: Add: Stream, Bitarray
 Null = _Null()
 
@@ -998,6 +1062,9 @@ Types = [
     Class,
     Error,
     _Undefined,
+    Template,
+    Structure,
+    Option,
 ]
 
 

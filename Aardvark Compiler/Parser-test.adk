@@ -1,7 +1,7 @@
 from Parser include Parser
 from Lexer include Lexer, Token
 from Errors include ADK_Error, ErrorHandler
-function prettify_ast(ast, indent=0) {
+let prettify_ast(ast, indent=0) {
     if type_of(ast) == String
         return $'"{ast}"'
     else if type_of(ast) == Number
@@ -34,7 +34,7 @@ function prettify_ast(ast, indent=0) {
 }
 # Comment out the ones we are not working on to save test time.
 let parser_tests = {
-    operator: "-x + y - 7*8?",
+    operator: "-x + y - 7*z?",
     expand_operator: "...x",
     simple_array: "[x, y, \"string\", 7, ...z]",
     simple_declaration: "let x",
@@ -85,8 +85,6 @@ let parser_tests = {
     from x include [a, b, c]
     from Data include OrderOfOps, Parenthesis",
     return_value: "return whatever()",
-    defer_something: "defer whatever()",
-    defer_block: "defer { whatever() }",
     break_test: "break",
     continue_test: "continue",
     for_loop: "for x in y z",

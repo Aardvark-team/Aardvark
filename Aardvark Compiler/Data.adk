@@ -122,33 +122,40 @@ let Parenthesis = {
 }
 
 let Keywords = [
-    'class',
-    'extends', # ? use from
-    'extending', # ? use let
-    'function', # ? use let
+    'class',     # Delete
+    'extends',   # Delete use from
+    'extending', # Delete use let
+    'function',  # Delete, use let
     'for',
     'while',
     'match',
-    'case', # ? use if?????
+    'case',      # ? use if?????
     'if',
     'else',
     'return',
-    'static',
+    'static',    # Delete, we have mutable
     'include',
     'await',
     'yield',
     'let',
-    'as', # ? use =
+    'as',        # Delete, use =
     'from',
-    'defer', # ? not essential
-    "layout", # ? layout keyword not needed
+    # 'defer',     # Delete, not essential
+    "layout",    # Delete
     "break",
     "continue",
-    "private", # ? nothing needs to be private
+    "private",   # Delete, we have expose
     "embed",
-    "macro", # ? merge with embeds
+    "macro",     # Delete
     "with",
-    "construct"
+    "construct",
+    "loop",      # NEW!!
+    "structure", # NEW!!
+    "template",  # NEW!!
+    "option",    # NEW!!
+    "mutable",   # NEW!!
+    "lambda",
+    "expose",
 ]
 let BaseNumsOrder = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVQXYZ"
 let lowercase_characters = "abcdefghijklmnopqrstuvwxyz"

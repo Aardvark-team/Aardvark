@@ -421,6 +421,16 @@ class Parser:
             }
 
         elif tok.type == TokenTypes["Delimiter"] and tok.value == "{":
+            if self.is_strict:
+                self.err_handler.throw(
+                    "Strict",
+                    "Objects are not allowed in strict mode.",
+                    {
+                        "lineno": tok.line,
+                        "marker": {"start": tok.start["col"], "length": 1},
+                        "underline": {"start": tok.start["col"], "end": tok.end["col"]},
+                    },
+                )
             ast_node = self.pObject()
 
         elif tok.type == TokenTypes["Delimiter"] and tok.value == "[":
@@ -450,6 +460,16 @@ class Parser:
             and self.peek(1).value == "("
             and self.peek(1).start["col"] == tok.end["col"] + 1
         ):
+            if self.is_strict:
+                self.err_handler.throw(
+                    "Strict",
+                    "Dynamic includes are not allowed in strict mode.",
+                    {
+                        "lineno": tok.line,
+                        "marker": {"start": tok.start["col"], "length": 7},
+                        "underline": {"start": tok.start["col"], "end": tok.end["col"]},
+                    },
+                )
             keyw = self.eat("Keyword")
             ast_node = self.pFunctionCall(
                 {
@@ -459,10 +479,39 @@ class Parser:
                 }
             )
 
+        elif self.compare("Keyword", "structure"):
+            ast_node = self.pStructure()
+
+        elif self.compare("Keyword", "template"):
+            ast_node = self.pTemplate()
+
+        elif self.compare("Keyword", "option"):
+            ast_node = self.pOption()
+
         elif tok.type == TokenTypes["Keyword"] and tok.value == "function":
+            if self.is_strict:
+                self.err_handler.throw(
+                    "Strict",
+                    "Functions declared with `function` are not allowed in strict mode. Declare your functions with `let f(x) { ... }`",
+                    {
+                        "lineno": tok.line,
+                        "marker": {"start": tok.start["col"], "length": 8},
+                        "underline": {"start": tok.start["col"], "end": tok.end["col"]},
+                    },
+                )
             ast_node = self.pFunctionDefinition()
 
         elif tok.type == TokenTypes["Keyword"] and tok.value == "class":
+            if self.is_strict:
+                self.err_handler.throw(
+                    "Strict",
+                    "Classes are depreciated and are not allowed in strict mode.",
+                    {
+                        "lineno": tok.line,
+                        "marker": {"start": tok.start["col"], "length": 4},
+                        "underline": {"start": tok.start["col"], "end": tok.end["col"]},
+                    },
+                )
             ast_node = self.pClassDefinition()
 
         # elif self.compare("Keyword", "structure"):
@@ -631,17 +680,10 @@ class Parser:
                     },
                 }
                 continue  # Check for others
-            # if self.compare("Delimiter", "{"):
-            #     body, lasti = self.eatBlockScope()
-            #     ast_node = {
-            #         "type": "StructureInit",
-            #         "body": body,
-            #         "value": ast_node,
-            #         "positions": {
-            #             "start": ast_node["positions"]["start"],
-            #             "end": lasti,
-            #         },
-            #     }
+            # Structure creation from template.
+            if self.compare("Delimiter", ":") and self.compare("Delimiter", "{", 1):
+                self.eat("Delimiter")
+                ast_node = self.pTemplateInit(ast_node)
             # Function calls
             if (
                 self.compare(TokenTypes["Delimiter"], "(")
@@ -1344,16 +1386,6 @@ class Parser:
             },
         }
 
-    def pStructure(self):
-        starter = self.eat("Keyword", "structure")
-        body, lasti = self.eatBlockScope()
-
-        return {
-            "type": "StructureDefinition",
-            "body": body,
-            "positions": {"start": starter.start, "end": lasti},
-        }
-
     # IncludeStatement:
     #     include [identifier/string]
     #     include [identifier/string] as [identifier]
@@ -1748,6 +1780,137 @@ class Parser:
             },
         }
 
+    def pStructure(self):
+        starter = self.eat("Keyword", "structure")
+        if self.compare("Keyword", "template"):
+            return self.pTemplate()
+        name = None
+        if self.compare("Identifier"):
+            name = self.eat("Identifier").value
+        self.eat("Delimiter", "{")
+        assignments = []
+        while not self.compare("Delimiter", "}") and self.peek():
+            if len(assignments) > 0 and self.peek(-1).type != TokenTypes["LineBreak"]:
+                self.eat("LineBreak")
+            self.eatLBs()
+            assignments.append(self.pAssignment())
+            self.eatLBs()
+
+        closer = self.eat("Delimiter", "}")
+        return {
+            "type": "Structure",
+            "name": name,
+            "assignments": assignments,
+            "positions": {"start": starter.start, "end": closer.end},
+        }
+
+    def pTemplate(self):
+        starter = self.eat("Keyword", "template")
+        name = None
+        if self.compare("Identifier"):
+            name = self.eat("Identifier").value
+        self.eat("Delimiter", "{")
+        assignments = []
+        while not self.compare("Delimiter", "}") and self.peek():
+            if len(assignments) > 0 and self.peek(-1).type != TokenTypes["LineBreak"]:
+                self.eat("LineBreak")
+            self.eatLBs()
+            assignments.append(self.pAssignment())
+            self.eatLBs()
+
+        closer = self.eat("Delimiter", "}")
+        return {
+            "type": "Template",
+            "name": name,
+            "assignments": assignments,
+            "positions": {"start": starter.start, "end": closer.end},
+        }
+
+    def pOption(self):
+        starter = self.eat("Keyword", "option")
+        name = None
+        if self.compare("Identifier"):
+            name = self.eat("Identifier").value
+        self.eat("Delimiter", "{")
+        assignments = []
+        while not self.compare("Delimiter", "}") and self.peek():
+            if len(assignments) > 0 and self.peek(-1).type != TokenTypes["LineBreak"]:
+                self.eat("LineBreak")
+            self.eatLBs()
+            assignments.append(self.pAssignment())
+            self.eatLBs()
+
+        closer = self.eat("Delimiter", "}")
+        return {
+            "type": "Option",
+            "name": name,
+            "assignments": assignments,
+            "positions": {"start": starter.start, "end": closer.end},
+        }
+
+    def pTemplateInit(self, ast_node):
+        starter = self.eat("Delimiter", "{")
+        arguments = []
+        keywordArguments = {}
+        while (
+            (self.compare("LineBreak") or self.compare("Delimiter", ","))
+            or (len(arguments) == 0 and len(keywordArguments) == 0)
+            and not self.compare("Delimiter", "}")
+        ):
+            self.eatLBs()
+            if self.compare("Delimiter", ","):
+                self.eat("Delimiter", ",")
+            self.eatLBs()
+            KorV = self.pExpression(eatLBs=True)
+            if KorV["type"] == "Operator" and KorV["operator"] == "=":
+                if not (KorV["left"] and KorV["left"]["type"] == "VariableAccess"):
+                    self.err_handler.throw(
+                        "Syntax",
+                        "Cannot use an expression as a key.",
+                        {
+                            "lineno": KorV["positions"]["start"]["line"],
+                            "marker": {
+                                "start": KorV["positions"]["start"]["col"],
+                                "length": KorV["positions"]["end"]["col"]
+                                - KorV["positions"]["start"]["col"],
+                            },
+                            "underline": {
+                                "start": KorV["positions"]["start"]["col"],
+                                "end": KorV["positions"]["end"]["col"],
+                            },
+                        },
+                    )
+                key = KorV["left"]["value"]
+                value = KorV["right"]
+                if key in keywordArguments:
+                    self.err_handler.throw(
+                        "Argument",
+                        "Duplicate keyword arguments.",
+                        {
+                            "lineno": KorV["positions"]["start"]["line"],
+                            "marker": {
+                                "start": KorV["positions"]["start"]["col"],
+                                "length": len(key),
+                            },
+                            "underline": {
+                                "start": KorV["positions"]["start"]["col"],
+                                "end": value["positions"]["end"]["col"],
+                            },
+                        },
+                    )
+                keywordArguments[key] = value
+            else:
+                arguments.append(KorV)
+        self.eatLBs()
+        closing = self.eat("Delimiter", "}")
+        return {
+            "type": "TemplateInit",
+            "template": ast_node,
+            "arguments": arguments,
+            "keywordArguments": keywordArguments,
+            "positions": {"start": starter.start, "end": closing.end},
+        }
+
     def pMacroDefinition(self):
         construct_keyword = self.eat("Keyword", "construct")
         name = self.eat("Identifier")
@@ -1864,18 +2027,73 @@ class Parser:
         #         },
         #     }
         if self.compare("Keyword", "try"):
+            if self.is_strict:
+                tok = self.peek()
+                self.err_handler.throw(
+                    "Strict",
+                    "try is not allowed in strict mode.",
+                    {
+                        "lineno": tok.line,
+                        "marker": {"start": tok.start["col"], "length": 4},
+                        "underline": {"start": tok.start["col"], "end": tok.end["col"]},
+                    },
+                )
             return self.pTryCatch()
         if self.compare("Keyword", "throw"):
+            if self.is_strict:
+                tok = self.peek()
+                self.err_handler.throw(
+                    "Strict",
+                    "throw is not allowed in strict mode.",
+                    {
+                        "lineno": tok.line,
+                        "marker": {"start": tok.start["col"], "length": 4},
+                        "underline": {"start": tok.start["col"], "end": tok.end["col"]},
+                    },
+                )
             return self.pThrow()
         if self.compare("Keyword", "static") and self.compare("Keyword", "function", 1):
+            if self.is_strict:
+                tok = self.peek(1)
+                self.err_handler.throw(
+                    "Strict",
+                    "Functions declared with `function` are not allowed in strict mode. Declare your functions with `let f(x) { ... }`",
+                    {
+                        "lineno": tok.line,
+                        "marker": {"start": tok.start["col"], "length": 8},
+                        "underline": {"start": tok.start["col"], "end": tok.end["col"]},
+                    },
+                )
             return self.pFunctionDefinition()
         if self.compare("Keyword", "function"):
+            if self.is_strict:
+                tok = self.peek()
+                self.err_handler.throw(
+                    "Strict",
+                    "Functions declared with `function` are not allowed in strict mode. Declare your functions with `let f(x) { ... }`",
+                    {
+                        "lineno": tok.line,
+                        "marker": {"start": tok.start["col"], "length": 8},
+                        "underline": {"start": tok.start["col"], "end": tok.end["col"]},
+                    },
+                )
             return self.pFunctionDefinition()
 
         if self.compare("Keyword", "return"):
             return self.pReturnStatement()
 
         if self.compare("Keyword", "defer"):
+            if self.is_strict:
+                tok = self.peek()
+                self.err_handler.throw(
+                    "Strict",
+                    "Defer is deprecated and not allowed in strict mode.",
+                    {
+                        "lineno": tok.line,
+                        "marker": {"start": tok.start["col"], "length": 8},
+                        "underline": {"start": tok.start["col"], "end": tok.end["col"]},
+                    },
+                )
             return self.pDeferStatement()
 
         if self.compare("Keyword", "if"):
@@ -1885,6 +2103,17 @@ class Parser:
             return self.pWhileLoop()
 
         if self.compare("Keyword", "delete"):
+            if self.is_strict:
+                tok = self.peek()
+                self.err_handler.throw(
+                    "Strict",
+                    "Delete is deprecated and not allowed in strict mode.",
+                    {
+                        "lineno": tok.line,
+                        "marker": {"start": tok.start["col"], "length": 8},
+                        "underline": {"start": tok.start["col"], "end": tok.end["col"]},
+                    },
+                )
             return self.pDelete()
 
         if self.compare("Keyword", "for"):
@@ -1897,12 +2126,45 @@ class Parser:
             return self.pIncludeStatement()
 
         if self.compare("Keyword", "extending"):
+            if self.is_strict:
+                tok = self.peek()
+                self.err_handler.throw(
+                    "Strict",
+                    "Extending is deprecated and not allowed in strict mode.",
+                    {
+                        "lineno": tok.line,
+                        "marker": {"start": tok.start["col"], "length": 8},
+                        "underline": {"start": tok.start["col"], "end": tok.end["col"]},
+                    },
+                )
             return self.pExtendingStatement()
 
         if self.compare("Keyword", "static") and self.compare("Keyword", "class", 1):
+            if self.is_strict:
+                tok = self.peek()
+                self.err_handler.throw(
+                    "Strict",
+                    "Classes are deprecated and not allowed in strict mode.",
+                    {
+                        "lineno": tok.line,
+                        "marker": {"start": tok.start["col"], "length": 8},
+                        "underline": {"start": tok.start["col"], "end": tok.end["col"]},
+                    },
+                )
             return self.pClassDefinition()
 
         if self.compare("Keyword", "class"):
+            if self.is_strict:
+                tok = self.peek()
+                self.err_handler.throw(
+                    "Strict",
+                    "Classes are deprecated and not allowed in strict mode.",
+                    {
+                        "lineno": tok.line,
+                        "marker": {"start": tok.start["col"], "length": 8},
+                        "underline": {"start": tok.start["col"], "end": tok.end["col"]},
+                    },
+                )
             return self.pClassDefinition()
 
         # if self.compare("Keyword", "structure"):

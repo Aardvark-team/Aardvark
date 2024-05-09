@@ -1,8 +1,10 @@
 from Data include OrderOfOps, Parenthesis
-include Token, Lexer from Lexer
-include ErrorHandler, ADK_Error from Errors
+from Lexer include Token, Lexer
+from Errors include ErrorHandler, ADK_Error
 
-macro CHECK(x) {
+
+
+construct CHECK(x) {
     (return x) if type_of(x) == ADK_Error else x
 }
 static class Parser as this {
@@ -10,7 +12,7 @@ static class Parser as this {
     let [...String] code_lines
     let [...Token] tokens
     let Number pos = 0
-    let [ErrorHandler, null] error_handler 
+    let error_handler 
     let store_errors = true # If false, errors will be thrown immediately.
     let error_stack = [] 
     let awaiting_match = [] # If an error occurs on a line with an opening (, [, or {, it will be stored here to prevent errors with unmatched parentheses.
@@ -24,11 +26,10 @@ static class Parser as this {
 
     #* Utility *#
     # Gets the token `n` after the current token.
-    function peek(n=0)
-        return this.tokens.(this.pos + n) if (this.pos + n < this.tokens.length) else null
+    let peek(n=0) = this.tokens.(this.pos + n) if (this.pos + n < this.tokens.length) else null
     
     # Compare the next token with type, value
-    function compare(token_type="any", value?, n=0) {
+    let compare(token_type="any", value?, n=0) {
         if this.is_EOF() return false
         let current_token = this.peek(n)
         if current_token & (token_type == "any" | current_token.type == token_type) & (value == null | value == current_token.value)
@@ -37,10 +38,10 @@ static class Parser as this {
     }
 
     # Advance to the next token.
-    function advance(n=1) this.pos += n
+    let advance(n=1) = this.pos += n
 
     # Helper function for error throwing.
-    function Throw(type, message, options={}, note="", kill=true, position?, here_message="Here", show=true) {
+    let Throw(type, message, options={}, note="", kill=true, position?, here_message="Here", show=true) {
         let legacy_errors = false
         if legacy_errors {
             if !(options.underline? | options.marker?) {
@@ -81,10 +82,10 @@ static class Parser as this {
     }
 
     # Eat all consecutive line breaks
-    function eat_line_breaks() while this.compare('LineBreak') this.advance()
+    let eat_line_breaks() = while this.compare('LineBreak') this.advance()
 
     # Is at the end of the file
-    function is_EOF() this.pos >= this.tokens.length
+    let is_EOF() = this.pos >= this.tokens.length
 
     # Throw EOF error
     function throw_EOF_error(expected_token_type="any", expected_token_value?) {
@@ -119,7 +120,7 @@ static class Parser as this {
     }
 
     # Consume the current token if type and value match, else throw an error
-    function eat(token_type="any", value?, keep_track=false) {
+    let eat(token_type="any", value?, keep_track=false) {
         # If it matches, eat and return it.
         let current_token = this.peek()
         if this.compare(token_type, value) {
@@ -150,11 +151,11 @@ static class Parser as this {
             show = show_error
         )
     }
-    function maybe_eat(token_type="any", value?)
+    let maybe_eat(token_type="any", value?)
         this.eat() if this.compare(token_type, value) else null
     
     # Parse values.
-    function parse_primary(Boolean require=false, exclude=[], is_deconstruction=false, eat_line_breaks=false, is_structural_pattern=false) {
+    let parse_primary(Boolean require=false, exclude=[], is_deconstruction=false, eat_line_breaks=false, is_structural_pattern=false) {
         let current_token = this.peek()
         let ast_node
 
@@ -165,14 +166,14 @@ static class Parser as this {
            ast_node = this.parse_string()
         
         else if this.maybe_eat("Number") {
-            let multiplied_by = this.parse_expression(2, require=false, exclude=["Keyword", "Object", "Array"])
+            let multiplied_by = CHECK(this.parse_expression(2, require=false, exclude=["Keyword", "Object", "Array"]))
             ast_node = {
                 type: "NumberLiteral",
                 value: current_token.value,
                 base: current_token.variation,
                 position: current_token.position,
             }
-            if (multiplied_by?)
+            if (multiplied_by?) {
                 ast_node = {
                     type: "Multiply",
                     left: ast_node,
@@ -182,6 +183,7 @@ static class Parser as this {
                         end: multiplied_by.position.end
                     }
                 }
+            }
         }
         else if this.maybe_eat("Boolean")
             ast_node = {
@@ -412,8 +414,6 @@ static class Parser as this {
                 return this.parse_break_statement()
             case 'continue'
                 return this.parse_continue_statement()
-            case 'defer'
-                return this.parse_defer_statement()
             case 'yield'
                 return this.parse_yield_statement()
             case 'include'
@@ -1119,18 +1119,6 @@ static class Parser as this {
         }
     }
 
-    function parse_defer_statement() {
-        let defer_keyword = CHECK(this.eat("Keyword", "defer"))
-        let body = CHECK(this.parse_statement_or_scope_body())
-        return {
-            type: "DeferStatement",
-            body,
-            position: {
-                start: defer_keyword.position.start,
-                end: body.position.end
-            }
-        }
-    }
     function parse_include_statement() {
         let starting_keyword
         let global_origin
@@ -1390,7 +1378,10 @@ static class Parser as this {
             }
         }
     }
-
+    function parse_construct() {
+        CHECK(this.eat("Keyword", "construct"))
+        # TODO
+    }
     function parse_scope_body(enclosing_curly_braces=true, mode="normal", entry_point="") {
         let beginning_token = this.peek()
         let opening_curly_brace, closing_curly_brace
