@@ -1,0 +1,25 @@
+let f(x) = y
+let f(x) { y }
+let f = lambda(x) = y
+let f = lambda(x) { y }
+
+template X {
+  let x = 0
+  mutable y = "0"
+}
+
+let a = X:{}
+let b = X:{ 5, "6" }
+let c = X:{ x = 5, y = "6" }
+
+
+option Sum {
+  let text = "0";
+  let num = 0;
+  let hello = "Hello";
+}
+
+let x = Sum.text("0")
+let y = Sum.num()
+let z = Sum.hello()
+stdout.log(x, y, z)

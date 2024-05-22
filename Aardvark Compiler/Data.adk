@@ -62,26 +62,30 @@ let SymbolOperators = [
   "<<<=",
 ]
 let KeywordOperators = [
-  "x|",  # xor (exclusive or)
-  "not", # not
-  "and", # and
-  "or",  # or
-  "xor", # xor
-  "in",  # in
-  "references",
+  "not",  # not operator
+  "and",  # and operator
+  "or",  # or operator
+  "xor",  # XOR
+  "in",
   "is",
+  "mod",
+  "is not",
+  "is not in",
+  "not in",
+  "is in",
+  "references",
 ]
 let Operators = SymbolOperators + KeywordOperators
 
 let OrderOfOps = {
     0: ["...", "?"],
-    1: ["~", "!", "@"],
+    1: ["~", "!", "@", "not"],
     2: ["^"],
     3: ["*", "/"],
     4: ["-"],
     5: ["-", "+", "%"],
     6: ["++", "--", "=", "+=", "-=", "*=", "/=", "^=", "%=", "?="],
-    7: ["~=", "<", ">", "<=", ">=", "!=", "in", "==", "$="],
+    7: ["~=", "<", ">", "<=", ">=", "!=", "in", "==", "$=", "is", "is not", "not in", "is not in", "is in", "references"],
     8: ["&", "|", "x|", "and", "or", "xor", "->", "<-", ">>", ">>=", "<<", "<<=", ">>>", ">>>=", "<<<", "<<<="],
 }
 

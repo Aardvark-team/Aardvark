@@ -129,12 +129,12 @@ let parser_tests = {
     if this.isNewline() {}",
     return_in_if: "
     function x() {
-        if x & y | !z
+        if x and y or not z
             return 5;
     }",
     string_property: "'hello'.x",
     number_property: "5.x",
-    operations: "while (x.y() | '._'.x()) & !this.AtEnd {}",
+    operations: "while (x.y() or '._'.x()) and not this.AtEnd {}",
     match_case: "match x {
         case 5 {}
         case {x: $y, ...} {}
@@ -164,7 +164,7 @@ let parser_tests = {
     pattern_matching_operator: "if x $= {x: 5, y: [x, 5, $y, ...], $z, e: $uhdf, fb?: 8, ...} {}",
     nested_template_string: `$"Hello, {($'\"{name}\"')if name else $'{placeholder_name}'}."`,
     include_sublibrary: "from units.length include inch, px, ft",
-    assignment_chaining: "let Number x = (Number |String) y = z = 35",
+    assignment_chaining: "let Number x = (Number or String) y = z = 35",
     typed_array: "[Number 5, String \"hello\", Array [1, 2, 3]]",
     include_all: "include ... from x",
     await_statement: "await x"
@@ -184,7 +184,7 @@ let error_tests = {
 }
 function show_errors(error_stack, error_handler) {
     for error in error_stack {
-        if type_of(error) != ADK_Error 
+        if type_of(error) is not ADK_Error 
             error = ADK_Error(error_handler, error)
         if error.show {
             error.Throw()
@@ -207,7 +207,7 @@ function test(String code, String filename="<main>") {
     parser_time += time.time() - parser_start
     # stdout.write("AST", prettify_ast(AST), "\n")
     show_errors(lexer.error_stack + parser.error_stack, error_handler)
-    if parser.error_stack.length > 0 | lexer.error_stack.length > 0
+    if parser.error_stack.length > 0 or lexer.error_stack.length > 0
         return false
     return AST
 }

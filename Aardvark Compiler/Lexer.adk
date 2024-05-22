@@ -1,8 +1,8 @@
-include TokenTypes, Operators, Keywords, Quotes, Whitespaces, Booleans, Delimiters, NotIncluded, BaseNumsOrder, SymbolOperators, lowercase_characters, uppercase_characters, numbers, base64_characters, base58_characters from Data
+include TokenTypes, Operators, Keywords, Quotes, Whitespaces, Booleans, Delimiters, NotIncluded, BaseNumsOrder, SymbolOperators, KeywordOperators, lowercase_characters, uppercase_characters, numbers, base64_characters, base58_characters from Data
 include Errors
 
 
-let Operators_array_sorted = Array(SymbolOperators)
+let Operators_array_sorted = Array(Operators)
 Operators_array_sorted.sort(function (a, b) b.length - a.length)
 
 class Token as this {
@@ -37,7 +37,7 @@ class Token as this {
     return String(this.to_json())
   }
   function compare(type, value, startcol) {
-      if (!type | this.type == type) & (!value | this.value == value) & (!startcol | this.start.column == startcol)
+      if (!type or this.type is type) and (!value or this.value is value) and (!startcol or this.start.column is startcol)
           return true;
       return false;
   }
@@ -108,10 +108,10 @@ class Lexer as this {
 
   function otherwise(char) {
     let character = char ? this.current_character
-    return !(this.isWhitespace(character) | this.isDelimiter(character) | this.isNewline(character) | character == '#' | character in SymbolOperators)
+    return !(this.isWhitespace(character) or this.isDelimiter(character) or this.isNewline(character) or character is '#' or character in SymbolOperators)
   }
   function detect(text)
-    text == this.data.slice(this.position.index, this.position.index + text.length)
+    text is this.data.slice(this.position.index, this.position.index + text.length)
   
   function newline() {
     this.empty = true
@@ -138,7 +138,7 @@ class Lexer as this {
     #*
       Takes code and converts it to tokens.
     *#
-    if data == ""
+    if data is ""
       return []
     this.data = data
     this.position.index = 0
@@ -152,6 +152,8 @@ class Lexer as this {
         # Operators
         for operator in Operators_array_sorted
         if this.detect(operator) {
+          if operator is in KeywordOperators and this.peek(operator.length) is not in Whitespaces
+            continue
           let start = this.pos()
           this.advance(operator.length - 1)
           this.addToken("Operator", start, this.pos(), operator)
@@ -164,17 +166,17 @@ class Lexer as this {
         let character = this.current_character
         this.addToken('LineBreak', this.pos(), this.pos(), character, character)
         this.advance()
-        if character == '\n' this.newline(); # Only increment the line if its a \n
+        if character is '\n' this.newline(); # Only increment the line if its a \n
         else this.empty = true
         continue
       }
 
       # Indents
-      else if this.isWhitespace() & this.empty & this.useIndents {
+      else if this.isWhitespace() and this.empty and this.useIndents {
         let value = ''
         let start = this.pos()
         let startcolumn = this.position.column
-        while this.isWhitespace() & !this.AtEnd {
+        while this.isWhitespace() and !this.AtEnd {
           value += this.current_character
           this.advance()
         }
@@ -193,8 +195,8 @@ class Lexer as this {
         let value = ''
         let dot_position
         let characters = BaseNumsOrder.slice(0, base)
-        while (characters.contains(this.current_character) | '._'.contains(this.current_character)) & !this.AtEnd {
-          if dot_position? & this.current_character == '.' & this.peek() in characters
+        while (characters.contains(this.current_character) or '._'.contains(this.current_character)) and !this.AtEnd {
+          if dot_position? and this.current_character is '.' and this.peek() in characters
             this.Throw({
               message: "A Number may not have two decimal points!",
               error_type: "SyntaxError",
@@ -214,7 +216,7 @@ class Lexer as this {
                 message: "Second decimal point."
               }]
             })
-          else if underscore_position? & this.current_character == '_'
+          else if underscore_position? and this.current_character is '_'
             this.Throw({
               message: "Number base already defined!\nHint: The value left of the underscore (_) represents the base of the Number. (e.g. 16_1ab would be hex and 2_0101 would be binary)",
               error_type: "SyntaxError",
@@ -234,14 +236,14 @@ class Lexer as this {
                 message: "Second underscore."
               }]
             })
-          else if this.current_character == '.' 
+          else if this.current_character is '.' 
             dot_position = this.pos();
-          else if this.current_character == '_' {
+          else if this.current_character is '_' {
             underscore_position = this.pos();
             base = Number(value)
-            if base == 58 {
+            if base is 58 {
               characters = base58_characters
-            } else if base == 64 {
+            } else if base is 64 {
               characters = base64_characters
             } else if base <= 36 {
               characters = numbers.slice(0, base)
@@ -285,7 +287,7 @@ class Lexer as this {
           value += this.current_character
           this.advance()
         }
-        if value.length > 0 & value.(-1) == "." {
+        if value.length > 0 and value.(-1) is "." {
           value = value.slice(0, -1)
           this.advance(-1)
         }
@@ -297,9 +299,9 @@ class Lexer as this {
       else if this.detect('#*') {
         let value = ''
         let start = this.pos()
-        while !this.detect('*#') & !this.AtEnd {
+        while !this.detect('*#') and !this.AtEnd {
             value += this.current_character
-            if this.current_character == '\n' this.newline()
+            if this.current_character is '\n' this.newline()
             this.advance()
         }
         this.advance('*#'.length - 1) # To skip the *#
@@ -307,10 +309,10 @@ class Lexer as this {
       }
 
       # Single line comments
-      else if this.current_character == '#' {
+      else if this.current_character is '#' {
         let value = ''
         let start = this.pos()
-        while this.current_character != '\n' & !this.AtEnd {
+        while this.current_character is not '\n' and !this.AtEnd {
           value += this.current_character
           this.advance()
         }
@@ -319,10 +321,10 @@ class Lexer as this {
       }
 
       # Strings
-      else if this.isQuote() | (this.current_character == '$' & this.isQuote(this.peek(1))) {
+      else if this.isQuote() or (this.current_character is '$' and this.isQuote(this.peek(1))) {
         let is_template_string = false
         let insertions = []
-        if this.current_character == '$' {
+        if this.current_character is '$' {
           this.advance()
           is_template_string = true
         }
@@ -342,7 +344,7 @@ class Lexer as this {
               },
               markers: [{
                 line: this.pos().line - 1,
-                column: start.column - 1 if value.split('\n').length == 1 else 0,
+                column: start.column - 1 if value.split('\n').length is 1 else 0,
                 length: value.split('\n').(-1).length + 1,
                 message: "This is the string."
               }, {
@@ -354,23 +356,23 @@ class Lexer as this {
             })
           # Handle escape sequences
           if backslash {
-            if this.current_character == '\\' value += '\\'
+            if this.current_character is '\\' value += '\\'
             else if this.isQuote() value += this.current_character
-            else if is_template_string & this.current_character == "{"
+            else if is_template_string and this.current_character is "{"
               value += this.current_character
             else value += "\\" + this.current_character
             backslash = false
           }
           # Handle template strings
-          else if is_template_string & this.current_character == '{' {
+          else if is_template_string and this.current_character is '{' {
             let expression_text = ''
             let expression_start = this.pos()
             let opener_count = 1
-            while !this.AtEnd & !(opener_count == 0) {
+            while !this.AtEnd and !(opener_count is 0) {
               expression_text += this.current_character
               this.advance()
-              if this.current_character == "{" opener_count++
-              if this.current_character == "}" opener_count--
+              if this.current_character is "{" opener_count++
+              if this.current_character is "}" opener_count--
             }
             if this.AtEnd {
               this.Throw({
@@ -382,7 +384,7 @@ class Lexer as this {
                 },
                 markers: [{
                   line: this.pos().line - 1,
-                  column: start.column - 1 if value.split('\n').length == 1 else 0,
+                  column: start.column - 1 if value.split('\n').length is 1 else 0,
                   length: value.split('\n').(-1).length,
                   message: "This is the string."
                 }]
@@ -406,8 +408,8 @@ class Lexer as this {
             })
           }
           else {
-            if (this.current_character == '\\') backslash = true
-            else if this.current_character == variation break
+            if (this.current_character is '\\') backslash = true
+            else if this.current_character is variation break
             else value += this.current_character
           }
         }
@@ -422,7 +424,7 @@ class Lexer as this {
       else if this.otherwise() {
         let value = ''
         let start = this.pos()
-        while (this.otherwise() or this.isNumber()) & !this.AtEnd {
+        while (this.otherwise() or this.isNumber()) and !this.AtEnd {
           value += this.current_character
           this.advance()
         }

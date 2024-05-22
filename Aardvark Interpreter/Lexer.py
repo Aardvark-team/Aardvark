@@ -12,7 +12,7 @@ from Data import (
 import Error
 
 # from numba.experimental import jitclass
-sortedPureOperators = sorted(PureOperators, key=len, reverse=True)
+sortedOperators = sorted(Operators, key=len, reverse=True)
 
 
 class Token:
@@ -150,8 +150,13 @@ class Lexer:
         while self.index < len(self.data):
 
             # Operators
-            for op in sortedPureOperators:
+            for op in sortedOperators:
                 if self.detect(op):
+                    if (
+                        op not in PureOperators
+                        and self.peek(len(op)) not in Whitespaces
+                    ):
+                        continue
                     start = self.index
                     startcolumn = self.column
                     self.advance(len(op) - 1)

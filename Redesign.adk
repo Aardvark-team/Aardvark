@@ -1,0 +1,30 @@
+# Let's begin by looking at the new `with` keyword.
+include C
+from "stdio.h" include [printf] with C
+
+
+# Now, let's take a look at our new keyword operator design.
+from stdio include stdout
+
+if 5 is 5 and 6 is 6 and 8 is not 1 {
+    stdout.log("5 is 5\n")
+}
+
+# Perviously, Aardvark had a $= structural pattern matching operator. Now, this is builtin to `is`.
+
+if [1, 2, 3] is [$a, $b, 3] {
+    # a has been set to 1, and b has been set to 2
+}
+if [1, 2] is [$a, $b, 3] {
+    # This code will not run, as 3 is not in the list
+}
+let x = "Hello, World"
+if x references x {
+    # `references` checks if two variables point to the same object
+}
+
+# Things are now immutable by default.
+let x = 0
+x = 1 # Error
+mutable y = 0
+y = 1 # Works!

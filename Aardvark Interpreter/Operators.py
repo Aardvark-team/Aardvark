@@ -162,7 +162,7 @@ def div(
     return x / y
 
 
-@operator("==", left=True, right=True)
+@operator("==", "is", left=True, right=True)
 def logicalequals(
     x, y, errorhandler: "ErrorHandler", line: str, ast, scope: Scope, exec: "Executor"
 ):
@@ -234,7 +234,7 @@ def logicallessthanequal(
     return x <= y
 
 
-@operator("!=", left=True, right=True)
+@operator("!=", "is not", left=True, right=True)
 def logicalnotequal(
     x, y, errorhandler: "ErrorHandler", line: str, ast, scope: Scope, exec: "Executor"
 ):
@@ -366,7 +366,7 @@ def power(
     return x**y
 
 
-@operator("in", left=True, right=True)
+@operator("in", "is in", left=True, right=True)
 def inop(
     x, y, errorhandler: "ErrorHandler", line: str, ast, scope: Scope, exec: "Executor"
 ):
@@ -597,3 +597,48 @@ def reference(
         },
     )
     return
+
+
+@operator("mod", left=True, right=True)
+def mod(
+    x, y, errorhandler: "ErrorHandler", line: str, expr, scope: Scope, exec: "Executor"
+):
+    if x == Null:
+        return missingOperand(
+            True, errorhandler, line, ast, f"<{str(type(y or 0).__name__)}>"
+        )
+    if y == Null:
+        return missingOperand(
+            False, errorhandler, line, ast, f"<{str(type(y or 0).__name__)}>"
+        )
+    return x % y
+
+
+@operator("not in", "is not in", left=True, right=True)
+def notin(
+    x, y, errorhandler: "ErrorHandler", line: str, expr, scope: Scope, exec: "Executor"
+):
+    if x == Null:
+        return missingOperand(
+            True, errorhandler, line, ast, f"<{str(type(y or 0).__name__)}>"
+        )
+    if y == Null:
+        return missingOperand(
+            False, errorhandler, line, ast, f"<{str(type(y or 0).__name__)}>"
+        )
+    return x not in y
+
+
+@operator("references", left=True, right=True)
+def references(
+    x, y, errorhandler: "ErrorHandler", line: str, expr, scope: Scope, exec: "Executor"
+):
+    if x == Null:
+        return missingOperand(
+            True, errorhandler, line, ast, f"<{str(type(y or 0).__name__)}>"
+        )
+    if y == Null:
+        return missingOperand(
+            False, errorhandler, line, ast, f"<{str(type(y or 0).__name__)}>"
+        )
+    return x is y
