@@ -297,10 +297,16 @@ class Executor:
         self.filestack[str(file)] = executor.Global
         return executor.Global
 
-    def defineVar(self, name, value, scope, is_static=False, expr=None):
+    def defineVar(
+        self, name, value, scope, is_static=False, expr=None, is_initial=False
+    ):
         if type(scope) == Types.Object and name in scope.setters:
             scope.setters[name](value)
-        elif name in scope.getAll() and name not in list(scope.vars.keys()):
+        elif (
+            name in scope.getAll()
+            and name not in list(scope.vars.keys())
+            and not is_initial
+        ):
             self.defineVar(name, value, scope.parent)
         elif (
             name in list(scope.vars.keys())
@@ -584,6 +590,7 @@ class Executor:
                     scope,
                     assignment["is_static"],
                     expr,
+                    is_initial=True,
                 )
             return value
         elif expr["type"] == "Array":

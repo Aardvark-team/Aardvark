@@ -996,7 +996,10 @@ class Structure(Type):
         self.keys.append(name)
 
     def __repr__(self):
-        return f"<structure from {self.template.name}>"
+        if self.template:
+            return f"<structure from {self.template.name}>"
+        else:
+            return str(self.vars)
 
 
 class Template(Type):
