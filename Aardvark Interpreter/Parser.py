@@ -2022,24 +2022,24 @@ class Parser:
 
     def pStatement(self, require=False, eatLBs=False):
         self.eatLBs()
-        # if self.compare("Keyword", "loop"):
-        #     begin = self.eat("Keyword", "loop")
-        #     if self.compare("Delimiter", "{"):
-        #         body, lasti = self.eatBlockScope()
-        #         inline = False
-        #     else:
-        #         body = self.pStatement(require=True)
-        #         lasti = body["positions"]["end"]
-        #         inline = True
-        #     return {
-        #         "type": "Loop",
-        #         "body": body,
-        #         "inline": inline,
-        #         "positions": {
-        #             "start": begin.start,
-        #             "end": lasti,
-        #         },
-        #     }
+        if self.compare("Keyword", "loop"):
+            begin = self.eat("Keyword", "loop")
+            if self.compare("Delimiter", "{"):
+                body, lasti = self.eatBlockScope()
+                inline = False
+            else:
+                body = self.pStatement(require=True)
+                lasti = body["positions"]["end"]
+                inline = True
+            return {
+                "type": "Loop",
+                "body": body,
+                "inline": inline,
+                "positions": {
+                    "start": begin.start,
+                    "end": lasti,
+                },
+            }
         if self.compare("Keyword", "try"):
             if self.is_strict:
                 tok = self.peek()

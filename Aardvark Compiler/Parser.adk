@@ -802,7 +802,7 @@ static class Parser as this {
         if this.maybe_eat("Operator", "%")
             is_embed_assignment = true
         let assignments = []
-        while true {
+        loop {
             if assignments.length > 0
                 CHECK(this.eat("Delimiter", ","))
             let is_static = false
@@ -816,7 +816,7 @@ static class Parser as this {
                 is_static = true
             let variables = []
             let value
-            while true {
+            loop {
                 let previous_store_errors_state = this.store_errors
                 let previous_position = this.pos
                 this.store_errors = true
@@ -1331,7 +1331,7 @@ static class Parser as this {
         let objects = [ast_node]
         let value
         # Reassignment chaining, x = y = z
-        while true {
+        loop {
             CHECK(this.eat("Operator", "="))
             if (value?) {
                 if !this.is_valid_variable_definition(ast_node) {
