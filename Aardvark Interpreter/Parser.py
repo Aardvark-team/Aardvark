@@ -1679,11 +1679,11 @@ class Parser:
             "positions": {"start": keyw.start, "end": keyw.end},
         }
 
-    def pAssignment(self):
-        letkw = None
+    def pAssignment(self, implied_let=False):
+        starter = None
         if self.compare("Keyword", "let"):
-            letkw = self.eat("Keyword", "let")
-        elif not self.compare("Keyword", "mutable"):
+            starter = self.eat("Keyword", "let")
+        elif not (self.compare("Keyword", "mutable") or implied_let):
             raise SyntaxError("Expected 'let' or 'mutable'")
         assignments = []
         while True:
@@ -1696,25 +1696,39 @@ class Parser:
             if self.compare("Keyword", "mutable"):
                 tok = self.eat("Keyword")
                 is_mutable = True
-                if not letkw:
-                    letkw = tok
+                if not starter:
+                    starter = tok
             if self.compare("Keyword", "static"):
-                self.eat("Keyword")
+                tok = self.eat("Keyword")
+                if not starter:
+                    starter = tok
                 is_static = True
             if self.compare("Keyword", "private"):
-                self.eat("Keyword")
+                tok = self.eat("Keyword")
+                if not starter:
+                    starter = tok
                 is_private = True
             if self.compare("Keyword", "static"):
-                self.eat("Keyword")
+                tok = self.eat("Keyword")
+                if not starter:
+                    starter = tok
                 is_static = True
             if self.compare("Delimiter", "["):
+                if not starter:
+                    starter = self.peek()
                 var_type = self.pArray()
             elif self.compare("Delimiter", "("):
+                if not starter:
+                    starter = self.peek()
                 var_type = self.pExpression(require=True)
             elif self.compare("Delimiter", "{"):
+                if not starter:
+                    starter = self.peek()
                 var_type = self.pObject()
             else:
                 temp = self.eat("Identifier")
+                if not starter:
+                    starter = temp
                 if self.compare("Identifier") or (
                     self.peek()
                     and self.peek(1).value == "?"
@@ -1775,7 +1789,7 @@ class Parser:
             "type": "Assignments",
             "assignments": assignments,
             "positions": {
-                "start": letkw.start,
+                "start": starter.start,
                 "end": assignments[-1]["positions"]["end"],
             },
         }
@@ -1793,7 +1807,7 @@ class Parser:
             if len(assignments) > 0 and self.peek(-1).type != TokenTypes["LineBreak"]:
                 self.eat("LineBreak")
             self.eatLBs()
-            assignments.append(self.pAssignment())
+            assignments.append(self.pAssignment(implied_let=True))
             self.eatLBs()
 
         closer = self.eat("Delimiter", "}")

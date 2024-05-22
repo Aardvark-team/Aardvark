@@ -1161,7 +1161,10 @@ def findClosest(var: str, scope: Scope):
     var = str(var)
     lowest = 9999999999999999
     ret = "<identifier>"
-    for item in list(scope.getAll().keys()):
+    items = scope.getAll()
+    if isinstance(items, dict):
+        items = items.keys()
+    for item in items:
         item = str(item)
         dist = edit_distance(var, item)
         if dist < lowest:
