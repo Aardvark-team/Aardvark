@@ -1829,7 +1829,7 @@ class Parser:
             if len(assignments) > 0 and self.peek(-1).type != TokenTypes["LineBreak"]:
                 self.eat("LineBreak")
             self.eatLBs()
-            assignments.append(self.pAssignment())
+            assignments.append(self.pAssignment(implied_let=True))
             self.eatLBs()
 
         closer = self.eat("Delimiter", "}")

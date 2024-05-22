@@ -516,6 +516,26 @@ class Executor:
                     args = [*args, *arg]
             else:
                 args.append(self.ExecExpr(arg, scope))
+        if not callable(funct):
+            self.errorhandler.throw(
+                "Value",
+                "Not a function: '"
+                + Error.getAstText(expr["function"], self.codelines)
+                + f"'. That is a {type(funct)}.",
+                {
+                    "lineno": expr["positions"]["start"]["line"],
+                    "marker": {
+                        "start": expr["positions"]["start"]["col"],
+                        "length": expr["positions"]["end"]["col"]
+                        - expr["positions"]["start"]["col"],
+                    },
+                    "underline": {
+                        "start": expr["positions"]["start"]["col"],
+                        "end": expr["positions"]["end"]["col"],
+                    },
+                    "traceback": self.traceback,
+                },
+            )
         try:
             if type(funct) == Function and funct.is_macro:
                 ret = funct(
@@ -552,6 +572,8 @@ class Executor:
     def ExecExpr(self, expr: dict, scope: Scope, undefinedError=True, reference=False):
         if expr == None:
             return Null
+        elif type(expr) in Types.Types:
+            return expr
         elif expr["type"] == "NumberLiteral":
             return Number(expr["value"])
         elif expr["type"] == "StringLiteral":
@@ -729,7 +751,7 @@ class Executor:
             for assignment in expr["assignments"]:
                 self.ExecExpr(assignment, template_scope)
             # Convert template_scope to an Object
-            template = Template(template_scope.vars, expr["name"])
+            template = Template(template_scope.vars, expr["name"] or "unnamed template")
             if expr["name"]:
                 self.defineVar(expr["name"], template, scope)
             return template
@@ -747,6 +769,15 @@ class Executor:
             for arg in expr["arguments"]:
                 arguments.append(self.ExecExpr(arg, scope))
             keywordArguments = expr["keywordArguments"]
+            # print(
+            #     "kwargs",
+            #     ", ".join(
+            #         [
+            #             f"{str(x)}:{str(type(y))}({y})\n"
+            #             for x, y in keywordArguments.items()
+            #         ]
+            #     ),
+            # )
             for key, value in keywordArguments.items():
                 keywordArguments[key] = self.ExecExpr(value, scope)
             template = self.ExecExpr(expr["template"], scope)
@@ -931,7 +962,6 @@ class Executor:
                 value = self.ExecExpr(value, scope)
                 string = string[: rep["from"]] + str(value) + string[rep["to"] + 1 :]
             return String(string)
-
         # DEPRECATED
         elif expr["type"] == "Object":
             obj = Object()

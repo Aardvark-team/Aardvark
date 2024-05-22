@@ -7,6 +7,11 @@ from Errors include ErrorHandler, ADK_Error
 construct CHECK(x) {
     (return x) if type_of(x) is ADK_Error else x
 }
+function compare_token(token, expected_type, expected_value, expected_startcol) {
+if (!expected_type or token.type is expected_type) and (!expected_value or token.value is expected_value) and (!expected_startcol or token.position.start.column is expected_startcol)
+        return true;
+      return false;
+}
 static class Parser as this {
     let String code
     let [...String] code_lines
@@ -44,7 +49,7 @@ static class Parser as this {
     let Throw(type, message, options={}, note="", kill=true, position?, here_message="Here", show=true) {
         let legacy_errors = false
         if legacy_errors {
-            if !(options.underline? or options.marker?) {
+            if not (options.underline? or options.marker?) {
                 options.underline = {
                     start: position.start.column + 1,
                     end: position.end.column + 1
@@ -88,7 +93,7 @@ static class Parser as this {
     let is_EOF() = this.pos >= this.tokens.length
 
     # Throw EOF error
-    function throw_EOF_error(expected_token_type="any", expected_token_value?) {
+    let throw_EOF_error(expected_token_type="any", expected_token_value?) {
         let current_line = this.code_lines.(-1)
         # Show the expected token if there is one.
         let suggestion
@@ -113,7 +118,7 @@ static class Parser as this {
             error_number: 2
         }, true)
         this.error_stack.add(error)
-        if !this.store_errors {
+        if not this.store_errors {
             error.Throw(kill)
         }
         return error
@@ -159,7 +164,7 @@ static class Parser as this {
         let current_token = this.peek()
         let ast_node
 
-        if !current_token or this.is_EOF()
+        if not current_token or this.is_EOF()
             return this.throw_EOF_error('something to be here') if require else null;
         
         if this.compare("String")
@@ -173,17 +178,16 @@ static class Parser as this {
                 base: current_token.variation,
                 position: current_token.position,
             }
-            if (multiplied_by?) {
-                ast_node = {
-                    type: "Multiply",
-                    left: ast_node,
-                    right: multiplied_by,
-                    position: {
-                        start: ast_node.position.start,
-                        end: multiplied_by.position.end
+            if (multiplied_by?)
+                ast_node = structure {
+                    type = "Multiply"
+                    left = ast_node
+                    right = multiplied_by
+                    position = structure {
+                        start = ast_node.position.start
+                        end = multiplied_by.position.end
                     }
                 }
-            }
         }
         else if this.maybe_eat("Boolean")
             ast_node = {
@@ -195,12 +199,12 @@ static class Parser as this {
             let value = "";
             if this.compare("Identifier")
                 value = this.eat().value
-            return {
-                type: "ValueRetrieval",
-                value: value,
-                position: {
-                    start: current_token.position.start,
-                    end: this.peek(-1).position.end
+            return structure {
+                type = "ValueRetrieval"
+                value = value
+                position = structure {
+                    start = current_token.position.start
+                    end = this.peek(-1).position.end
                 }
             }
         } else if this.compare('Delimiter', '{') and !exclude.contains('Object')
@@ -227,22 +231,22 @@ static class Parser as this {
         match this.peek().value {
             case 'static' {
                 let next_token = this.peek(1)
-                if next_token.compare('Keyword', 'private')
+                if compare_token(next_token, 'Keyword', 'private')
                     next_token = this.peek(2)
-                if next_token.compare('Keyword', 'function')
+                if compare_token(next_token, 'Keyword', 'function')
                     ast_node = CHECK(this.parse_function_definition())
-                else if next_token.compare('Keyword', 'class')
+                else if compare_token(next_token, 'Keyword', 'class')
                     ast_node = CHECK(this.parse_class_definition())
                 else
                     return this.Throw('SyntaxError', 'Expected "function" or "class" after "static"', position=next_token.position)
             }
             case 'private' {
                 let next_token = this.peek(1)
-                if next_token.compare('Keyword', 'static')
+                if compare_token(next_token, 'Keyword', 'static')
                     next_token = this.peek(2)
-                if next_token.compare('Keyword', 'function')
+                if compare_token(next_token, 'Keyword', 'function')
                     ast_node = CHECK(this.parse_function_definition())
-                else if next_token.compare('Keyword', 'class')
+                else if compare_token(next_token, 'Keyword', 'class')
                     ast_node = CHECK(this.parse_class_definition())
                 else
                     return this.Throw('SyntaxError', 'Expected "function" or "class" after "private"', position=next_token.position)
@@ -342,19 +346,19 @@ static class Parser as this {
         }
     }
     # Parse an expression
-    function parse_expression(level=keys(OrderOfOps).length-1, require=false, exclude=[], eat_line_breaks=false, is_deconstruction=false, is_structural_pattern=false) {
+    let parse_expression(level=keys(OrderOfOps).length-1, require=false, exclude=[], eat_line_breaks=false, is_deconstruction=false, is_structural_pattern=false) {
         let left = CHECK(this.parse_primary(false, exclude, is_deconstruction, eat_line_breaks, is_structural_pattern) if level < 0 else this.parse_expression(level - 1, false, exclude, eat_line_breaks, is_deconstruction, is_structural_pattern))
         this.eat_line_breaks() if eat_line_breaks;
         let excluded = exclude
-        if !excluded.contains("=") excluded += ['=', '->'];
+        if not excluded.contains("=") excluded += ['=', '->'];
         # while the next token is an operator and level in OrderOfOps, and the value of the next token is in the current precedence level and the value of the next token is not in the exclude list.
-        while this.compare('Operator') and level in OrderOfOps and this.peek().value in OrderOfOps.(level) and !(this.peek().value in excluded) {
+        while this.compare('Operator') and level in OrderOfOps and this.peek().value in OrderOfOps.(level) and this.peek().value is not in excluded {
             let operator = this.eat()
             if operator.value is "$="
                 is_structural_pattern = true
             this.eat_line_breaks() if eat_line_breaks;
             let right = CHECK(this.parse_expression(level - 1, false, excluded, eat_line_breaks, is_deconstruction, is_structural_pattern))
-            if !left and !right
+            if not (left or right)
                 return this.Throw('SyntaxError', "Operators are invalid when lonely.", here_message="🤨 That's just an operator with nothing for it to operator on.", position=operator.position)
             left = {
                 type: 'Operator',
@@ -367,12 +371,12 @@ static class Parser as this {
                 }
             }
         }
-        if !left and require
+        if not left and require
             left = (CHECK(this.parse_primary(require, excluded, is_deconstruction, eat_line_breaks, is_structural_pattern))) if level < 0 else (CHECK(this.parse_expression(level - 1, require, excluded, eat_line_breaks, is_deconstruction, is_structural_pattern)));
         return left
     }
     # Parse a statement
-    function parse_statement(require=false, is_deconstruction=false, mode="normal", mode_entry?) {
+    let parse_statement(require=false, is_deconstruction=false, mode="normal", mode_entry?) {
 
         this.eat_line_breaks()
         if mode is "class_scope" {
@@ -426,13 +430,11 @@ static class Parser as this {
         return this.parse_expression(require=require, is_deconstruction=false)
     }
     # Parse a program
-    function parse_program() {
-        return CHECK(this.parse_scope_body(false))
-    }
-    function parse this.parse_program()
+    let parse_program() = CHECK(this.parse_scope_body(false))
+    let parse() = this.parse_program()
 
     #* Basic Values *#
-    function parse_string() {
+    let parse_string() {
         let current_token = this.eat("String")
         let value = current_token.value
         let insertions = []
@@ -445,16 +447,16 @@ static class Parser as this {
                 ast_node: insertion_ast_node
             })
         }
-        return {
-            type: 'StringLiteral',
-            value: value,
-            insertions,
-            position: current_token.position,
-            quote_style: current_token.variation
+        return structure {
+            type = 'StringLiteral'
+            value = value
+            insertions = insertions
+            position = current_token.position
+            quote_style = current_token.variation
         }
     }
 
-    function parse_object(is_structural_pattern=false) {
+    let parse_object(is_structural_pattern=false) {
         let opening_curly_brace = CHECK(this.eat("Delimiter", "{"))
         let pairs = []
         let expansions = []
@@ -515,18 +517,19 @@ static class Parser as this {
         }
         this.eat_line_breaks()
         let closing_curly_brace = CHECK(this.eat("Delimiter", "}"))
-        return {
-            type: "Object",
-            pairs,
-            expansions,
-            position: {
-                start: opening_curly_brace.position.start,
-                end: closing_curly_brace.position.end
+        let x = structure {
+            type = "Object"
+            let pairs = pairs
+            let expansions = expansions
+            position = structure {
+                start = opening_curly_brace.position.start
+                end = closing_curly_brace.position.end
             }
         }
+        return x
     }
 
-    function parse_array(is_deconstruction=false, is_structural_pattern=false) {
+    let parse_array(is_deconstruction=false, is_structural_pattern=false) {
         let opening_bracket = CHECK(this.eat("Delimiter", "["))
         let items = []
         let expansions = []
@@ -565,32 +568,32 @@ static class Parser as this {
         }
     }
 
-    function parse_property_access(ast_node) {
+    let parse_property_access(ast_node) {
         let dot = this.eat()
         this.eat_line_breaks()
         let property
         if this.compare('Identifier') {
             let token = this.eat()
-            property = {
-                type: "StringLiteral",
-                value: token.value,
-                position: token.position
+            property = structure {
+                type = "StringLiteral"
+                value = token.value
+                position = token.position
             }
         }
         else if this.compare('Number') {
             let token = this.eat()
-            property = {
-                type: "NumberLiteral",
-                value: Number(token.value),
-                position: token.position
+            property = structure {
+                type = "NumberLiteral"
+                value = Number(token.value)
+                position = token.position
             }
         }
         else if this.compare("String") {
             let token = this.eat()
-            property = {
-                type: "StringLiteral",
-                value: token.value,
-                position: token.position
+            property = structure {
+                type = "StringLiteral"
+                value = token.value
+                position = token.position
             }
         }
         else if this.compare("Delimiter", "(") {
@@ -620,12 +623,12 @@ static class Parser as this {
         }
     }
 
-    function parse_embed() {
+    let parse_embed() {
         this.eat("Keyword", "embed")
         # TODO
     }
 
-    function parse_for_loop(ast_node?) {
+    let parse_for_loop(ast_node?) {
         let for_keyword = CHECK(this.eat("Keyword", "for"))
         let variable = CHECK(this.parse_typed_variable(["KeyValuePair"]))
         let in_keyword = CHECK(this.eat("Operator", "in"))
@@ -649,7 +652,7 @@ static class Parser as this {
         }
     }
 
-    function parse_while_loop(ast_node?) {
+    let parse_while_loop(ast_node?) {
         let while_keyword = CHECK(this.eat("Keyword", "while"))
         let condition = CHECK(this.parse_expression(require=true))
         let body = ast_node?CHECK(this.parse_statement_or_scope_body())
@@ -670,7 +673,7 @@ static class Parser as this {
         }
     }
 
-    function parse_layout_type() {
+    let parse_layout_type() {
         let layout_keyword = CHECK(this.eat("Keyword", `layout`))
         CHECK(this.eat("Delimiter", `(`))
         let type = CHECK(this.parse_expression(require=true))
@@ -687,7 +690,7 @@ static class Parser as this {
             }
         }
     }
-    function parse_await_statement() {
+    let parse_await_statement() {
         let await_keyword = CHECK(this.eat("Keyword", "await"))
         let expression = CHECK(this.parse_expression(require=true))
         return {
@@ -699,7 +702,7 @@ static class Parser as this {
             }
         }
     }
-    function is_valid_type(expression, accept=[], accept_operators=[]) {
+    let is_valid_type(expression, accept=[], accept_operators=[]) {
         let valid_operators = Set(accept_operators + ["or", "xor", "?"])
         if expression is null or accept.contains(expression.type)
             return true
@@ -712,7 +715,7 @@ static class Parser as this {
             case "LayoutType"
                 return true
             case "Array"
-                return !expression.items.map(function (x) is_valid_type(x, [], ["...", ...accept_operators])).contains(false)
+                return !expression.items.map(lambda(x) is_valid_type(x, [], ["...", ...accept_operators])).contains(false)
             case "KeyValuePair"
                 return is_valid_type(expression.key)
             case "Object"
@@ -725,7 +728,7 @@ static class Parser as this {
         return false
     }
 
-    function is_valid_variable_definition(expression, accept=[]) {
+    let is_valid_variable_definition(expression, accept=[]) {
         let acceptable = Set(accept + ["?"])
         if expression is null or accept.contains(expression.type) or acceptable.contains("*")
             return true
@@ -738,9 +741,9 @@ static class Parser as this {
             case "KeyValuePair"
                 return is_valid_variable_definition(expression.value)
             case "Array"
-                return !expression.items.map(function(x) is_valid_variable_definition(x, ["...", ...acceptable])).contains(false)
+                return !expression.items.map(lambda(x) is_valid_variable_definition(x, ["...", ...acceptable])).contains(false)
             case "Object"
-                return !expression.pairs.map(function(x) is_valid_variable_definition(x, acceptable)).contains(false)
+                return !expression.pairs.map(lambda(x) is_valid_variable_definition(x, acceptable)).contains(false)
             case "Operator" {
                 let is_left_valid = is_valid_variable_definition(expression.left, acceptable)
                 let is_right_valid = is_valid_variable_definition(expression.right, acceptable)
@@ -752,7 +755,7 @@ static class Parser as this {
         return false
     }
 
-    function parse_typed_variable(accept_var=[], name="variable", var_level=0, is_structural_pattern=false, is_deconstruction=true) {
+    let parse_typed_variable(accept_var=[], name="variable", var_level=0, is_structural_pattern=false, is_deconstruction=true) {
         # This may be the type or the variable, we don't know until we know IF there is a second expression.
         let first = CHECK(this.parse_expression(var_level, true, ["Reassignment"], false, is_deconstruction=is_deconstruction, is_structural_pattern=is_structural_pattern))
         let second = CHECK(this.parse_expression(var_level, false, ["Reassignment"], false, is_deconstruction=is_deconstruction, is_structural_pattern=is_structural_pattern))
@@ -768,24 +771,24 @@ static class Parser as this {
         else if !is_valid_variable_definition(first, accept_var)
             return this.Throw("SyntaxError", $"You can't assign a value to something; a value already has a value, because it is one.", position=first.position, here_message= $"Expected a {name}.", error_number=40)
 
-        let ast_node = {
-            type: "TypedVariable",
-            given_type: first if second else null,
-            variable: second?first,
-            position: {
-                start: first.position.start,
-                end: second.position.end if second else first.position.end
+        let ast_node = structure {
+            type = "TypedVariable"
+            given_type = first if second else null
+            variable = second?first
+            position = structure {
+                start = first.position.start
+                end = second.position.end if second else first.position.end
             }
         }
         if accept_var.contains("KeyValuePair") and this.maybe_eat("Delimiter", ":") {
             let value = CHECK(this.parse_typed_variable(accept_var, name, var_level, is_structural_pattern=is_structural_pattern))
-            return {
-                type: "KeyValuePair",
-                key: ast_node,
-                value,
-                position: {
-                    start: ast_node.position.start,
-                    end: value.position.end
+            return structure {
+                type = "KeyValuePair"
+                key = ast_node
+                value = value
+                position = structure {
+                    start = ast_node.position.start
+                    end = value.position.end
                 }
             }
         }
@@ -793,7 +796,7 @@ static class Parser as this {
         return ast_node
     }
 
-    function parse_assignment() {
+    let parse_assignment() {
         let let_keyword = CHECK(this.eat("Keyword", "let"))
         let is_embed_assignment = false
         if this.maybe_eat("Operator", "%")
@@ -859,7 +862,7 @@ static class Parser as this {
         }
     }
 
-    function parse_function_definition(mode="normal", found_static=false, expected_keyword="function") {
+    let parse_function_definition(mode="normal", found_static=false, expected_keyword="function") {
         let is_static = found_static
         let is_private = false
         let parameters = []
@@ -889,10 +892,10 @@ static class Parser as this {
         if mode is "class_scope" and this.compare("Delimiter", "$") {
             function_keyword = this.eat()
             let token = CHECK(this.eat("Identifier"))
-            name = {
-                type: "VariableAccess",
-                name: '$' + token.value,
-                position: token.position
+            name = structure {
+                type = "VariableAccess"
+                name = '$' + token.value
+                position = token.position
             }
         }
 
@@ -901,10 +904,10 @@ static class Parser as this {
 
         if !(name?) and this.compare("Identifier") {
             let token = this.eat()
-            name = {
-                type: "VariableAccess",
-                name: token.value,
-                position: token.position
+            name = structure {
+                type = "VariableAccess"
+                name = token.value
+                position = token.position
             }
         }
 
@@ -980,7 +983,7 @@ static class Parser as this {
         }
     }
 
-    function parse_statement_or_scope_body(mode="normal") {
+    let parse_statement_or_scope_body(mode="normal") {
         let body
         this.eat_line_breaks()
         if this.compare("Delimiter", "{") {
@@ -1008,7 +1011,7 @@ static class Parser as this {
         return body
     }
 
-    function parse_if_statement(ast_node) {
+    let parse_if_statement(ast_node) {
         # ast_node is provided if the body comes before the if keyword. That is, it is an inline if statement.
         let if_keyword = CHECK(this.eat("Keyword", "if"))
         let condition = CHECK(this.parse_expression(require=true))
@@ -1035,7 +1038,7 @@ static class Parser as this {
         }
     }
 
-    function parse_class_definition() {
+    let parse_class_definition() {
         let name, label
         let is_static = false
         let is_private = false
@@ -1071,7 +1074,7 @@ static class Parser as this {
         }
     }
 
-    function parse_return_statement() {
+    let parse_return_statement() {
         let return_keyword = CHECK(this.eat("Keyword", "return"))
         let value = CHECK(this.parse_expression(require=true))
         return {
@@ -1084,7 +1087,7 @@ static class Parser as this {
         }
     }
 
-    function parse_continue_statement() {
+    let parse_continue_statement() {
         let continue_keyword = CHECK(this.eat("Keyword", "continue"))
         return {
             type: "ContinueStatement",
@@ -1095,7 +1098,7 @@ static class Parser as this {
         }
     }
 
-    function parse_break_statement() {
+    let parse_break_statement() {
         let break_keyword = CHECK(this.eat("Keyword", "break"))
         return {
             type: "BreakStatement",
@@ -1106,7 +1109,7 @@ static class Parser as this {
         }
     }
 
-    function parse_yield_statement() {
+    let parse_yield_statement() {
         let yield_keyword = CHECK(this.eat("Keyword", "yield"))
         let value = CHECK(this.parse_expression(require=true))
         return {
@@ -1119,7 +1122,7 @@ static class Parser as this {
         }
     }
 
-    function parse_include_statement() {
+    let parse_include_statement() {
         let starting_keyword
         let global_origin
         if this.compare("Keyword", "from") {
@@ -1190,7 +1193,7 @@ static class Parser as this {
             return this.Throw("SyntaxError", "Expected 'include' or 'from'.", position=this.peek().position)
     }
 
-    function parse_extending_statement() {
+    let parse_extending_statement() {
         let extending_keyword = CHECK(this.eat("Keyword", "extending"))
         let object, extension
         let is_static = false
@@ -1272,7 +1275,7 @@ static class Parser as this {
         }
     }
 
-    function parse_function_call(ast_node) {
+    let parse_function_call(ast_node) {
         let opening_parenthesis = CHECK(this.eat("Delimiter", "("))
         let arguments = []
         let keyword_arguments = []
@@ -1321,7 +1324,7 @@ static class Parser as this {
         }
     }
 
-    function parse_reassignment(ast_node) {
+    let parse_reassignment(ast_node) {
         if !this.is_valid_variable_definition(ast_node) {
             return this.Throw("SyntaxError", $"Invalid syntax.", position=ast_node.position, here_message= $"Expected identifier (variable or property).")
         }
@@ -1350,7 +1353,7 @@ static class Parser as this {
             }
         }
     }
-    function parse_case_statement() {
+    let parse_case_statement() {
         let case_keyword = CHECK(this.eat("Keyword", "case"))
         let expression = CHECK(this.parse_expression(require=true, is_structural_pattern=true))
         let body = CHECK(this.parse_statement_or_scope_body())
@@ -1364,7 +1367,7 @@ static class Parser as this {
             }
         }
     }
-    function parse_match_statement() {
+    let parse_match_statement() {
         let match_keyword = CHECK(this.eat("Keyword", "match"))
         let expression = CHECK(this.parse_expression())
         let body = CHECK(this.parse_scope_body(true, "match_scope"))
@@ -1378,11 +1381,11 @@ static class Parser as this {
             }
         }
     }
-    function parse_construct() {
+    let parse_construct() {
         CHECK(this.eat("Keyword", "construct"))
         # TODO
     }
-    function parse_scope_body(enclosing_curly_braces=true, mode="normal", entry_point="") {
+    let parse_scope_body(enclosing_curly_braces=true, mode="normal", entry_point="") {
         let beginning_token = this.peek()
         let opening_curly_brace, closing_curly_brace
         if enclosing_curly_braces 
@@ -1436,13 +1439,13 @@ static class Parser as this {
             start_position = opening_curly_brace.position.start
             end_position = closing_curly_brace.position.end
         } 
-        return {
-            type: "ScopeBody",
-            statements,
-            enclosing_curly_braces,
-            position: {
-                start: start_position,
-                end: end_position
+        return structure {
+            type = "ScopeBody"
+            statements = statements
+            enclosing_curly_braces = enclosing_curly_braces
+            position = structure {
+                start = start_position
+                end = end_position
             }
         }
     }

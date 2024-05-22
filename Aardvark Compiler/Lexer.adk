@@ -5,56 +5,51 @@ include Errors
 let Operators_array_sorted = Array(Operators)
 Operators_array_sorted.sort(function (a, b) b.length - a.length)
 
-class Token as this {
-    let String type
-    let Number length
-    let Object start
-    let Object end
-    let String value
-    let String variation
-    let Object position
-    let Array insertions
-    $constructor(type, 
-            start, 
-            end,
-            value?,
-            variation?, 
-            insertions?) 
-    {
-    this.type = type
-    this.length = end.index - start.index + 1
-    # this.start = start
-    # this.end = end
-    this.value = value
-    this.variation = variation
-    this.insertions = insertions
-    this.position = {
-        start: start,
-        end: end
-    }
-  }
-  $string() {
-    return String(this.to_json())
-  }
-  function compare(type, value, startcol) {
-      if (!type or this.type is type) and (!value or this.value is value) and (!startcol or this.start.column is startcol)
+let Token = template {
+  let String type
+  let Object start
+  let Object end
+  let String value
+  let String variation
+  let Array insertions
+  let Object position
+  let Number length
+  let compare(expected_type, expected_value, expected_startcol) {
+      if (!expected_type or type is expected_type) and (!expected_value or value is expected_value) and (!expected_startcol or start.column is expected_startcol)
           return true;
       return false;
   }
-  function to_json {
+  let to_json() {
     return {
-      type: this.type,
-      length: this.length,
-      # start: this.start,
-      # end: this.end,
-      position: this.position,
-      value: this.value.replace(`"`, `\\"`).replace("\n", "\\n"),
-      variation: this.variation,
-      insertions: this.insertions
+      type: type,
+      length: length,
+      position: position,
+      value: value.replace(`"`, `\\"`).replace("\n", "\\n"),
+      variation: variation,
+      insertions: insertions
     }
   }
 }
-
+let create_token(
+    type,
+    start,
+    end,
+    value?,
+    variation?,
+    insertions?
+) {
+  return structure {
+      type = type
+      length = end.index - start.index
+      value = value
+      variation = variation
+      insertions = insertions
+      position = structure {
+          start = start
+          end = end
+      }
+  }
+}
 
 class Lexer as this {
   let Boolean useIndents
@@ -104,7 +99,7 @@ class Lexer as this {
     (char ? this.current_character) in '0123456789'
 
   function addToken(type, start, end, value, variety, insertions)
-    this.output.add(Token(type, start, end, value, variety, insertions))
+    this.output.add(create_token(type, start, end, value, variety, insertions))
 
   function otherwise(char) {
     let character = char ? this.current_character

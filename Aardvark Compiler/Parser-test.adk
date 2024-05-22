@@ -1,5 +1,5 @@
 from Parser include Parser
-from Lexer include Lexer, Token
+from Lexer include Lexer, Token, create_token
 from Errors include ADK_Error, ErrorHandler
 let prettify_ast(ast, indent=0) {
     if type_of(ast) == String
@@ -200,7 +200,7 @@ function test(String code, String filename="<main>") {
     lexer_time += time.time() - lexer_start
     let error_handler = ErrorHandler(code, tokens, filename)
     error_handler.tokens = tokens
-    # stdout.log("Lexed")
+    # stdout.log("Lexed", tokens)
     let parser_start = time.time()
     let parser = Parser(code, tokens, error_handler, store_errors=true)
     let AST = parser.parse()
@@ -213,14 +213,14 @@ function test(String code, String filename="<main>") {
 }
 # test(error_tests.assign_value, "assign_value.adk")
 let time = python.import("time")
-function parse_file(String filename) {
+let parse_file(String filename) {
     stdout.log("Reading", filename)
     let lexer_cache_file = Path(String(current_file.parent), filename+"lexercache")
     let tokens
     let code = open(filename).readAll()
     if lexer_cache_file.exists() {
         stdout.log("Using lexer cache.")
-        let tokens = json.load_from_string(open(filename+"lexercache").readAll()).map(function(x) Token(x.type, x.position.start, x.position.end, x.value, x.variation, x.insertions))
+        let tokens = json.load_from_string(open(filename+"lexercache").readAll()).map(lambda(x) create_token(x.type, x.position.start, x.position.end, x.value, x.variation, x.insertions))
     } else {
         stdout.log("Lexing...")
         let lexer_start = time.time()
