@@ -1,5 +1,5 @@
 let file = open("TemperatureData.txt")
-let lines = file.readLines().map(function(line) line.strip(" \n")).filter(function(line) line != "")
+let lines = file.readLines().map(function(line) line.strip(" \n")).filter(function(line) line is not "")
 let pairs = line.split(":") for line in lines
 let temperatures = {day: pair[0].strip(), temperature: Number(pair[1].strip())} for pair in pairs
 temperatures.sort(function(a, b) a.temperature - b.temperature)

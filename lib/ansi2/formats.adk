@@ -23,7 +23,7 @@ class Four_Bit_Color as this {
     let color = 9
     $constructor(color, bright) {
         this.bright = bright
-        if typeof(color) == String {
+        if typeof(color) is String {
             color = this.colors.(color)
         }
         this.color = color
@@ -42,15 +42,15 @@ class Eight_Bit_Color as this {
         let blue = RGB_Color.blue
 
         # Grey scale colors
-        if red == green & green == blue {
+        if red is green and green is blue {
             # Black
-            if red == 0
+            if red is 0
                 return 0
             else if red < 8
                 return 16
 
             # White
-            if red == 255
+            if red is 255
                 return 15
             else if red > 248
                 return 231
@@ -82,7 +82,7 @@ class RGB_Color as this {
 }
 class Color as this {
     let String name
-    let (Four_Bit_Color | Eight_Bit_Color | RGB_Color) color
+    let (Four_Bit_Color or Eight_Bit_Color or RGB_Color) color
     $constructor(name, color) {
         this.name = name
         this.color = color

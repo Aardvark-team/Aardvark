@@ -12,9 +12,9 @@ class Optimizer as this {
     }
     function is_valid_type(expected_type, actual_type) {
         if [FunctionValue, ObjectValue, NumberValue, BitsType, TypeType].contains(expected_type) {
-            return !actual_type.value_possibilities.map(function(x) expected_type == get_type_of(x.value)).contains(false)
-        } else if type_of(expected_type) == TypeUnion {
-            return !actual_type.value_possibilities.map(function(x) expected_type.types.contains(get_type_of(x.value))).contains(false)
+            return not actual_type.value_possibilities.map(function(x) expected_type is get_type_of(x.value)).contains(false)
+        } else if type_of(expected_type) is TypeUnion {
+            return not actual_type.value_possibilities.map(function(x) expected_type.types.contains(get_type_of(x.value))).contains(false)
         }
     }
     function Throw(options) {
@@ -23,7 +23,7 @@ class Optimizer as this {
         return error
     }
     function optimize(node, scope?) {
-        if type_of(node) == ADK_Error {
+        if type_of(node) is ADK_Error {
             return node
         }
         match node {
@@ -38,7 +38,7 @@ class Optimizer as this {
                 })
                 for statement in node.statements {
                     let x = optimize(statement, global_scope)
-                    if type_of(x) == ADK_Error {
+                    if type_of(x) is ADK_Error {
                         return [x]
                     }
                 }
@@ -53,7 +53,7 @@ class Optimizer as this {
                 for variable in node.variables {
                     let type = optimize(variable.given_type, scope)
                     let value = optimize(node.value, scope)
-                    if type & !is_valid_type(type, value)
+                    if type and not is_valid_type(type, value)
                         return this.Throw({
                             error_type: "TypeError",
                             message: "Type mismatch.",
@@ -83,7 +83,7 @@ class Optimizer as this {
             case {"type": "Operator", "operator": "|"} {
                 let left = optimize(node.left, scope)
                 let right = optimize(node.right, scope)
-                if get_type_of(left) == TypeType & get_type_of(right) == TypeType {
+                if get_type_of(left) is TypeType and get_type_of(right) is TypeType {
                     return TypeUnion(left, right)
                 }
                 return ADK_Error
@@ -111,7 +111,7 @@ if is_main {
     let AST = parser.parse()
     stdout.log(AST)
     for error in lexer.error_stack + parser.error_stack {
-        if type_of(error) != ADK_Error 
+        if type_of(error) is not ADK_Error 
             error = ADK_Error(error_handler, error)
         error.Throw()
     }

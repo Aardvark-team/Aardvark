@@ -43,16 +43,16 @@ function format(source_lines, message, error_type, filename, location, markers) 
     formatted += $"{color_border}{' ' * max_line_number_length}──> {color_error}{error_type} {color_border}in {color_file}{filename}:{location.line+1}:{location.column+1}{fg.rs}\n"
 
     for line in range(min_line, max_line + 1) {
-        let matching_markers = markers.filter(function(marker) marker.line == line)
+        let matching_markers = markers.filter(function(marker) marker.line is line)
 
-        if matching_markers.length == 0
+        if matching_markers.length is 0
             continue
         
         formatted += $"{color_border}{' ' * max_line_number_length} │\n"
         formatted += $"{color_border}{padstr(line + 1, max_line_number_length)} │ {fg.rs}{source_lines.(line)}\n"
         
         for offset in range(0, matching_markers.length + 1) {
-            if offset == 0 {
+            if offset is 0 {
                 let out = ""
 
                 for marker in matching_markers {
@@ -76,7 +76,7 @@ function format(source_lines, message, error_type, filename, location, markers) 
 
                 if marker_index > current_marker {
                     out += " "
-                } else if current_marker == marker_index {
+                } else if current_marker is marker_index {
                     out += "╰── " + marker.message
                 } else {
                     out += "│"

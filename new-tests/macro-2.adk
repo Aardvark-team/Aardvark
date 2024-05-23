@@ -1,11 +1,11 @@
 macro CHECK(x) {
-    (return x) if type_of(x) == Array else x
+    (return x) if type_of(x) is Array else x
 }
 function other() return 6
 function test() {
     let my_value = CHECK(other())
     stdout.write(my_value, "\n")
-    stdout.write(type_of("Hello") == String, "\n")
+    stdout.write(type_of("Hello") is String, "\n")
     let value_two = CHECK("Hello World")
 
     return 0

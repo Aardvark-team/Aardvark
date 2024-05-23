@@ -10,7 +10,7 @@ function getParts(n) {
     cur = ''
     num = 0
     for i in x {
-        if num == 3 {
+        if num is 3 {
             sections.add(cur)
             num = 0
             cur = ''
@@ -27,9 +27,9 @@ function number(n) {
     #*
     Adds th, st, or whatever it needs to turn use numbers like nth etc.
     *#
-    if n[n.digits.length - 1] == 1 return String(n) + "st"
-    if n[n.digits.length - 1] == 2 return String(n) + 'nd'
-    if n[n.digits.length - 1] == 3 return String(n) + 'rd'
+    if n[n.digits.length - 1] is 1 return String(n) + "st"
+    if n[n.digits.length - 1] is 2 return String(n) + 'nd'
+    if n[n.digits.length - 1] is 3 return String(n) + 'rd'
     else return String(n) + 'th'
 }
 function numWord(d, zero=true) {
@@ -37,35 +37,35 @@ function numWord(d, zero=true) {
     Converts numbers to words
     *#
     a = ''
-    if d == 0 & zero a = "zero"
-    else if d == 0 & !zero a = ""
-    else if d == 1 a = 'one'
-    else if d == 2 a = 'two'
-    else if d == 3 a = 'three'
-    else if d == 4 a = 'four'
-    else if d == 5 a = 'five'
-    else if d == 6 a = 'six'
-    else if d == 7 a = 'seven'
-    else if d == 8 a = 'eight'
-    else if d == 9 a = 'nine'
-    else if d == 10 a = 'ten'
-    else if d == 11 a = 'eleven'
-    else if d == 12 a = 'twelve'
-    else if d == 13 a = 'thirteen'
-    else if d == 14 a = 'fourteen'
-    else if d == 15 a = 'fifteen'
-    else if d == 16 a = 'sixteen'
-    else if d == 17 a = 'seventeen'
-    else if d == 18 a = 'eightteen'
-    else if d == 19 a = 'nineteen'
-    else if d == 20 a = 'twenty'
-    else if d == 30 a = 'thrity'
-    else if d == 40 a = 'fourty'
-    else if d == 50 a = 'fifty'
-    else if d == 60 a = 'sixty'
-    else if d == 70 a = 'seventy'
-    else if d == 80 a = 'eighty'
-    else if d == 90 a = 'ninety'
+    if (d is 0 and zero) a = "zero"
+    else if (d is 0 and not zero) a = ""
+    else if d is 1 a = 'one'
+    else if d is 2 a = 'two'
+    else if d is 3 a = 'three'
+    else if d is 4 a = 'four'
+    else if d is 5 a = 'five'
+    else if d is 6 a = 'six'
+    else if d is 7 a = 'seven'
+    else if d is 8 a = 'eight'
+    else if d is 9 a = 'nine'
+    else if d is 10 a = 'ten'
+    else if d is 11 a = 'eleven'
+    else if d is 12 a = 'twelve'
+    else if d is 13 a = 'thirteen'
+    else if d is 14 a = 'fourteen'
+    else if d is 15 a = 'fifteen'
+    else if d is 16 a = 'sixteen'
+    else if d is 17 a = 'seventeen'
+    else if d is 18 a = 'eighteen'
+    else if d is 19 a = 'nineteen'
+    else if d is 20 a = 'twenty'
+    else if d is 30 a = 'thirty'
+    else if d is 40 a = 'forty'
+    else if d is 50 a = 'fifty'
+    else if d is 60 a = 'sixty'
+    else if d is 70 a = 'seventy'
+    else if d is 80 a = 'eighty'
+    else if d is 90 a = 'ninety'
     else if d < 100 {
         a = numWord(d[0] * 10) + '-' + numWord(d[1])
     }

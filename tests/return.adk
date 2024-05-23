@@ -6,7 +6,7 @@ function test(x) {
     depth = slice(depth, 0, -1)
     return 0
   }
-  if x == 1 {
+  if x is 1 {
     stdout.write(depth, 'ret 1\n')
     depth = slice(depth, 0, -1)
     return 1

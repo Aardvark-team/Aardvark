@@ -22,7 +22,7 @@ class Parser as this {
     }
     function parse_number() {
         let number_value = ""
-        while "0123456789".contains(this.current_character) & !this.is_at_end {
+        while "0123456789".contains(this.current_character) and not this.is_at_end {
             number_value += this.current_character
             this.advance()
         }
@@ -32,9 +32,9 @@ class Parser as this {
         let string_value = ""
         let quote = this.current_character
         this.advance()
-        while this.current_character != quote & !this.is_at_end {
+        while this.current_character is not quote and  not this.is_at_end {
             string_value += this.current_character
-            if this.current_character == "\\" {
+            if this.current_character is "\\" {
                 this.advance()
                 if "`'\"".contains(this.current_character) {
                     string_value += this.current_character
@@ -52,16 +52,16 @@ class Parser as this {
         let array = []
         let ate_comma = false
         this.eat("[")
-        while !(this.current_character == "]") & !this.is_at_end {
+        while not (this.current_character is "]") and not this.is_at_end {
             this.eat_useless()
-            if array.length > 0 & !ate_comma {
+            if array.length > 0 and not ate_comma {
                 this.eat(",")
             }
             let value = this.parse()
             array.add(value)
             ate_comma = false
             this.eat_useless()
-            if this.current_character == "," {
+            if this.current_character is "," {
                 this.advance()
                 ate_comma = true
             }
@@ -75,9 +75,9 @@ class Parser as this {
         let ate_comma = false
         let items = 0
         this.eat("{")
-        while !(this.current_character == "}") & !this.is_at_end {
+        while not (this.current_character is "}") and  not this.is_at_end {
             this.eat_useless()
-            if items > 0 & !ate_comma {
+            if items > 0 and not ate_comma {
                 this.eat(",")
             }
             let key = this.parse(allow_identifiers=true)
@@ -87,7 +87,7 @@ class Parser as this {
             items += 1
             ate_comma = false
             this.eat_useless()
-            if this.current_character == "," {
+            if this.current_character is "," {
                 this.advance()
                 ate_comma = true
                 this.eat_useless()
@@ -99,14 +99,14 @@ class Parser as this {
     } 
     function parse_identifier() {
         let identifier = ""
-        while this.allowed_id_characters.contains(this.current_character) & !this.is_at_end {
+        while this.allowed_id_characters.contains(this.current_character) and not this.is_at_end {
             identifier += this.current_character
             this.advance()
         }
         return identifier
     }
     function eat_useless() {
-        while " \t\r\n".contains(this.current_character) & !this.is_at_end {
+        while " \t\r\n".contains(this.current_character) and not this.is_at_end {
             this.advance()
         }
     }
@@ -119,9 +119,9 @@ class Parser as this {
             return this.parse_number()
         } else if "`'\"".contains(this.current_character) {
             return this.parse_string()
-        } else if this.current_character == "[" {
+        } else if this.current_character is "[" {
             return this.parse_array()
-        } else if this.current_character == "{" {
+        } else if this.current_character is "{" {
             return this.parse_object()
         } else if this.detect("true", true) {
             this.eat("true")
@@ -132,7 +132,7 @@ class Parser as this {
         } else if this.detect("null", true) {
             this.eat("null")
             return null
-        } else if allow_identifiers & this.allowed_id_start_characters.contains(this.current_character) {
+        } else if allow_identifiers and this.allowed_id_start_characters.contains(this.current_character) {
             return this.parse_identifier()
         } else {
             stderr.write("\033[31mUnexpected character at index ", this.index, "(parse failed): ", this.current_character, "\033[0m\n")
@@ -150,14 +150,14 @@ class Parser as this {
         return this.code.slice(this.index - n, this.index)
     }
     function detect(string) {
-        return this.code.slice(this.index, this.index + string.length) == string
+        return this.code.slice(this.index, this.index + string.length) is string
     }
     function eat(characters?, optional=false) {
-        if !characters
+        if not characters
             return this.advance()
         else if this.detect(characters)
             return this.advance(characters.length)
-        else if !optional {
+        else if not optional {
             stderr.write("\033[31mUnexpected character at index ", this.index, ": ", this.current_character, "\033[0m\n")
             exit(1)
         } else return false

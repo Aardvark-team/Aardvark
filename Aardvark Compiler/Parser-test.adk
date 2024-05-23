@@ -2,30 +2,30 @@ from Parser include Parser
 from Lexer include Lexer, Token, create_token
 from Errors include ADK_Error, ErrorHandler
 let prettify_ast(ast, indent=0) {
-    if type_of(ast) == String
+    if type_of(ast) is String
         return $'"{ast}"'
-    else if type_of(ast) == Number
+    else if type_of(ast) is Number
         return String(ast)
-    else if type_of(ast) == Boolean
+    else if type_of(ast) is Boolean
         return String(ast)
-    else if ast == null
+    else if ast is null
         return "null"
-    else if type_of(ast) == Array {
-        if ast.length == 0 return "[]"
-        else if ast.length == 1 return "[" + prettify_ast(ast.0, indent) + "]"
+    else if type_of(ast) is Array {
+        if ast.length is 0 return "[]"
+        else if ast.length is 1 return "[" + prettify_ast(ast.0, indent) + "]"
         let text = "[\n"
         for value in ast {
             text += indent * " " + prettify_ast(value, indent+2) + ",\n"
         }
         indent -= 2
         return text + indent * " " + "]"
-    } else if type_of(ast) == Object {
-        if keys(ast).length == 0 return "{}"
-        else if keys(ast).length == 1 return "{" + keys(ast).0 + ": " + prettify_ast(ast.(keys(ast).0), indent) + "}"
+    } else if type_of(ast) is Object {
+        if keys(ast).length is 0 return "{}"
+        else if keys(ast).length is 1 return "{" + keys(ast).0 + ": " + prettify_ast(ast.(keys(ast).0), indent) + "}"
         let text = "{\n"
         # indent += 2
         for key:value in ast {
-            if key == "position" continue
+            if key is "position" continue
             text += indent * " " + key + ": " + prettify_ast(value, indent+2) + ",\n"
         }
         indent -= 2 

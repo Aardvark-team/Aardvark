@@ -15,7 +15,7 @@ let Token = template {
   let Object position
   let Number length
   let compare(expected_type, expected_value, expected_startcol) {
-      if (!expected_type or type is expected_type) and (!expected_value or value is expected_value) and (!expected_startcol or start.column is expected_startcol)
+      if (not expected_type or type is expected_type) and (not expected_value or value is expected_value) and (not expected_startcol or start.column is expected_startcol)
           return true;
       return false;
   }
@@ -80,40 +80,32 @@ class Lexer as this {
     this.error_stack = []
     this.current_character = ""
   }
-  function Throw(options)
-    this.error_stack.add(options)
+  let Throw(options) = this.error_stack.add(options)
 
-  function isWhitespace(char)
-    (char ? this.current_character) in Whitespaces
+  let isWhitespace(char) = (char ? this.current_character) is in Whitespaces
 
-  function isNewline(char)
-    (char ? this.current_character) in '\n;'
+  let isNewline(char) = (char ? this.current_character) in '\n;'
 
-  function isQuote(char)
-    (char ? this.current_character) in Quotes
+  let isQuote(char) = (char ? this.current_character) in Quotes
 
-  function isDelimiter(char)
-    (char ? this.current_character) in Delimiters 
+  let isDelimiter(char) = (char ? this.current_character) in Delimiters 
 
-  function isNumber(char)
-    (char ? this.current_character) in '0123456789'
+  let isNumber(char) = (char ? this.current_character) in '0123456789'
 
-  function addToken(type, start, end, value, variety, insertions)
-    this.output.add(create_token(type, start, end, value, variety, insertions))
+  let addToken(type, start, end, value, variety, insertions) = this.output.add(create_token(type, start, end, value, variety, insertions))
 
-  function otherwise(char) {
+  let otherwise(char) {
     let character = char ? this.current_character
-    return !(this.isWhitespace(character) or this.isDelimiter(character) or this.isNewline(character) or character is '#' or character in SymbolOperators)
+    return not (this.isWhitespace(character) or this.isDelimiter(character) or this.isNewline(character) or character is '#' or character in SymbolOperators)
   }
-  function detect(text)
-    text is this.data.slice(this.position.index, this.position.index + text.length)
+  let detect(text) = text is this.data.slice(this.position.index, this.position.index + text.length)
   
-  function newline() {
+  let newline() {
     this.empty = true
     this.position.line++
     this.position.column = 1
   }
-  function advance(amt = 1) {
+  let advance(amt = 1) {
     this.position.index += amt
     this.position.column += amt
     if this.position.index < this.data.length
@@ -121,15 +113,13 @@ class Lexer as this {
     else 
       this.AtEnd = true
   }
-  function peek(amt = 1) {
+  let peek(amt = 1) {
     if this.position.index + amt < this.data.length 
       return this.data.(this.position.index + amt)
-    else return null;
   }
-  function pos
-    {index: this.position.index, line: this.position.line, column: this.position.column}
+  let pos() = {index: this.position.index, line: this.position.line, column: this.position.column}
 
-  function tokenize(data="") {
+  let tokenize(data="") {
     #*
       Takes code and converts it to tokens.
     *#
@@ -171,11 +161,11 @@ class Lexer as this {
         let value = ''
         let start = this.pos()
         let startcolumn = this.position.column
-        while this.isWhitespace() and !this.AtEnd {
+        while this.isWhitespace() and not this.AtEnd {
           value += this.current_character
           this.advance()
         }
-        if !this.isNewline() {
+        if not this.isNewline() {
           this.advance(-1)
           this.addToken('Indent', start, this.pos(), value)
         }
@@ -190,7 +180,7 @@ class Lexer as this {
         let value = ''
         let dot_position
         let characters = BaseNumsOrder.slice(0, base)
-        while (characters.contains(this.current_character) or '._'.contains(this.current_character)) and !this.AtEnd {
+        while (characters.contains(this.current_character) or '._'.contains(this.current_character)) and not this.AtEnd {
           if dot_position? and this.current_character is '.' and this.peek() in characters
             this.Throw({
               message: "A Number may not have two decimal points!",
@@ -262,7 +252,7 @@ class Lexer as this {
             }
             value = ''
             this.advance()
-            if !characters.contains(this.current_character)
+            if not characters.contains(this.current_character)
               this.Throw({
                 message: $"This character is not supported in base {base}.",
                 error_type: "SyntaxError",
@@ -294,7 +284,7 @@ class Lexer as this {
       else if this.detect('#*') {
         let value = ''
         let start = this.pos()
-        while !this.detect('*#') and !this.AtEnd {
+        while not this.detect('*#') and not this.AtEnd {
             value += this.current_character
             if this.current_character is '\n' this.newline()
             this.advance()
@@ -307,7 +297,7 @@ class Lexer as this {
       else if this.current_character is '#' {
         let value = ''
         let start = this.pos()
-        while this.current_character is not '\n' and !this.AtEnd {
+        while this.current_character is not '\n' and not this.AtEnd {
           value += this.current_character
           this.advance()
         }
@@ -327,7 +317,7 @@ class Lexer as this {
         let value = ''
         let start = this.pos()
         let backslash = false
-        while !this.AtEnd {
+        while not this.AtEnd {
           this.advance()
           if this.AtEnd 
             this.Throw({
@@ -363,7 +353,7 @@ class Lexer as this {
             let expression_text = ''
             let expression_start = this.pos()
             let opener_count = 1
-            while !this.AtEnd and !(opener_count is 0) {
+            while not this.AtEnd and not (opener_count is 0) {
               expression_text += this.current_character
               this.advance()
               if this.current_character is "{" opener_count++
@@ -419,7 +409,7 @@ class Lexer as this {
       else if this.otherwise() {
         let value = ''
         let start = this.pos()
-        while (this.otherwise() or this.isNumber()) and !this.AtEnd {
+        while (this.otherwise() or this.isNumber()) and not this.AtEnd {
           value += this.current_character
           this.advance()
         }

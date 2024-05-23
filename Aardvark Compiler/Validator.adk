@@ -53,7 +53,7 @@ class StringValue as this {
     this.minlen = minlen
     this.maxlen = maxlen
     this.charset = charset
-    for v in this.value if !(v in charset)
+    for v in this.value if not (v in charset)
       charset.add(v)
     if this.value.length < this.minlen
       this.minlen = this.value.length
@@ -80,15 +80,15 @@ class Validator as this {
     })
   }
   function throwError(type, message, options={}, note="", kill=true) {
-    if this.errorHandler == null return false
+    if this.errorHandler is null return false
     else return this.errorHandler.Throw(type, message, options, note, kill)
   }
   function getVar(scope, name, position, error=true) {  
     if name in scope.value
       return scope.value[name]
     else
-      if !scope.parent {
-        if (!this.errorHandler | !error) return null
+      if not scope.parent {
+        if (not this.errorHandler or not error) return null
         this.throwError("ReferenceError", $"Undefined variable \"{name}\".", {
               lineno: position.start.line,
               marker: {start: position.start.column+1, length: name.length},
@@ -102,7 +102,7 @@ class Validator as this {
     if name in scope.value
       return scope.value[name] = value
     else
-      if !scope.parent {
+      if not scope.parent {
         return scope.value[name] = value
       } else
     	return setVar(scope.parent, name, value)
@@ -111,7 +111,7 @@ class Validator as this {
     switch expr {
       case {type: 'VariableAccess', $value, $position} {
         var = getVar(scope, value, position, false)
-        if var != null
+        if var is not null
           var.references++
         return {
           dataType: 'variable',
@@ -137,7 +137,7 @@ class Validator as this {
 	  match expr {
       case {type: 'VariableAccess', $value, $position} {
         var = this.getVar(scope, value, position)
-        if var != null
+        if var is not null
           var.references++
         return {
           dataType: 'variable',
@@ -153,7 +153,7 @@ class Validator as this {
         left = this.traverseAssignment(left, scope)
         right = this.validate(right, scope)
         stdout.write('Assignment! ', right, '\n')
-        if left.variable == null {
+        if left.variable is null {
           leftVar = Variable(left.name, scope, right.types)
           scope.set(left.name, leftVar)
         }

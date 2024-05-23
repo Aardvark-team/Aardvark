@@ -11,6 +11,6 @@ function x(val) as this { #Test
 
 y = x(8*"Hello")
 
-if y == null { # x always returns null, y is always the return value of x, y always = null
+if y is null { # x always returns null, y is always the return value of x, y always = null
     stdout.write(y, '\n')
 }

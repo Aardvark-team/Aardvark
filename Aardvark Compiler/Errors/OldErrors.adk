@@ -5,7 +5,7 @@ function getTraceLine(index, line) {
     header = "    at "
     fileloc = $" ― {line.filename}:{line.line}:{line.col}"
 
-    if index == 0
+    if index is 0
         return header + line.name + fileloc
 
     return " " * header.length + line.name + fileloc
@@ -36,9 +36,9 @@ function printError(type, pos, msg, didyoumean, traceback, code, color=fg(255, 3
     while i < Math.max(underline.length, marker.length) {
         m = marker.(i) if i < marker.length else space_symbol
         u = underline.(i) if i < underline.length else space_symbol
-        if m == marker_symbol 
+        if m is marker_symbol 
             underline_str += m
-        else if u == underline_symbol
+        else if u is underline_symbol
             underline_str += u
         else
             underline_str += space_symbol

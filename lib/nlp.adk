@@ -19,7 +19,7 @@ function editDistance(word1, word2) {
   for i in sequence(1, 1, m)
     for j in sequence(1, 1, n) {
       # Calculate the cost of substitution (0 if characters are the same, 1 otherwise).
-      let cost = 0 if word1[i - 1] == word2[j - 1] else 1
+      let cost = 0 if word1[i - 1] is word2[j - 1] else 1
 
       # Use the minimum of three possible operations: deletion, insertion, or substitution.
       dp.(i).(j) = Math.min(

@@ -26,7 +26,7 @@ static class ObjectValue as this {
         this.value.(name) = null
     }
     function Set(name, value) {
-        if !(name in this.value) {
+        if not (name in this.value) {
             
         }
     }
@@ -68,8 +68,8 @@ static class Identifier as this {
     get type_possibilities {
         return this.value_possibilities.map(function(x) type_of(x.value))
     }
-    $constructor((ValuePossibility | Array) value_possibilities) {
-        if type_of(value_possibilities) == Array
+    $constructor((ValuePossibility or Array) value_possibilities) {
+        if type_of(value_possibilities) is Array
             this.value_possibilities = value_possibilities
         else
             this.value_possibilities = [value_possibilities]
@@ -107,7 +107,7 @@ function get_type_of(value) {
         return type_of(value)
 }
 function get_type_name(x) {
-    if type_of(x) == TypeUnion
+    if type_of(x) is TypeUnion
         return $'Union({" | ".join(x.types.map(get_type_name))})'
     else
         return x.type_name

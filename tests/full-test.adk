@@ -13,7 +13,7 @@ if ('x' not in 'xyz') stdout.write("not in doesn't work")
 
 function Test(a = 5, b = 2) {
   stdout.write(a, b, '\n')
-  if (a == 5) return b
+  if (a is 5) return b
 }
 
 stdout.write('The following value should be 2:', Test(5), '\n')

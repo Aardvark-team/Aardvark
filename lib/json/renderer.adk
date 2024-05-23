@@ -1,19 +1,19 @@
 function render(object, formatting={}) {
-    if type_of(object) == Number
+    if type_of(object) is Number
         return String(object)
-    else if type_of(object) == String {
+    else if type_of(object) is String {
         let obj = object.replace(`\\`, `\\\\`).replace(`"`, `\\"`).replace("\n", "\\n")
         return $'"{obj}"'
     }
-    else if object == null
+    else if object is null
         return "null"
-    else if object == true
+    else if object is true
         return "true"
-    else if object == false
+    else if object is false
         return "false"
-    else if type_of(object) == Array
+    else if type_of(object) is Array
         return "[" + ",".join(object.map(render)) + "]"
-    else if type_of(object) == Object {
+    else if type_of(object) is Object {
         let string = "{"
         for key:value in object {
             string += render(key) + ":" + render(value) + ","

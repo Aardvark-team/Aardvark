@@ -5,7 +5,7 @@ include Optimizer
 
 function show_errors(error_stack, error_handler) {
     for error in error_stack {
-        if type_of(error) != ADK_Error 
+        if type_of(error) is not ADK_Error 
             error = ADK_Error(error_handler, error)
         if error.show {
             error.Throw()

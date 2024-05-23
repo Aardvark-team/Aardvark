@@ -32,18 +32,18 @@ function Highlight(code, tokens, opts={}) {
         if token.position.start.index > last + 1
             output += styles.default + code.slice(last+1, token.position.start.index)
 
-        if token.type == "String" {
+        if token.type is "String" {
             output += styles.(token.type) + code.slice(token.position.start.index, token.position.end.index + 1)
         }
 
-        else if token.value == "\n" {
+        else if token.value is "\n" {
             line++
             if opts.linenums?true
                 output += fg.rs + "\n" + genLine(line, opts.leftpadding?4)
             else
                 output += fg.rs + "\n"
         }
-        else if token.type == "Identifier" & toknum < tokens.length - 1 & tokens.(toknum + 1).type == "Delimiter" & tokens.(toknum + 1).value == "("
+        else if token.type is "Identifier" and toknum < tokens.length - 1 and tokens.(toknum + 1).type is "Delimiter" and tokens.(toknum + 1).value is "("
             output += styles.Function + code.slice(token.position.start.index, token.position.end.index + 1)
 
         else if token.type in styles
