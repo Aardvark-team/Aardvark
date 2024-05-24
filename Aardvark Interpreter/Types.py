@@ -1081,14 +1081,12 @@ def dict_from_other(old):
     return context
 
 
-def pyToAdk(py, is_reference=False):
+def pyToAdk(py):
     if type(py) in Types:
-        return py
-    elif type(py) == type:
         return py
     elif py == None:
         return Null
-    elif isinstance(py, bool):
+    elif type(py) == bool:
         return Boolean(py)
     elif isinstance(py, int) or isinstance(py, float):
         return Number(py)
@@ -1103,7 +1101,7 @@ def pyToAdk(py, is_reference=False):
     elif isinstance(py, dict):
         return Object(py)
     elif isinstance(py, type):
-        return Function(py)
+        return py
     elif (
         isinstance(py, io.TextIOBase)
         or isinstance(py, io.BufferedIOBase)

@@ -7,6 +7,7 @@ import random
 import math
 from nlp import edit_distance
 import Types
+import traceback
 from Types import (
     Null,
     Object,
@@ -493,15 +494,14 @@ class Executor:
 
     def ExecFunctionCall(self, expr: dict, scope: Scope):
         funct = self.ExecExpr(expr["function"], scope)
-        if not getattr(funct, "is_macro", False):
-            self.traceback.append(
-                {
-                    "name": Error.getAstText(expr["function"], self.codelines) + "()",
-                    "line": expr["positions"]["start"]["line"],
-                    "col": expr["positions"]["start"]["col"],
-                    "filename": self.path.name,
-                }
-            )
+        self.traceback.append(
+            {
+                "name": Error.getAstText(expr["function"], self.codelines) + "()",
+                "line": expr["positions"]["start"]["line"],
+                "col": expr["positions"]["start"]["col"],
+                "filename": self.path.name,
+            }
+        )
         args = []
         kwargs = {
             k: self.ExecExpr(v, scope)
@@ -509,33 +509,13 @@ class Executor:
         }
         for arg in expr["arguments"]:
             if arg.get("type") == "Operator" and arg.get("operator") == "...":
-                arg = self.ExecExpr(arg["left"] if arg["left"] else arg["right"], scope)
+                arg = self.ExecExpr(arg["right"], scope)
                 if type(arg) == Object:
                     kwargs.update(arg.vars)
                 else:
                     args = [*args, *arg]
             else:
                 args.append(self.ExecExpr(arg, scope))
-        if not callable(funct):
-            self.errorhandler.throw(
-                "Value",
-                "Not a function: '"
-                + Error.getAstText(expr["function"], self.codelines)
-                + f"'. That is a {type(funct)}.",
-                {
-                    "lineno": expr["positions"]["start"]["line"],
-                    "marker": {
-                        "start": expr["positions"]["start"]["col"],
-                        "length": expr["positions"]["end"]["col"]
-                        - expr["positions"]["start"]["col"],
-                    },
-                    "underline": {
-                        "start": expr["positions"]["start"]["col"],
-                        "end": expr["positions"]["end"]["col"],
-                    },
-                    "traceback": self.traceback,
-                },
-            )
         try:
             if type(funct) == Function and funct.is_macro:
                 ret = funct(
@@ -566,6 +546,29 @@ class Executor:
                     },
                 },
             )
+        except TypeError as e:
+            if not callable(funct):
+                self.errorhandler.throw(
+                    "Value",
+                    "Not a function: '"
+                    + Error.getAstText(expr["function"], self.codelines)
+                    + f"'. That is a {type(funct)}.",
+                    {
+                        "lineno": expr["positions"]["start"]["line"],
+                        "marker": {
+                            "start": expr["positions"]["start"]["col"],
+                            "length": expr["positions"]["end"]["col"]
+                            - expr["positions"]["start"]["col"],
+                        },
+                        "underline": {
+                            "start": expr["positions"]["start"]["col"],
+                            "end": expr["positions"]["end"]["col"],
+                        },
+                        "traceback": self.traceback,
+                    },
+                )
+            else:
+                raise e
         self.traceback = self.traceback[:-1]
         return ret
 
@@ -574,112 +577,114 @@ class Executor:
             return Null
         elif type(expr) in Types.Types:
             return expr
-        elif expr["type"] == "NumberLiteral":
+        expression_type = expr.get("type", None)
+        if expression_type == "NumberLiteral":
             return Number(expr["value"])
-        elif expr["type"] == "StringLiteral":
+        elif expression_type == "StringLiteral":
             return String(expr["value"])
-        elif expr["type"] == "BooleanLiteral":
+        elif expression_type == "BooleanLiteral":
             return Boolean(expr["value"])
-        elif expr["type"] == "VariableAccess":
-            return self.getVar(
-                scope, expr["value"], expr["positions"]["start"], undefinedError
-            )
-        elif expr["type"] == "PropertyAccess":
-            obj = pyToAdk(self.ExecExpr(expr["value"], scope, undefinedError))
-            get_objname = lambda: (
-                obj.name
-                if "name" in dir(obj)
-                else Error.getAstText(expr["value"], self.codelines)
-            )
-            property = self.ExecExpr(expr["property"], scope, undefinedError)
-            return self.getVar(
-                obj,
-                property,
-                expr["property"]["positions"]["start"],
-                undefinedError,
-                message=lambda: f'Undefined property "{{name}}" of "{get_objname()}"',
-            )
-        elif expr["type"] == "Assignments":
-            for assignment in expr["assignments"]:
-                value = (
-                    self.ExecExpr(assignment["value"], scope)
-                    if assignment["value"]
-                    else _Undefined()
+        try:
+            if expression_type == "VariableAccess":
+                return self.getVar(
+                    scope, expr["value"], expr["positions"]["start"], undefinedError
                 )
-                self.defineVar(
-                    assignment["var_name"],
-                    value,
-                    scope,
-                    assignment["is_static"],
-                    expr,
-                    is_initial=True,
+            elif expression_type == "PropertyAccess":
+                obj = pyToAdk(self.ExecExpr(expr["value"], scope, undefinedError))
+                get_objname = lambda: (
+                    obj.name
+                    if "name" in dir(obj)
+                    else Error.getAstText(expr["value"], self.codelines)
                 )
-            return value
-        elif expr["type"] == "Array":
-            items = []
-            for item in expr["items"]:
-                if item.get("type") == "Operator" and item.get("operator") == "...":
-                    item = self.ExecExpr(
-                        item["left"] if item["left"] else item["right"], scope
+                property = self.ExecExpr(expr["property"], scope, undefinedError)
+                return self.getVar(
+                    obj,
+                    property,
+                    expr["property"]["positions"]["start"],
+                    undefinedError,
+                    message=lambda: f'Undefined property "{{name}}" of "{get_objname()}"',
+                )
+            elif expression_type == "Assignments":
+                for assignment in expr["assignments"]:
+                    value = (
+                        self.ExecExpr(assignment["value"], scope)
+                        if assignment["value"]
+                        else _Undefined()
                     )
-                    items = [*items, *item]
-                else:
-                    items.append(self.ExecExpr(item, scope))
-            return Array(items)
-        elif expr["type"] == "FunctionCall":
-            return self.ExecFunctionCall(expr, scope)
-        elif expr["type"] == "Operator" and expr["operator"] == "?":
-            left = self.ExecExpr(expr["left"], scope, False)
-            if left == Null:
-                return self.ExecExpr(expr["right"], scope) if expr["right"] else Null
-            else:
-                return left
-        elif expr["type"] == "Operator" and expr["operator"] == "?=":
-            left = self.ExecExpr(expr["left"], scope, False)
-            if left == Null:
-                return pyToAdk(
-                    Operators["="](
-                        expr["left"],
-                        expr["right"],
-                        self.errorhandler,
-                        self.codelines[expr["positions"]["start"]["line"] - 1],
-                        expr,
+                    self.defineVar(
+                        assignment["var_name"],
+                        value,
                         scope,
-                        self,
+                        assignment["is_static"],
+                        expr,
+                        is_initial=True,
                     )
-                )
-        elif expr["type"] == "Operator":
-            operator = expr["operator"]
-            if operator in Operators:
-                op = Operators[operator]
-                if operator in [
-                    "=",
-                    "+=",
-                    "-=",
-                    "*=",
-                    "/=",
-                    "^=",
-                    "%=",
-                    "++",
-                    "--",
-                    "|",
-                    "&",
-                    "or",
-                    "and",
-                    "@",
-                ]:
-                    left = expr["left"]
-                    right = expr["right"]
+                return value
+            elif expression_type == "Array":
+                items = []
+                for item in expr["items"]:
+                    if item.get("operator") == "...":
+                        item = self.ExecExpr(item["right"], scope)
+                        items = [*items, *item]
+                    else:
+                        items.append(self.ExecExpr(item, scope))
+                return Array(items)
+            elif expression_type == "FunctionCall":
+                return self.ExecFunctionCall(expr, scope)
+            elif expression_type == "Operator" and expr["operator"] == "?":
+                left = self.ExecExpr(expr["left"], scope, False)
+                if left == Null:
+                    return (
+                        self.ExecExpr(expr["right"], scope) if expr["right"] else Null
+                    )
                 else:
-                    left = self.ExecExpr(expr["left"], scope)
-                    right = self.ExecExpr(expr["right"], scope)
+                    return left
+            elif expression_type == "Operator" and expr["operator"] == "?=":
+                left = self.ExecExpr(expr["left"], scope, False)
+                if left == Null:
+                    return pyToAdk(
+                        Operators["="](
+                            expr["left"],
+                            expr["right"],
+                            self.errorhandler,
+                            self.codelines[expr["positions"]["start"]["line"] - 1],
+                            expr,
+                            scope,
+                            self,
+                        )
+                    )
+            elif expression_type == "Operator":
+                operator = expr["operator"]
+                if operator in Operators:
+                    op = Operators[operator]
+                    if operator in [
+                        "=",
+                        "+=",
+                        "-=",
+                        "*=",
+                        "/=",
+                        "^=",
+                        "%=",
+                        "++",
+                        "--",
+                        "or",
+                        "and",
+                        "xor",
+                        "@",
+                        "|",
+                        "&",
+                    ]:
+                        left = expr["left"]
+                        right = expr["right"]
+                    else:
+                        left = self.ExecExpr(expr["left"], scope)
+                        right = self.ExecExpr(expr["right"], scope)
 
-                if isinstance(left, Types.Object) and left._class:
-                    if overloads := adk_overloaded_classes.get(id(left._class)):
-                        if operator in overloads:
-                            return overloads[operator](left, right)
+                    if type(left) == Types.Object and left._class:
+                        if overloads := adk_overloaded_classes.get(id(left._class)):
+                            if operator in overloads:
+                                return overloads[operator](left, right)
 
-                try:
                     return pyToAdk(
                         op(
                             left,
@@ -691,10 +696,75 @@ class Executor:
                             self,
                         )
                     )
-                except TypeError as e:
+                else:
+                    return notImplemented(
+                        self.errorhandler,
+                        f'Operator "{expr["operator"]}" not yet implemented.',
+                        expr,
+                    )
+            elif expression_type == "IfStatement":
+                ifscope = Scope({}, parent=scope, scope_type="conditional")
+                if self.ExecExpr(expr["condition"], scope):
+                    return self.Exec(expr["body"], ifscope)
+                elif expr["else_body"]:
+                    return self.Exec(expr["else_body"], ifscope)
+            elif expression_type == "WhileLoop":
+                ret = []
+                while bool(self.ExecExpr(expr["condition"], scope)):
+                    whilescope = Scope({}, parent=scope, scope_type="loop")
+                    ret.append(self.Exec(expr["body"], whilescope))
+                    if whilescope._completed and not whilescope._has_been_continued:
+                        break
+                return ret
+            elif expression_type == "Loop":
+                ret = []
+                while True:
+                    loopscope = Scope({}, parent=scope, scope_type="loop")
+                    ret.append(self.Exec(expr["body"], loopscope))
+                    if loopscope._completed and not loopscope._has_been_continued:
+                        break
+                return ret
+            elif expression_type == "Structure":
+                structure_scope = Scope({}, parent=scope)
+                for assignment in expr["assignments"]:
+                    self.ExecExpr(assignment, structure_scope)
+                # Convert structure_scope to an Object
+                structure = Structure(structure_scope.vars)
+                if expr["name"]:
+                    self.defineVar(expr["name"], structure, scope)
+                return structure
+            elif expression_type == "Template":
+                template_scope = Scope({}, parent=scope)
+                for assignment in expr["assignments"]:
+                    self.ExecExpr(assignment, template_scope)
+                # Convert template_scope to an Object
+                template = Template(
+                    template_scope.vars, expr["name"] or "unnamed template"
+                )
+                if expr["name"]:
+                    self.defineVar(expr["name"], template, scope)
+                return template
+            elif expression_type == "Option":
+                # TODO!!!!!
+                option_scope = Scope({}, parent=scope)
+                for assignment in expr["assignments"]:
+                    self.ExecExpr(assignment, option_scope)
+                option = Option(option_scope.vars, expr["name"])
+                if expr["name"]:
+                    self.defineVar(expr["name"], option, scope)
+                return option
+            elif expression_type == "TemplateInit":
+                arguments = []
+                for arg in expr["arguments"]:
+                    arguments.append(self.ExecExpr(arg, scope))
+                keywordArguments = expr["keywordArguments"]
+                for key, value in keywordArguments.items():
+                    keywordArguments[key] = self.ExecExpr(value, scope)
+                template = self.ExecExpr(expr["template"], scope)
+                if type(template) != Template:
                     self.errorhandler.throw(
                         "Value",
-                        e.args[0],
+                        "TemplateInit must be called on a template.",
                         {
                             "lineno": expr["positions"]["start"]["line"],
                             "underline": {
@@ -709,324 +779,114 @@ class Executor:
                             "traceback": self.traceback,
                         },
                     )
-            else:
-                return notImplemented(
-                    self.errorhandler,
-                    f'Operator "{expr["operator"]}" not yet implemented.',
-                    expr,
-                )
-        elif expr["type"] == "IfStatement":
-            ifscope = Scope({}, parent=scope, scope_type="conditional")
-            if bool(self.ExecExpr(expr["condition"], scope)):
-                return self.Exec(expr["body"], ifscope)
-            elif expr["else_body"]:
-                return self.Exec(expr["else_body"], ifscope)
-        elif expr["type"] == "WhileLoop":
-            ret = []
-            while bool(self.ExecExpr(expr["condition"], scope)):
-                whilescope = Scope({}, parent=scope, scope_type="loop")
-                ret.append(self.Exec(expr["body"], whilescope))
-                if whilescope._completed and not whilescope._has_been_continued:
-                    break
-            return ret
-        elif expr["type"] == "Loop":
-            ret = []
-            while True:
-                loopscope = Scope({}, parent=scope, scope_type="loop")
-                ret.append(self.Exec(expr["body"], loopscope))
-                if loopscope._completed and not loopscope._has_been_continued:
-                    break
-            return ret
-        elif expr["type"] == "Structure":
-            structure_scope = Scope({}, parent=scope)
-            for assignment in expr["assignments"]:
-                self.ExecExpr(assignment, structure_scope)
-            # Convert structure_scope to an Object
-            structure = Structure(structure_scope.vars)
-            if expr["name"]:
-                self.defineVar(expr["name"], structure, scope)
-            return structure
-        elif expr["type"] == "Template":
-            template_scope = Scope({}, parent=scope)
-            for assignment in expr["assignments"]:
-                self.ExecExpr(assignment, template_scope)
-            # Convert template_scope to an Object
-            template = Template(template_scope.vars, expr["name"] or "unnamed template")
-            if expr["name"]:
-                self.defineVar(expr["name"], template, scope)
-            return template
-        elif expr["type"] == "Option":
-            # TODO!!!!!
-            option_scope = Scope({}, parent=scope)
-            for assignment in expr["assignments"]:
-                self.ExecExpr(assignment, option_scope)
-            option = Option(option_scope.vars, expr["name"])
-            if expr["name"]:
-                self.defineVar(expr["name"], option, scope)
-            return option
-        elif expr["type"] == "TemplateInit":
-            arguments = []
-            for arg in expr["arguments"]:
-                arguments.append(self.ExecExpr(arg, scope))
-            keywordArguments = expr["keywordArguments"]
-            # print(
-            #     "kwargs",
-            #     ", ".join(
-            #         [
-            #             f"{str(x)}:{str(type(y))}({y})\n"
-            #             for x, y in keywordArguments.items()
-            #         ]
-            #     ),
-            # )
-            for key, value in keywordArguments.items():
-                keywordArguments[key] = self.ExecExpr(value, scope)
-            template = self.ExecExpr(expr["template"], scope)
-            if type(template) != Template:
-                self.errorhandler.throw(
-                    "Value",
-                    "TemplateInit must be called on a template.",
-                    {
-                        "lineno": expr["positions"]["start"]["line"],
-                        "underline": {
-                            "start": expr["positions"]["start"]["col"],
-                            "end": expr["positions"]["end"]["col"],
-                        },
-                        "marker": {
-                            "start": expr["positions"]["start"]["col"],
-                            "length": expr["positions"]["end"]["col"]
-                            - expr["positions"]["start"]["col"],
-                        },
-                        "traceback": self.traceback,
-                    },
-                )
-            return template.createStructure(arguments, keywordArguments)
-        elif expr["type"] == "ForLoop":
-            iterable = self.ExecExpr(expr["iterable"], scope)
-            ret = []
-            for item in iterable:
-                forscope = Scope({}, parent=scope, scope_type="loop")
-                decls = expr["declarations"]
-                if len(decls) == 1:
-                    d = decls[0]
-                    if d["type"] == "variable":
-                        self.defineVar(d["names"][0], item, forscope)
-                    elif d["type"] == "destructure":
-                        self.defineVar(d["names"][0], item, forscope)
-                        self.defineVar(d["names"][1], iterable[item], forscope)
-                else:
-                    item = iter(item)
-                    for d in decls:
+                return template.createStructure(arguments, keywordArguments)
+            elif expression_type == "ForLoop":
+                iterable = self.ExecExpr(expr["iterable"], scope)
+                ret = []
+                for item in iterable:
+                    forscope = Scope({}, parent=scope, scope_type="loop")
+                    decls = expr["declarations"]
+                    if len(decls) == 1:
+                        d = decls[0]
                         if d["type"] == "variable":
-                            self.defineVar(d["names"][0], next(item), forscope)
+                            self.defineVar(d["names"][0], item, forscope)
                         elif d["type"] == "destructure":
-                            i = next(item)
-                            self.defineVar(d["names"][0], i, forscope)
-                            self.defineVar(d["names"][1], iterable[i], forscope)
+                            self.defineVar(d["names"][0], item, forscope)
+                            self.defineVar(d["names"][1], iterable[item], forscope)
+                    else:
+                        item = iter(item)
+                        for d in decls:
+                            if d["type"] == "variable":
+                                self.defineVar(d["names"][0], next(item), forscope)
+                            elif d["type"] == "destructure":
+                                i = next(item)
+                                self.defineVar(d["names"][0], i, forscope)
+                                self.defineVar(d["names"][1], iterable[i], forscope)
 
-                ret.append(self.Exec(expr["body"], forscope))
-                if forscope._completed and not forscope._has_been_continued:
-                    break
-            return ret
-        elif expr["type"] == "CaseStatement":
-            casescope = Scope({}, parent=scope)
-            if expr["special"]:
-                self.defineVar(expr["special"], self.switch, casescope)
-                scope._has_been_broken = True
-                return self.Exec(expr["body"], casescope)
-            elif expr["compare"]["type"] == "SPMObject":
-                compare, define = self.ExecExpr(expr["compare"], scope)
-                for c in compare:
-                    if self.switch[c] != compare[c]:
-                        return
-                for d in define:
-                    value = self.switch
-                    # TODO: fix: nested switch does not work.
-                    for i in define[d]:
-                        value = value[i]
-                    self.defineVar(d, value, casescope)
-                scope._has_been_broken = True
-                return self.Exec(expr["body"], casescope)
-            else:
-                compare = self.ExecExpr(expr["compare"], scope)
-                if self.switch == compare:
+                    ret.append(self.Exec(expr["body"], forscope))
+                    if forscope._completed and not forscope._has_been_continued:
+                        break
+                return ret
+            elif expression_type == "CaseStatement":
+                casescope = Scope({}, parent=scope)
+                if expr["special"]:
+                    self.defineVar(expr["special"], self.switch, casescope)
                     scope._has_been_broken = True
                     return self.Exec(expr["body"], casescope)
-        elif expr["type"] == "SwitchStatement":
-            switchscope = Scope({}, parent=scope, scope_type="match")
-            self.switch = self.ExecExpr(expr["value"], scope)
-            self.Exec(expr["body"], switchscope)
-            if getattr(self, "switch", False):
-                del self.switch
-        elif expr["type"] == "FunctionDefinition":
-            funct = self.makeFunct(expr, scope)
-            return funct
-        elif expr["type"] == "ReturnStatement":
-            val = self.ExecExpr(expr["value"], scope)
-            success = scope.complete("function", val)
-            if scope == self.Global or not success:
-                self.Global._triggerReturnAction()
-                if val == Null:
-                    val = 0
-                sys.exit(int(val))
-            return scope._returned_value
-        elif expr["type"] == "Multiply":
-            # for (num)x mult
-            return self.ExecExpr(expr["number"], scope) * self.ExecExpr(
-                expr["value"], scope
-            )
-        elif expr["type"] == "IncludeStatement":
-            file = expr["lib_name"]
-            try:
-                fscope = self.include(file)
-            except ValueError:
-                self.errorhandler.throw(
-                    "Include",
-                    f'Could not find library or file {expr["lib_name"]}.',
-                    {
-                        "lineno": expr["positions"]["start"]["line"],
-                        "underline": {
-                            "start": expr["positions"]["start"]["col"],
-                            "end": expr["positions"]["end"]["line"],
-                        },
-                        "marker": {
-                            "start": expr["tokens"]["lib_name"].start["col"],
-                            "length": len(expr["lib_name"]),
-                        },
-                        "traceback": self.traceback,
-                    },
-                )
-            if expr["included"] == "ALL":
-                name = Path(expr["local_name"]).name.split(".")[0]
-                self.defineVar(name, fscope, scope)
-            else:
-                for k, v in expr["included"].items():
-                    self.defineVar(v["local"], fscope[k], scope)
-        elif expr["type"] == "BreakStatement":
-            success = scope.complete("loop")
-            if not success:
-                self.errorhandler.throw(
-                    "BreakOutside",
-                    "Keyword 'break' can only be used inside loops",
-                    {
-                        "lineno": expr["positions"]["start"]["line"],
-                        "underline": {
-                            "start": expr["positions"]["start"]["col"],
-                            "end": expr["positions"]["end"]["col"],
-                        },
-                        "marker": {
-                            "start": expr["positions"]["start"]["col"],
-                            "length": expr["positions"]["end"]["col"]
-                            - expr["positions"]["start"]["col"],
-                        },
-                        "traceback": self.traceback,
-                    },
-                )
-        elif expr["type"] == "ContinueStatement":
-
-            def x(s):
-                s._has_been_continued = True
-
-            success = scope.complete("loop", action=x)
-            if not success:
-                self.errorhandler.throw(
-                    "ContinueOutside",
-                    "Keyword 'continue' can only be used inside loops",
-                    {
-                        "lineno": expr["positions"]["start"]["line"],
-                        "underline": {
-                            "start": expr["positions"]["start"]["col"],
-                            "end": expr["positions"]["end"]["col"],
-                        },
-                        "marker": {
-                            "start": expr["positions"]["start"]["col"],
-                            "length": expr["positions"]["end"]["col"]
-                            - expr["positions"]["start"]["col"],
-                        },
-                        "traceback": self.traceback,
-                    },
-                )
-        elif expr["type"] == "TemplateString":
-            string = expr["value"]
-            replacements = reversed(expr["replacements"])
-            for rep in replacements:
-                value = rep["value"]
-                codelines = rep["string"].split("\n")
-                self.traceback.append(
-                    {
-                        "name": Error.getAstText(value, codelines),
-                        "line": value["positions"]["start"]["line"],
-                        "col": value["positions"]["start"]["col"],
-                        "filename": self.path,
-                    }
-                )
-                value = self.ExecExpr(value, scope)
-                string = string[: rep["from"]] + str(value) + string[rep["to"] + 1 :]
-            return String(string)
-        # DEPRECATED
-        elif expr["type"] == "Object":
-            obj = Object()
-            for k, v in expr["pairs"].items():
-                if k == ("...",) and v[0] == "...":
-                    obj.vars.update(self.ExecExpr(v[1], scope).vars)
+                elif expr["compare"]["type"] == "SPMObject":
+                    compare, define = self.ExecExpr(expr["compare"], scope)
+                    for c in compare:
+                        if self.switch[c] != compare[c]:
+                            return
+                    for d in define:
+                        value = self.switch
+                        # TODO: fix: nested switch does not work.
+                        for i in define[d]:
+                            value = value[i]
+                        self.defineVar(d, value, casescope)
+                    scope._has_been_broken = True
+                    return self.Exec(expr["body"], casescope)
                 else:
-                    obj[k] = self.ExecExpr(v, scope)
-            return obj
-        elif expr["type"] == "Set":
-            return Set({self.ExecExpr(item, scope) for item in expr["items"]})
-        elif expr["type"] == "DeleteStatement":
-            self.getVar(
-                scope, expr["target"]["value"], expr["target"]["positions"]["start"]
-            )
-            del scope[expr["name"]]
-        elif expr["type"] == "SPMObject":
-            c = expr["pairs"]
-            define = {}
-            compare = {}
-            for k in c:
-                v = c[k]
-                if v[0] == "Define":
-                    define[v[1]] = (k,)
-                if v[0] == "Compare":
-                    compare[k] = self.ExecExpr(v[1], scope)
-            return compare, define
-        elif expr["type"] == "MacroDefinition":
-            funct = self.makeFunct(expr, scope, is_macro=True)
-            return funct
-        elif expr["type"] == "ClassDefinition":
-            classcope = Class(
-                expr["name"],
-                lambda s: self.Exec(expr["body"], s),
-                [self.getVar(scope, e.value, e.start) for e in expr["extends"]],
-                expr["as"],
-                scope,
-            )
-            if expr["name"]:
-                self.defineVar(expr["name"], classcope, scope)
-            return classcope
-        elif expr["type"] == "GetterSetterDefinition" and expr["kind"] == "getter":
-            prop_name = expr["function"]["name"]
-            expr["function"]["name"] = None
-            expr["function"]["special"] = False
-
-            scope.define_getter(prop_name, self.makeFunct(expr["function"], scope))
-        elif expr["type"] == "GetterSetterDefinition" and expr["kind"] == "setter":
-            prop_name = expr["function"]["name"]
-            expr["function"]["name"] = None
-            expr["function"]["special"] = False
-
-            scope.define_setter(prop_name, self.makeFunct(expr["function"], scope))
-        elif expr["type"] == "DeferStatement":
-            scope.addReturnAction(lambda: self.ExecExpr(expr["value"], scope))
-        elif expr["type"] == "Index":
-            try:
-                return self.ExecExpr(expr["value"], scope)[
-                    self.ExecExpr(expr["property"], scope)
-                ]
-            except IndexError:
-                if undefinedError:
+                    compare = self.ExecExpr(expr["compare"], scope)
+                    if self.switch == compare:
+                        scope._has_been_broken = True
+                        return self.Exec(expr["body"], casescope)
+            elif expression_type == "SwitchStatement":
+                switchscope = Scope({}, parent=scope, scope_type="match")
+                self.switch = self.ExecExpr(expr["value"], scope)
+                self.Exec(expr["body"], switchscope)
+                if getattr(self, "switch", False):
+                    del self.switch
+            elif expression_type == "FunctionDefinition":
+                funct = self.makeFunct(expr, scope)
+                return funct
+            elif expression_type == "ReturnStatement":
+                val = self.ExecExpr(expr["value"], scope)
+                success = scope.complete("function", val)
+                if scope == self.Global or not success:
+                    self.Global._triggerReturnAction()
+                    if val == Null:
+                        val = 0
+                    sys.exit(int(val))
+                return scope._returned_value
+            elif expression_type == "Multiply":
+                # for (num)x mult
+                return self.ExecExpr(expr["number"], scope) * self.ExecExpr(
+                    expr["value"], scope
+                )
+            elif expression_type == "IncludeStatement":
+                file = expr["lib_name"]
+                try:
+                    fscope = self.include(file)
+                except ValueError:
                     self.errorhandler.throw(
-                        "Index",
-                        "No such index.",
+                        "Include",
+                        f'Could not find library or file {expr["lib_name"]}.',
+                        {
+                            "lineno": expr["positions"]["start"]["line"],
+                            "underline": {
+                                "start": expr["positions"]["start"]["col"],
+                                "end": expr["positions"]["end"]["line"],
+                            },
+                            "marker": {
+                                "start": expr["tokens"]["lib_name"].start["col"],
+                                "length": len(expr["lib_name"]),
+                            },
+                            "traceback": self.traceback,
+                        },
+                    )
+                if expr["included"] == "ALL":
+                    name = Path(expr["local_name"]).name.split(".")[0]
+                    self.defineVar(name, fscope, scope)
+                else:
+                    for k, v in expr["included"].items():
+                        self.defineVar(v["local"], fscope[k], scope)
+            elif expression_type == "BreakStatement":
+                success = scope.complete("loop")
+                if not success:
+                    self.errorhandler.throw(
+                        "BreakOutside",
+                        "Keyword 'break' can only be used inside loops",
                         {
                             "lineno": expr["positions"]["start"]["line"],
                             "underline": {
@@ -1034,85 +894,170 @@ class Executor:
                                 "end": expr["positions"]["end"]["col"],
                             },
                             "marker": {
-                                "start": expr["property"]["positions"]["start"]["col"],
-                                "length": expr["property"]["positions"]["end"]["col"]
-                                - expr["property"]["positions"]["start"]["col"]
+                                "start": expr["positions"]["start"]["col"],
+                                "length": expr["positions"]["end"]["col"]
+                                - expr["positions"]["start"]["col"],
+                            },
+                            "traceback": self.traceback,
+                        },
+                    )
+            elif expression_type == "ContinueStatement":
+
+                def x(s):
+                    s._has_been_continued = True
+
+                success = scope.complete("loop", action=x)
+                if not success:
+                    self.errorhandler.throw(
+                        "ContinueOutside",
+                        "Keyword 'continue' can only be used inside loops",
+                        {
+                            "lineno": expr["positions"]["start"]["line"],
+                            "underline": {
+                                "start": expr["positions"]["start"]["col"],
+                                "end": expr["positions"]["end"]["col"],
+                            },
+                            "marker": {
+                                "start": expr["positions"]["start"]["col"],
+                                "length": expr["positions"]["end"]["col"]
+                                - expr["positions"]["start"]["col"],
+                            },
+                            "traceback": self.traceback,
+                        },
+                    )
+            elif expression_type == "TemplateString":
+                string = expr["value"]
+                replacements = reversed(expr["replacements"])
+                for rep in replacements:
+                    value = rep["value"]
+                    codelines = rep["string"].split("\n")
+                    self.traceback.append(
+                        {
+                            "name": Error.getAstText(value, codelines),
+                            "line": value["positions"]["start"]["line"],
+                            "col": value["positions"]["start"]["col"],
+                            "filename": self.path,
+                        }
+                    )
+                    value = self.ExecExpr(value, scope)
+                    string = (
+                        string[: rep["from"]] + str(value) + string[rep["to"] + 1 :]
+                    )
+                return String(string)
+            # DEPRECATED
+            elif expression_type == "Object":
+                obj = Object()
+                for k, v in expr["pairs"].items():
+                    if k == ("...",) and v[0] == "...":
+                        obj.vars.update(self.ExecExpr(v[1], scope).vars)
+                    else:
+                        obj[k] = self.ExecExpr(v, scope)
+                return obj
+            elif expression_type == "Set":
+                return Set({self.ExecExpr(item, scope) for item in expr["items"]})
+            elif expression_type == "DeleteStatement":
+                self.getVar(
+                    scope, expr["target"]["value"], expr["target"]["positions"]["start"]
+                )
+                del scope[expr["name"]]
+            elif expression_type == "SPMObject":
+                c = expr["pairs"]
+                define = {}
+                compare = {}
+                for k in c:
+                    v = c[k]
+                    if v[0] == "Define":
+                        define[v[1]] = (k,)
+                    if v[0] == "Compare":
+                        compare[k] = self.ExecExpr(v[1], scope)
+                return compare, define
+            elif expression_type == "MacroDefinition":
+                funct = self.makeFunct(expr, scope, is_macro=True)
+                return funct
+            elif expression_type == "ClassDefinition":
+                classcope = Class(
+                    expr["name"],
+                    lambda s: self.Exec(expr["body"], s),
+                    [self.getVar(scope, e.value, e.start) for e in expr["extends"]],
+                    expr["as"],
+                    scope,
+                )
+                if expr["name"]:
+                    self.defineVar(expr["name"], classcope, scope)
+                return classcope
+            elif (
+                expression_type == "GetterSetterDefinition" and expr["kind"] == "getter"
+            ):
+                prop_name = expr["function"]["name"]
+                expr["function"]["name"] = None
+                expr["function"]["special"] = False
+
+                scope.define_getter(prop_name, self.makeFunct(expr["function"], scope))
+            elif (
+                expression_type == "GetterSetterDefinition" and expr["kind"] == "setter"
+            ):
+                prop_name = expr["function"]["name"]
+                expr["function"]["name"] = None
+                expr["function"]["special"] = False
+
+                scope.define_setter(prop_name, self.makeFunct(expr["function"], scope))
+            elif expression_type == "DeferStatement":
+                scope.addReturnAction(lambda: self.ExecExpr(expr["value"], scope))
+            elif expression_type == "Index":
+                try:
+                    return self.ExecExpr(expr["value"], scope)[
+                        self.ExecExpr(expr["property"], scope)
+                    ]
+                except IndexError:
+                    if undefinedError:
+                        self.errorhandler.throw(
+                            "Index",
+                            "No such index.",
+                            {
+                                "lineno": expr["positions"]["start"]["line"],
+                                "underline": {
+                                    "start": expr["positions"]["start"]["col"],
+                                    "end": expr["positions"]["end"]["col"],
+                                },
+                                "marker": {
+                                    "start": expr["property"]["positions"]["start"][
+                                        "col"
+                                    ],
+                                    "length": expr["property"]["positions"]["end"][
+                                        "col"
+                                    ]
+                                    - expr["property"]["positions"]["start"]["col"]
+                                    + 1,
+                                },
+                                "traceback": self.traceback,
+                            },
+                        )
+                    else:
+                        return None
+            elif expression_type == "ThrowStatement":
+                tothrow = self.ExecExpr(expr["tothrow"], scope)
+                if type(tothrow) != Types.Error:
+                    self.errorhandler.throw(
+                        "Error",
+                        f'Can only throw Errors, not "{type(tothrow).__name__}"!',
+                        {
+                            "lineno": expr["tothrow"]["positions"]["start"]["line"],
+                            "underline": {
+                                "start": expr["tothrow"]["positions"]["start"]["col"],
+                                "end": expr["tothrow"]["positions"]["end"]["col"],
+                            },
+                            "marker": {
+                                "start": expr["tothrow"]["positions"]["start"]["col"],
+                                "length": expr["tothrow"]["positions"]["end"]["col"]
+                                - expr["tothrow"]["positions"]["start"]["col"]
                                 + 1,
                             },
                             "traceback": self.traceback,
                         },
                     )
-                else:
-                    return None
-        elif expr["type"] == "ThrowStatement":
-            tothrow = self.ExecExpr(expr["tothrow"], scope)
-            if type(tothrow) != Types.Error:
                 self.errorhandler.throw(
-                    "Error",
-                    f'Can only throw Errors, not "{type(tothrow).__name__}"!',
-                    {
-                        "lineno": expr["tothrow"]["positions"]["start"]["line"],
-                        "underline": {
-                            "start": expr["tothrow"]["positions"]["start"]["col"],
-                            "end": expr["tothrow"]["positions"]["end"]["col"],
-                        },
-                        "marker": {
-                            "start": expr["tothrow"]["positions"]["start"]["col"],
-                            "length": expr["tothrow"]["positions"]["end"]["col"]
-                            - expr["tothrow"]["positions"]["start"]["col"]
-                            + 1,
-                        },
-                        "traceback": self.traceback,
-                    },
-                )
-            self.errorhandler.throw(
-                tothrow.type,
-                tothrow.message,
-                {
-                    "lineno": expr["positions"]["start"]["line"],
-                    "underline": {
-                        "start": expr["positions"]["start"]["col"],
-                        "end": expr["positions"]["end"]["col"],
-                    },
-                    "marker": {
-                        "start": expr["positions"]["start"]["col"],
-                        "length": expr["positions"]["end"]["col"]
-                        - expr["positions"]["start"]["col"]
-                        + 1,
-                    },
-                    "traceback": self.traceback,
-                },
-            )
-        elif expr["type"] == "TryCatch":
-            stderr = sys.stderr
-            sys.stderr = open(os.devnull, "w+")
-            tryscope = Scope({}, parent=scope)
-            try:
-                self.Exec(expr["body"], tryscope)
-            except Exception as e:
-                sys.stderr = stderr
-                if expr["catchbody"]:
-                    notes = e.args
-                    error = Types.Error(notes[1], notes[2])
-                    catchscope = Scope({}, parent=scope)
-                    if expr["catchvar"]:
-                        catchscope[expr["catchvar"]] = error
-                    self.Exec(expr["catchbody"], catchscope)
-            sys.stderr = stderr
-        elif expr["type"] == "ExtendingStatement" and expr["kind"] == "operator":
-            ext_type, ext_name = expr["params"][0]
-            other_name = expr["params"][1][1]
-
-            to_overload = self.getVar(
-                scope,
-                ext_type.value,
-                message=f"Cannot overload undeclared type '{ext_type.value}'",
-            )
-
-            if not isinstance(to_overload, Types.Class):
-                self.errorhandler.throw(
-                    "Exec",
-                    "Cannot overload non-class types",
+                    tothrow.type,
+                    tothrow.message,
                     {
                         "lineno": expr["positions"]["start"]["line"],
                         "underline": {
@@ -1128,27 +1073,94 @@ class Executor:
                         "traceback": self.traceback,
                     },
                 )
+            elif expression_type == "TryCatch":
+                stderr = sys.stderr
+                sys.stderr = open(os.devnull, "w+")
+                tryscope = Scope({}, parent=scope)
+                try:
+                    self.Exec(expr["body"], tryscope)
+                except Exception as e:
+                    sys.stderr = stderr
+                    if expr["catchbody"]:
+                        notes = e.args
+                        error = Types.Error(notes[1], notes[2])
+                        catchscope = Scope({}, parent=scope)
+                        if expr["catchvar"]:
+                            catchscope[expr["catchvar"]] = error
+                        self.Exec(expr["catchbody"], catchscope)
+                sys.stderr = stderr
+            elif expression_type == "ExtendingStatement" and expr["kind"] == "operator":
+                ext_type, ext_name = expr["params"][0]
+                other_name = expr["params"][1][1]
 
-            def execute_inner(param1, param2):
-                exec_scope = Scope({}, parent=scope, scope_type="function")
-                exec_scope.set(ext_name.value, param1)
-                exec_scope.set(other_name.value, param2)
+                to_overload = self.getVar(
+                    scope,
+                    ext_type.value,
+                    message=f"Cannot overload undeclared type '{ext_type.value}'",
+                )
 
-                ret = self.Exec(expr["body"], exec_scope)
+                if type(to_overload) != Types.Class:
+                    self.errorhandler.throw(
+                        "Exec",
+                        "Cannot overload non-class types",
+                        {
+                            "lineno": expr["positions"]["start"]["line"],
+                            "underline": {
+                                "start": expr["positions"]["start"]["col"],
+                                "end": expr["positions"]["end"]["col"],
+                            },
+                            "marker": {
+                                "start": expr["positions"]["start"]["col"],
+                                "length": expr["positions"]["end"]["col"]
+                                - expr["positions"]["start"]["col"]
+                                + 1,
+                            },
+                            "traceback": self.traceback,
+                        },
+                    )
 
-                if not exec_scope._returned_value:
-                    exec_scope._returned_value = ret
+                def execute_inner(param1, param2):
+                    exec_scope = Scope({}, parent=scope, scope_type="function")
+                    exec_scope.set(ext_name.value, param1)
+                    exec_scope.set(other_name.value, param2)
 
-                return exec_scope._returned_value
+                    ret = self.Exec(expr["body"], exec_scope)
 
-            adk_overloaded_classes[id(to_overload)] = adk_overloaded_classes.get(
-                id(to_overload), {}
+                    if not exec_scope._returned_value:
+                        exec_scope._returned_value = ret
+
+                    return exec_scope._returned_value
+
+                adk_overloaded_classes[id(to_overload)] = adk_overloaded_classes.get(
+                    id(to_overload), {}
+                )
+                adk_overloaded_classes[id(to_overload)][
+                    expr["operator"]
+                ] = execute_inner
+            else:
+                notImplemented(self.errorhandler, expression_type, expr)
+        except Error.Aardvark_Error as e:
+            raise e
+        except Exception as e:
+            traceback.print_exc()
+            self.errorhandler.throw(
+                "Py",
+                "Error: " + str(e),
+                {
+                    "lineno": expr["positions"]["start"]["line"],
+                    "underline": {
+                        "start": expr["positions"]["start"]["col"],
+                        "end": expr["positions"]["end"]["col"],
+                    },
+                    "marker": {
+                        "start": expr["positions"]["start"]["col"],
+                        "length": expr["positions"]["end"]["col"]
+                        - expr["positions"]["start"]["col"]
+                        + 1,
+                    },
+                    "traceback": self.traceback,
+                },
             )
-            adk_overloaded_classes[id(to_overload)][expr["operator"]] = execute_inner
-        else:
-            if expr == Null:
-                return Null
-            notImplemented(self.errorhandler, expr["type"], expr)
 
     def Exec(self, ast, scope: Scope):
         if (

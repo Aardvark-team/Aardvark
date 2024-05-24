@@ -99,14 +99,14 @@ def operator(*names, left=None, right=None):
 def add(
     x, y, errorhandler: "ErrorHandler", line: str, ast, scope: Scope, exec: "Executor"
 ):
-    if x == Null:
-        return missingOperand(
-            True, errorhandler, line, ast, f"<{str(type(y or 0).__name__)}>"
-        )
-    if y == Null:
-        return missingOperand(
-            False, errorhandler, line, ast, f"<{str(type(x or 0).__name__)}>"
-        )
+    # if x == Null:
+    #     return missingOperand(
+    #         True, errorhandler, line, ast, f"<{str(type(y or 0).__name__)}>"
+    #     )
+    # if y == Null:
+    #     return missingOperand(
+    #         False, errorhandler, line, ast, f"<{str(type(x or 0).__name__)}>"
+    #     )
     # TODO: add if y and x equal none
     return x + y
 
@@ -116,16 +116,16 @@ def sub(
     x, y, errorhandler: "ErrorHandler", line: str, ast, scope: Scope, exec: "Executor"
 ):
     # This function also handles negative numbers, it sees -5 as 0-5
-    if x == Null and type(y).__name__ != "Number":
-        return missingOperand(
-            True, errorhandler, line, ast, f"<{str(type(y or 0).__name__)}>"
-        )
-    elif x == Null:
+    # if x == Null and type(y).__name__ != "Number":
+    #     return missingOperand(
+    #         True, errorhandler, line, ast, f"<{str(type(y or 0).__name__)}>"
+    #     )
+    if x == Null:
         x = 0  # Can't return because we still have to check for y
-    if y == Null:
-        return missingOperand(
-            False, errorhandler, line, ast, f"<{str(type(x or 0).__name__)}>"
-        )
+    # if y == Null:
+    #     return missingOperand(
+    #         False, errorhandler, line, ast, f"<{str(type(x or 0).__name__)}>"
+    #     )
     # TODO: add if y and x equal none
     return x - y
 
@@ -134,14 +134,14 @@ def sub(
 def mult(
     x, y, errorhandler: "ErrorHandler", line: str, ast, scope: Scope, exec: "Executor"
 ):
-    if x == Null:
-        return missingOperand(
-            True, errorhandler, line, ast, f"<{str(type(y or 0).__name__)}>"
-        )
-    if y == Null:
-        return missingOperand(
-            False, errorhandler, line, ast, f"<{str(type(x or 0).__name__)}>"
-        )
+    # if x == Null:
+    #     return missingOperand(
+    #         True, errorhandler, line, ast, f"<{str(type(y or 0).__name__)}>"
+    #     )
+    # if y == Null:
+    #     return missingOperand(
+    #         False, errorhandler, line, ast, f"<{str(type(x or 0).__name__)}>"
+    #     )
     # TODO: add if y and x equal none
     return x * y
 
@@ -150,14 +150,14 @@ def mult(
 def div(
     x, y, errorhandler: "ErrorHandler", line: str, ast, scope: Scope, exec: "Executor"
 ):
-    if x == Null:
-        return missingOperand(
-            True, errorhandler, line, ast, f"<{str(type(y or 0).__name__)}>"
-        )
-    if y == Null:
-        return missingOperand(
-            False, errorhandler, line, ast, f"<{str(type(x or 0).__name__)}>"
-        )
+    # if x == Null:
+    #     return missingOperand(
+    #         True, errorhandler, line, ast, f"<{str(type(y or 0).__name__)}>"
+    #     )
+    # if y == Null:
+    #     return missingOperand(
+    #         False, errorhandler, line, ast, f"<{str(type(x or 0).__name__)}>"
+    #     )
     # TODO: add if y and x equal none
     return x / y
 
@@ -173,14 +173,14 @@ def logicalequals(
 def logicallessthan(
     x, y, errorhandler: "ErrorHandler", line: str, ast, scope: Scope, exec: "Executor"
 ):
-    if x == Null:
-        return missingOperand(
-            True, errorhandler, line, ast, f"<{str(type(y or 0).__name__)}>"
-        )
-    if y == Null:
-        return missingOperand(
-            False, errorhandler, line, ast, f"<{str(type(x or 0).__name__)}>"
-        )
+    # if x == Null:
+    #     return missingOperand(
+    #         True, errorhandler, line, ast, f"<{str(type(y or 0).__name__)}>"
+    #     )
+    # if y == Null:
+    #     return missingOperand(
+    #         False, errorhandler, line, ast, f"<{str(type(x or 0).__name__)}>"
+    #     )
     # TODO: add if y and x equal none
     return x < y
 
@@ -189,14 +189,14 @@ def logicallessthan(
 def logicamorethan(
     x, y, errorhandler: "ErrorHandler", line: str, ast, scope: Scope, exec: "Executor"
 ):
-    if x == Null:
-        return missingOperand(
-            True, errorhandler, line, ast, f"<{str(type(y or 0).__name__)}>"
-        )
-    if y == Null:
-        return missingOperand(
-            False, errorhandler, line, ast, f"<{str(type(x or 0).__name__)}>"
-        )
+    # if x == Null:
+    #     return missingOperand(
+    #         True, errorhandler, line, ast, f"<{str(type(y or 0).__name__)}>"
+    #     )
+    # if y == Null:
+    #     return missingOperand(
+    #         False, errorhandler, line, ast, f"<{str(type(x or 0).__name__)}>"
+    #     )
     # TODO: add if y and x equal none
     return x > y
 
@@ -205,14 +205,14 @@ def logicamorethan(
 def logicamorethanequal(
     x, y, errorhandler: "ErrorHandler", line: str, ast, scope: Scope, exec: "Executor"
 ):
-    if x == Null:
-        return missingOperand(
-            True, errorhandler, line, ast, f"<{str(type(y or 0).__name__)}>"
-        )
-    if y == Null:
-        return missingOperand(
-            False, errorhandler, line, ast, f"<{str(type(x or 0).__name__)}>"
-        )
+    # if x == Null:
+    #     return missingOperand(
+    #         True, errorhandler, line, ast, f"<{str(type(y or 0).__name__)}>"
+    #     )
+    # if y == Null:
+    #     return missingOperand(
+    #         False, errorhandler, line, ast, f"<{str(type(x or 0).__name__)}>"
+    #     )
     # TODO: add if y and x equal none
     return x >= y
 
@@ -221,14 +221,14 @@ def logicamorethanequal(
 def logicallessthanequal(
     x, y, errorhandler: "ErrorHandler", line: str, ast, scope: Scope, exec: "Executor"
 ):
-    if x == Null:
-        return missingOperand(
-            True, errorhandler, line, ast, f"<{str(type(y or 0).__name__)}>"
-        )
-    if y == Null:
-        return missingOperand(
-            False, errorhandler, line, ast, f"<{str(type(x or 0).__name__)}>"
-        )
+    # if x == Null:
+    #     return missingOperand(
+    #         True, errorhandler, line, ast, f"<{str(type(y or 0).__name__)}>"
+    #     )
+    # if y == Null:
+    #     return missingOperand(
+    #         False, errorhandler, line, ast, f"<{str(type(x or 0).__name__)}>"
+    #     )
     # TODO: add if y and x equal none
 
     return x <= y
@@ -245,12 +245,12 @@ def logicalnotequal(
 def roundop(
     x, y, errorhandler: "ErrorHandler", line: str, ast, scope: Scope, exec: "Executor"
 ):
-    if x != Null:
-        return unexpectedOperand(True, errorhandler, line, ast)
-    if y == Null:
-        return missingOperand(
-            False, errorhandler, line, ast, f"<{str(type(x or 0).__name__)}>"
-        )
+    # if x != Null:
+    #     return unexpectedOperand(True, errorhandler, line, ast)
+    # if y == Null:
+    #     return missingOperand(
+    #         False, errorhandler, line, ast, f"<{str(type(x or 0).__name__)}>"
+    #     )
     # TODO: add if y and x equal none
     return round(y)
 
@@ -264,13 +264,22 @@ def roundop(
 #     return x
 
 
-@operator("!", "not", left=False, right=True)
+@operator("!", left=True, right=False)
 def notop(
     x, y, errorhandler: "ErrorHandler", line: str, ast, scope: Scope, exec: "Executor"
 ):
+    # if x != Null:
+    #     return unexpectedOperand(True, errorhandler, line, ast)
     if x != Null:
-        return unexpectedOperand(True, errorhandler, line, ast)
+        return math.factorial(x)
     # TODO: add if y and x equal none
+    return not y
+
+
+@operator("not", left=False, right=True)
+def logicalnot(
+    x, y, errorhandler: "ErrorHandler", line: str, ast, scope: Scope, exec: "Executor"
+):
     return not y
 
 
@@ -278,14 +287,14 @@ def notop(
 def modulo(
     x, y, errorhandler: "ErrorHandler", line: str, ast, scope: Scope, exec: "Executor"
 ):
-    if x == Null:
-        return missingOperand(
-            True, errorhandler, line, ast, f"<{str(type(y or 0).__name__)}>"
-        )
-    if y == Null:
-        return missingOperand(
-            False, errorhandler, line, ast, f"<{str(type(x or 0).__name__)}>"
-        )
+    # if x == Null:
+    #     return missingOperand(
+    #         True, errorhandler, line, ast, f"<{str(type(y or 0).__name__)}>"
+    #     )
+    # if y == Null:
+    #     return missingOperand(
+    #         False, errorhandler, line, ast, f"<{str(type(x or 0).__name__)}>"
+    #     )
     # TODO: add if y and x equal none
     return x % y
 
@@ -294,14 +303,14 @@ def modulo(
 def logicaland(
     x, y, errorhandler: "ErrorHandler", line: str, ast, scope: Scope, exec: "Executor"
 ):
-    if x == Null:
-        return missingOperand(
-            True, errorhandler, line, ast, f"<{str(type(y or 0).__name__)}>"
-        )
-    if y == Null:
-        return missingOperand(
-            False, errorhandler, line, ast, f"<{str(type(x or 0).__name__)}>"
-        )
+    # if x == Null:
+    #     return missingOperand(
+    #         True, errorhandler, line, ast, f"<{str(type(y or 0).__name__)}>"
+    #     )
+    # if y == Null:
+    #     return missingOperand(
+    #         False, errorhandler, line, ast, f"<{str(type(x or 0).__name__)}>"
+    #     )
     # TODO: add if y and x equal none
     x = exec.ExecExpr(x, scope)
     if not x:
@@ -314,14 +323,14 @@ def logicaland(
 def logicalor(
     x, y, errorhandler: "ErrorHandler", line: str, ast, scope: Scope, exec: "Executor"
 ):
-    if x == Null:
-        return missingOperand(
-            True, errorhandler, line, ast, f"<{str(type(y or 0).__name__)}>"
-        )
-    if y == Null:
-        return missingOperand(
-            False, errorhandler, line, ast, f"<{str(type(x or 0).__name__)}>"
-        )
+    # if x == Null:
+    #     return missingOperand(
+    #         True, errorhandler, line, ast, f"<{str(type(y or 0).__name__)}>"
+    #     )
+    # if y == Null:
+    #     return missingOperand(
+    #         False, errorhandler, line, ast, f"<{str(type(x or 0).__name__)}>"
+    #     )
     # TODO: add if y and x equal none
     x = exec.ExecExpr(x, scope)
     if x:
@@ -334,14 +343,14 @@ def logicalor(
 def logicalxor(
     x, y, errorhandler: "ErrorHandler", line: str, ast, scope: Scope, exec: "Executor"
 ):
-    if x == Null:
-        return missingOperand(
-            True, errorhandler, line, ast, f"<{str(type(y or 0).__name__)}>"
-        )
-    if y == Null:
-        return missingOperand(
-            False, errorhandler, line, ast, f"<{str(type(x or 0).__name__)}>"
-        )
+    # if x == Null:
+    #     return missingOperand(
+    #         True, errorhandler, line, ast, f"<{str(type(y or 0).__name__)}>"
+    #     )
+    # if y == Null:
+    #     return missingOperand(
+    #         False, errorhandler, line, ast, f"<{str(type(x or 0).__name__)}>"
+    #     )
     # TODO: add if y and x equal none
     try:
         return x ^ y
@@ -354,14 +363,13 @@ def logicalxor(
 def power(
     x, y, errorhandler: "ErrorHandler", line: str, ast, scope: Scope, exec: "Executor"
 ):
-    if x == Null:
-        return missingOperand(
-            True, errorhandler, line, ast, f"<{str(type(y or 0).__name__)}>"
-        )
-    if y == Null:
-        return missingOperand(
-            False, errorhandler, line, ast, f"<{str(type(y or 0).__name__)}>"
-        )
+    # if x == Null:
+    #     return missingOperand(
+    #         True, errorhandler, line, ast, f"<{str(type(y or 0).__name__)}>"
+    #     )
+    # if y == Null:
+    #     return missingOperand(
+    #
     # TODO: add if y and x equal none
     return x**y
 
@@ -370,10 +378,10 @@ def power(
 def inop(
     x, y, errorhandler: "ErrorHandler", line: str, ast, scope: Scope, exec: "Executor"
 ):
-    if y == Null:
-        return missingOperand(
-            False, errorhandler, line, ast, f"<{str(type(x or 0).__name__)}>"
-        )
+    # if y == Null:
+    #     return missingOperand(
+    #         False, errorhandler, line, ast, f"<{str(type(x or 0).__name__)}>"
+    #     )
     # TODO: add if y and x equal none
     try:
         return x in y
@@ -392,14 +400,14 @@ def inop(
 def aboutequal(
     x, y, errorhandler: "ErrorHandler", line: str, ast, scope: Scope, exec: "Executor"
 ):
-    if x == Null:
-        return missingOperand(
-            True, errorhandler, line, ast, f"<{str(type(y or 0).__name__)}>"
-        )
-    if y == Null:
-        return missingOperand(
-            False, errorhandler, line, ast, f"<{str(type(x or 0).__name__)}>"
-        )
+    # if x == Null:
+    #     return missingOperand(
+    #         True, errorhandler, line, ast, f"<{str(type(y or 0).__name__)}>"
+    #     )
+    # if y == Null:
+    #     return missingOperand(
+    #         False, errorhandler, line, ast, f"<{str(type(x or 0).__name__)}>"
+    #     )
     return round(x) == round(y)
 
 
@@ -603,14 +611,13 @@ def reference(
 def mod(
     x, y, errorhandler: "ErrorHandler", line: str, expr, scope: Scope, exec: "Executor"
 ):
-    if x == Null:
-        return missingOperand(
-            True, errorhandler, line, ast, f"<{str(type(y or 0).__name__)}>"
-        )
-    if y == Null:
-        return missingOperand(
-            False, errorhandler, line, ast, f"<{str(type(y or 0).__name__)}>"
-        )
+    # if x == Null:
+    #     return missingOperand(
+    #         True, errorhandler, line, ast, f"<{str(type(y or 0).__name__)}>"
+    #     )
+    # if y == Null:
+    #     return missingOperand(
+    #
     return x % y
 
 
@@ -618,14 +625,13 @@ def mod(
 def notin(
     x, y, errorhandler: "ErrorHandler", line: str, expr, scope: Scope, exec: "Executor"
 ):
-    if x == Null:
-        return missingOperand(
-            True, errorhandler, line, ast, f"<{str(type(y or 0).__name__)}>"
-        )
-    if y == Null:
-        return missingOperand(
-            False, errorhandler, line, ast, f"<{str(type(y or 0).__name__)}>"
-        )
+    # if x == Null:
+    #     return missingOperand(
+    #         True, errorhandler, line, ast, f"<{str(type(y or 0).__name__)}>"
+    #     )
+    # if y == Null:
+    #     return missingOperand(
+    #
     return x not in y
 
 
@@ -633,12 +639,11 @@ def notin(
 def references(
     x, y, errorhandler: "ErrorHandler", line: str, expr, scope: Scope, exec: "Executor"
 ):
-    if x == Null:
-        return missingOperand(
-            True, errorhandler, line, ast, f"<{str(type(y or 0).__name__)}>"
-        )
-    if y == Null:
-        return missingOperand(
-            False, errorhandler, line, ast, f"<{str(type(y or 0).__name__)}>"
-        )
+    # if x == Null:
+    #     return missingOperand(
+    #         True, errorhandler, line, ast, f"<{str(type(y or 0).__name__)}>"
+    #     )
+    # if y == Null:
+    #     return missingOperand(
+    #
     return x is y

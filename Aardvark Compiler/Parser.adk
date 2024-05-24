@@ -557,13 +557,13 @@ static class Parser as this {
             }
         }
         let closing_bracket = CHECK(this.eat("Delimiter", "]"))
-        return {
-            type: "Array",
-            items,
-            expansions,
-            position: {
-                start: opening_bracket.position.start,
-                end: closing_bracket.position.end
+        return structure {
+            type = "Array"
+            items = items
+            expansions = expansions
+            position = structure {
+                start = opening_bracket.position.start
+                end = closing_bracket.position.end
             }
         }
     }

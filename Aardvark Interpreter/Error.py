@@ -237,13 +237,20 @@ def print_error(
 {traceback}{styles["default"]}{code}{didyoumean}{note}"""
     return output
 
+
 class Aardvark_Error(Exception):
     def __init__(self, py_error, type, message, output):
         self.output = output
         self.py_error = py_error
-        super().__init__("py_error is " + ("True." if py_error else "False."), type, message)
+        super().__init__(
+            "py_error is " + ("True." if py_error else "False."), type, message
+        )
+
+
 class ErrorHandler:
-    def __init__(self, code: str, filename: str, py_error=False, silenced=False, mode="Error"):
+    def __init__(
+        self, code: str, filename: str, py_error=False, silenced=False, mode="Error"
+    ):
         self.code = code
         self.codelines = code.split("\n")
         self.filename = filename
@@ -267,9 +274,9 @@ class ErrorHandler:
             self.code,
         )
 
-        if not self.py_error:
+        if not self.py_error and options.get("exit", True):
             exit(1)
-        else:
+        elif self.py_error and options.get("raise", True):
             exc = Aardvark_Error(True, type, message, output)
             raise exc
 

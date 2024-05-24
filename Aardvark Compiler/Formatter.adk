@@ -64,7 +64,7 @@ function generate_text(node, original_text, options={}) {
             code += " function" if code else "function"
             if (node.name?)
                 code += " " + generate_text(node.name, original_text, options)
-            if (node.parameters.length > 0 | node.parameter_expansion?) {
+            if (node.parameters.length > 0 or node.parameter_expansion?) {
                 code += "("
                 # TODO
             }
