@@ -796,24 +796,25 @@ static class Parser as this {
         return ast_node
     }
 
-    let parse_assignment() {
-        let let_keyword = CHECK(this.eat("Keyword", "let"))
-        let is_embed_assignment = false
-        if this.maybe_eat("Operator", "%")
-            is_embed_assignment = true
+    let parse_assignment(implied="") {
+        let starting_position = this.peek().position.start
+        let is_all_mutable = false
+        if this.maybe_eat("Keyword", "let")
+            is_all_mutable = false
+        else if this.maybe_eat("Keyword", "mutable")
+            is_mutable = true
+        else if implied
+            is_all_mutable = implied is "mutable"
+        else 
+            return this.Throw("SyntaxError", "Invalid syntax.", position=this.peek().position, here_message= "Expected 'mutable' or 'let'.")
         let assignments = []
         loop {
+            let assignment_start = this.peek().position.start
             if assignments.length > 0
                 CHECK(this.eat("Delimiter", ","))
-            let is_static = false
-            let is_private = false
-            # Allow static and private in any order
-            if this.maybe_eat("Keyword", "static")
-                is_static = true
-            if this.maybe_eat("Keyword", "private")
-                is_private = true
-            if this.maybe_eat("Keyword", "static")
-                is_static = true
+            let is_mutable = is_all_mutable
+            if this.maybe_eat("Keyword", "mutable")
+                is_mutable = true
             let variables = []
             let value
             loop {
@@ -831,6 +832,11 @@ static class Parser as this {
                     return x
                 else
                     variables.add(x)
+                
+                if this.compare("Delimiter", "(") {
+                    # TODO: Function definition!
+                }
+
                 if not (value?) and variables.length is 1 and not this.compare("Operator", "=")
                     break
                 CHECK(this.eat("Operator", "="))
@@ -842,11 +848,9 @@ static class Parser as this {
                 type: "Assignment",
                 variables,
                 value: value?,
-                is_static: is_static,
-                is_private: is_private,
                 position: {
-                    start: variables.0.position.start,
-                    end: value.position.end if value? else variables.(-1).position.end
+                    start: assignment_start,
+                    end: (value ? variables.(-1)).position.end
                 }
             })
             if not this.compare("Delimiter", ",") break
@@ -854,9 +858,8 @@ static class Parser as this {
         return structure {
             type = "Assignments"
             assignments = assignments
-            is_embed_assignment = is_embed_assignment
             position = structure {
-                start = let_keyword.position.start
+                start = starting_position
                 end = assignments.(-1).position.end
             }
         }
@@ -866,23 +869,8 @@ static class Parser as this {
         let is_static = found_static
         let is_private = false
         let parameters = []
-        let first_keyword, label, name, return_type, body, parameter_expansion, function_keyword
-        if this.compare("Keyword", "static") {
-            first_keyword = this.eat()
-            is_static = true
-        }
-        if this.compare("Keyword", "private") {
-            let keyword = this.eat()
-            if (not first_keyword?)
-                first_keyword = keyword
-            is_private = true
-        }
-        if this.compare("Keyword", "static") {
-            let keyword = this.eat()
-            if (not first_keyword?) 
-                first_keyword = keyword
-            is_static = true
-        }
+        let first_token = this.peek()
+        let label, name, return_type, body, parameter_expansion, function_keyword
         # the function keyword is required unless we're in a class scope or extending 
         if not ["extending", "class_scope"].contains(mode)
             function_keyword = CHECK(this.eat("Keyword", expected_keyword))
@@ -899,9 +887,6 @@ static class Parser as this {
             }
         }
 
-        if (not first_keyword? and function_keyword?)
-            first_keyword = function_keyword
-
         if not (name?) and this.compare("Identifier") {
             let token = this.eat()
             name = structure {
@@ -911,13 +896,8 @@ static class Parser as this {
             }
         }
 
-        if (not first_keyword? and name?)
-            first_keyword = name
-
         if this.compare("Delimiter", "(") {
             let opening_parenthesis = this.eat()
-            if (not first_keyword?)
-                first_keyword = opening_parenthesis
             let ate_comma = false
             this.eat_line_breaks()
             while not this.compare("Delimiter", ")") {
@@ -957,8 +937,6 @@ static class Parser as this {
         # Parse return type
         if this.compare("Operator", "->") {
             let operator = this.eat()
-            if (not first_keyword?)
-                first_keyword = operator
             return_type = CHECK(this.parse_primary(require=true))
             if not this.is_valid_type(return_type) {
                 return this.Throw("SyntaxError", "Invalid syntax.", position=return_type.position, here_message= $"Expected a type.")
@@ -976,7 +954,7 @@ static class Parser as this {
             is_static = is_static
             is_private = is_private
             position = structure {
-                start = first_keyword.position.start if first_keyword? else body.position.start
+                start = first_token.position.start if first_keyword? else body.position.start
                 end = body.position.end
             }
         }
@@ -1401,7 +1379,7 @@ static class Parser as this {
             while not (statement? or this.is_EOF() or (this.compare("Delimiter", "}") and enclosing_curly_braces)) {
                 statement = this.parse_statement(true, false, mode, entry_point)
                 if type_of(statement) is ADK_Error {
-                    while not this.is_EOF() {
+                    loop {
                         this.eat(keep_track=true)
                         if this.compare("LineBreak") or this.is_EOF() break
                     }
