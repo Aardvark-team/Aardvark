@@ -1727,6 +1727,8 @@ class Parser:
                 var_type = self.pObject()
             elif self.compare("Operator", "..."):
                 dotdotdot = self.eat("Operator", "...")
+                if not starter:
+                    starter = dotdotdot
                 var_name = "..."
                 self.eat("Operator", "=")
                 value = self.pExpression(require=True)
