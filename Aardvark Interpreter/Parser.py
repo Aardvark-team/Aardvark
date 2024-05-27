@@ -1725,6 +1725,30 @@ class Parser:
                 if not starter:
                     starter = self.peek()
                 var_type = self.pObject()
+            elif self.compare("Operator", "..."):
+                dotdotdot = self.eat("Operator", "...")
+                var_name = "..."
+                self.eat("Operator", "=")
+                value = self.pExpression(require=True)
+                assignments.append(
+                    {
+                        "is_static": is_static,
+                        "is_private": is_private,
+                        "is_mutable": is_mutable,
+                        "var_type": None,
+                        "var_name": var_name,
+                        "is_dotdotdot": True,
+                        "value": value,
+                        "positions": {
+                            "start": dotdotdot.start,
+                            "end": value["positions"]["end"],
+                        },
+                    }
+                )
+                if not self.compare("Delimiter", ","):
+                    break
+                self.eat("Delimiter", ",")
+                continue
             else:
                 temp = self.eat("Identifier")
                 if not starter:
@@ -1767,7 +1791,7 @@ class Parser:
             # let static [Number, String] = 7
             if self.compare("Operator", "="):
                 self.eat("Operator", "=")
-                value = self.pExpression()
+                value = self.pExpression(require=True)
             assignments.append(
                 {
                     "is_static": is_static,
@@ -1775,6 +1799,7 @@ class Parser:
                     "is_mutable": is_mutable,
                     "var_type": var_type,
                     "var_name": var_name.value,
+                    "is_dotdotdot": False,
                     "value": value,
                     "positions": {
                         "start": var_name.start,

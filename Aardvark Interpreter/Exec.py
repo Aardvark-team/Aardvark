@@ -611,14 +611,25 @@ class Executor:
                         if assignment["value"]
                         else _Undefined()
                     )
-                    self.defineVar(
-                        assignment["var_name"],
-                        value,
-                        scope,
-                        assignment["is_static"],
-                        expr,
-                        is_initial=True,
-                    )
+                    if assignment["is_dotdotdot"]:
+                        for k, v in value.vars.items():
+                            self.defineVar(
+                                k,
+                                v,
+                                scope,
+                                assignment["is_static"],
+                                expr,
+                                is_initial=True,
+                            )
+                    else:
+                        self.defineVar(
+                            assignment["var_name"],
+                            value,
+                            scope,
+                            assignment["is_static"],
+                            expr,
+                            is_initial=True,
+                        )
                 return value
             elif expression_type == "Array":
                 items = []
