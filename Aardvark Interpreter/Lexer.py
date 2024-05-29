@@ -95,12 +95,12 @@ class Lexer:
 
     def detect(self, text):
         # return ''.join(self.data[self.index:self.index+len(text)]) == text
-        if self.curChar == text[0]:
-            for i in range(len(text) - 1):
-                if not self.peek(i + 1) == text[i + 1]:
-                    return False
-        else:
-            return False
+        # return all(self.peek(i) == text[i] for i in range(len(text) - 1))
+        i = 0
+        for char in text:
+            if self.peek(i) != char:
+                return False
+            i += 1
         return True
 
     def isNumber(self, char=None):

@@ -296,6 +296,8 @@ def modulo(
     #         False, errorhandler, line, ast, f"<{str(type(x or 0).__name__)}>"
     #     )
     # TODO: add if y and x equal none
+    if y == Null:
+        return x / 100
     return x % y
 
 

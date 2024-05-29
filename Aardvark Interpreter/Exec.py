@@ -170,6 +170,7 @@ def createGlobals(safe=False):
             "copy": copy.copy,
             "json_render": render,
             "Path": Path,
+            "all": all,
         }
     )  # Define builtins here
     if not safe:

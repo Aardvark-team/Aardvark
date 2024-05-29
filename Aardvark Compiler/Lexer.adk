@@ -94,11 +94,17 @@ class Lexer as this {
 
   let addToken(type, start, end, value, variety, insertions) = this.output.add(create_token(type, start, end, value, variety, insertions))
 
-  let otherwise(char) {
-    let character = char ? this.current_character
-    return not (this.isWhitespace(character) or this.isDelimiter(character) or this.isNewline(character) or character is '#' or character in SymbolOperators)
+  let otherwise(char=this.current_character) = not (this.isWhitespace(character) or this.isDelimiter(character) or this.isNewline(character) or character is '#' or character in SymbolOperators)
+
+  let detect(text) {
+    let i = 0
+    for character in text {
+      if this.peek(i) is not character
+        return false
+      i++
+    }
+    return true 
   }
-  let detect(text) = text is this.data.slice(this.position.index, this.position.index + text.length)
   
   let newline() {
     this.empty = true
@@ -157,20 +163,20 @@ class Lexer as this {
       }
 
       # Indents
-      else if this.isWhitespace() and this.empty and this.useIndents {
-        let value = ''
-        let start = this.pos()
-        let startcolumn = this.position.column
-        while this.isWhitespace() and not this.AtEnd {
-          value += this.current_character
-          this.advance()
-        }
-        if not this.isNewline() {
-          this.advance(-1)
-          this.addToken('Indent', start, this.pos(), value)
-        }
-        else this.advance(-1);
-      }
+      # else if this.useIndents and this.isWhitespace() and this.empty {
+      #   let value = ''
+      #   let start = this.pos()
+      #   let startcolumn = this.position.column
+      #   while this.isWhitespace() and not this.AtEnd {
+      #     value += this.current_character
+      #     this.advance()
+      #   }
+      #   if not this.isNewline() {
+      #     this.advance(-1)
+      #     this.addToken('Indent', start, this.pos(), value)
+      #   }
+      #   else this.advance(-1);
+      # }
 
       # Numbers
       else if this.isNumber() {
