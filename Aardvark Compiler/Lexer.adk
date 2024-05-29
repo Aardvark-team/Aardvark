@@ -94,7 +94,7 @@ class Lexer as this {
 
   let addToken(type, start, end, value, variety, insertions) = this.output.add(create_token(type, start, end, value, variety, insertions))
 
-  let otherwise(char=this.current_character) = not (this.isWhitespace(character) or this.isDelimiter(character) or this.isNewline(character) or character is '#' or character in SymbolOperators)
+  let otherwise(character=this.current_character) = not (this.isWhitespace(character) or this.isDelimiter(character) or this.isNewline(character) or character is '#' or character in SymbolOperators)
 
   let detect(text) {
     let i = 0

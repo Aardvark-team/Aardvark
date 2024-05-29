@@ -332,7 +332,7 @@ class Executor:
                 },
             )
         else:
-            value = pyToAdk(value)
+            value = pyToAdk(value)  # Use copy.copy() and as is_reference
             if (
                 self.is_strict
                 and name in list(scope.vars.keys())

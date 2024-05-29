@@ -366,7 +366,7 @@ class String(str, Type):
         self.vars = {
             "length": len(self),
             "split": self.split,
-            "slice": lambda start, end, step=1: self[
+            "slice": lambda start=0, end=-1, step=1: self[
                 start : (end if end > 0 else len(self) + end) : step
             ],
             "startsWith": self.startswith,
@@ -661,7 +661,7 @@ class Array(Type, list):
             "filter": self._filter,
             "map": lambda func: Array([func(i) for i in self]),
             "reduce": self._reduce,
-            "slice": lambda start, end, step=1: Array(self.value[start:end:step]),
+            "slice": lambda start=0, end=-1, step=1: Array(self.value[start:end:step]),
             "sort": self._sort,
             "copy": lambda: Array(self.value.copy()),
             # methods and attributes here
@@ -764,7 +764,7 @@ class Set(Type, list):
             "length": len(self),
             "reverse": self._reverse,
             "filter": self._filter,
-            "slice": lambda start, end, step=1: Set(self.value[start:end:step]),
+            "slice": lambda start=1, end=-1, step=1: Set(self.value[start:end:step]),
             # methods and attributes here
         }
 
