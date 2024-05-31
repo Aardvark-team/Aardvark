@@ -34,6 +34,12 @@ let prettify_ast(ast, indent=0) {
 }
 # Comment out the ones we are not working on to save test time.
 let parser_tests = {
+    # function_definition: "
+    # let f(x) = 32
+    # let f(x) {
+    #     return 32
+    # }
+    # ",
     # operator: "-x + y - 7*z?",
     # expand_operator: "...x",
     # simple_array: "[x, y, \"string\", 7, ...z]",
@@ -96,7 +102,7 @@ let parser_tests = {
     # key_value_deconstruction: "let keys:values = {x: 1, y: 2, z: 3}",
     # key_value_deconstruction_in_for_loop: "for key:value in {a: 1, b: 2, c: 3} {
     #     stdout.log(key, value)
-    # }",
+    # # }",
     array_assignment: "let [...Token] output",
     multi_assignment: "let Boolean useIndents
     let Boolean tokenizeComments
@@ -112,7 +118,11 @@ let parser_tests = {
     let position
     this.tbhrbh = jndffdj
     this.jkfjnk = dfjhjhkdf
-    this.this.this.hhnuf = x.y.dfg8",
+    this.this.this.hhnuf = x.y.dfg8
+    let f(x) = 32
+    let f(x) {
+        return 32
+    }",
     # function_assignment: "class X {
     #     $constructor(useIndents = false, tokenizeComments = false) {
     #         this.useIndents = useIndents
