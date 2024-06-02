@@ -46,7 +46,7 @@ static class Parser as this {
     let advance(n=1) = this.pos += n
 
     # Helper function for error throwing.
-    let Throw(type, message, options={}, note="", kill=true, position?, here_message="Here", show=true) {
+    let Throw(type, message, options=structure {}, note="", kill=true, position?, here_message="Here", show=true) {
         let legacy_errors = false
         if legacy_errors {
             if not (options.underline? or options.marker?) {
@@ -65,15 +65,15 @@ static class Parser as this {
         let error = ADK_Error(this.error_handler, {
             error_type: type,
             message,
-            location: {
-                line: position.start.line - 1, # The error formatter starts line counting at 0.
-                column: position.start.column - 1, # The error formatter starts column counting at 0.
+            location: options.location?structure {
+                line = position.start.line - 1 # The error formatter starts line counting at 0.
+                column = position.start.column - 1 # The error formatter starts column counting at 0.
             },
-            markers: options.markers?[{
-                line: position.start.line - 1, # The error formatter starts line counting at 0.
-                column: position.start.column - 1, # The error formatter starts column counting at 0.
-                length: (position.end.column - position.start.column + 1) if (position.end.line is position.start.line) else (this.code_lines.(position.start.line - 1).length - position.start.column + 2),
-                message: here_message
+            markers: options.markers?[structure {
+                line = position.start.line - 1 # The error formatter starts line counting at 0.
+                column = position.start.column - 1 # The error formatter starts column counting at 0.
+                length = (position.end.column - position.start.column + 1) if (position.end.line is position.start.line) else (this.code_lines.(position.start.line - 1).length - position.start.column + 2)
+                message = here_message
             }],
             show,
             ...options
@@ -220,7 +220,7 @@ static class Parser as this {
                 position: current_token.position
             }
         # Statements surrounded by ()
-        else if this.maybe_eat('Delimiter', '(') {
+        else if not exclude.contains('Parenthesis') and this.maybe_eat('Delimiter', '(') {
             this.eat_line_breaks()
             ast_node = structure {
                 ... = CHECK(this.parse_statement(eat_line_breaks=true))
@@ -792,228 +792,124 @@ static class Parser as this {
         return ast_node
     }
 
-    let parse_assignment(implied="") {
-        let starting_position = this.peek().position.start
-        let is_all_mutable = false
-        if this.maybe_eat("Keyword", "let")
-            is_all_mutable = false
-        else if this.maybe_eat("Keyword", "mutable")
-            is_mutable = true
-        else if implied
-            is_all_mutable = implied is "mutable"
-        else 
-            return this.Throw("SyntaxError", "Invalid syntax.", position=this.peek().position, here_message= "Expected 'mutable' or 'let'.")
-        let assignments = []
+    let parse_function_definition() {
+        let opening_parenthesis = CHECK(this.eat("Delimiter", "("))
+        let parameters = []
+        let any rest_parameter = null
+        let any return_type = null
+        let body
+        this.eat_line_breaks()
         loop {
-            let assignment_start = this.peek().position.start
-            if assignments.length > 0
-                CHECK(this.eat("Delimiter", ","))
-            let is_mutable = is_all_mutable
-            if this.maybe_eat("Keyword", "mutable")
-                is_mutable = true
-            let variables = []
-            let value
-            loop {
-                let previous_store_errors_state = this.store_errors
-                let previous_position = this.pos
-                this.store_errors = true
-                let x = this.parse_typed_variable(["KeyValuePair"], exclude=["Reassignment", "FunctionCall"])
-                stdout.log(x)
-                if type_of(x) is not ADK_Error and this.compare("Delimiter", "(") {
-                    stdout.log("HERE!!! Function definition!!")
-                    variables.add(x)
-                    # Function definition TODO  
-                    let opening_parenthesis = this.eat()
-                    let parameters = []
-                    let parameter_expansion = null
-                    let return_type = null
-                    let body = null
-                    let inline = false
-                    loop {
-                        this.eat_line_breaks()
-                        if parameters.length > 0 {
-                            CHECK(this.eat("Delimiter", ","))
-                            this.eat_line_breaks()
-                        }
-                        if this.compare("Operator", "...") {
-                            let operator = this.eat()
-                            parameter_expansion = CHECK(this.parse_primary(true))
-                            if not ["VariableAccess", "PropertyAccess"].contains(parameter_expansion.type) 
-                                return this.Throw("SyntaxError", "Invalid syntax.", position=parameter_expansion.position, here_message= $"Expected parameter name.")
-                            # An expansion MUST be the last parameter
-                            break
-                        }
-                        let parameter = CHECK(this.parse_typed_variable())
-                        parameters.add(parameter)
-                        let default
-                        if this.maybe_eat("Operator", "=")
-                            default = CHECK(this.parse_expression())
-                        parameters.add(structure {
-                            ... = parameter
-                            default = default
-                        })
-                    }
-                    this.maybe_eat("Delimiter", ",")
-                    let closing_parenthesis = this.eat("Delimiter", ")")
-                    if this.maybe_eat("Operator", "->") {
-                        return_type = CHECK(this.parse_typed_variable(require=true))
-                        if not this.is_valid_type(return_type) {
-                            return this.Throw("SyntaxError", "Invalid syntax.", position=return_type.position, here_message= $"Expected a type.")
-                        }
-                    }
-                    stdout.log(this.peek())
-                    if this.maybe_eat("Operator", "=") {
-                        stdout.log("Inline function definition")
-                        body = CHECK(this.parse_expression(require=true))
-                        inline = true
-                    } else {
-                        stdout.log("Parsing body")
-                        body = CHECK(this.parse_scope_body())
-                    }
-                    return structure {
-                        type = "FunctionDefinition"
-                        parameters = parameters
-                        parameter_expansion = parameter_expansion
-                        return_type = return_type
-                        body = body
-                        inline = inline
-                        names = variables
-                        position = structure {
-                            start = opening_parenthesis.position.start
-                            end = body.position.end
-                        }
-                    }
-                }
-                else if (type_of(x) is ADK_Error and [3, 40].contains(x.error_number)) or (not this.compare("Operator", "=") and variables.length > 0) {
-                    this.store_errors = previous_store_errors_state
-                    this.error_stack = this.error_stack.slice(0, -1)
-                    this.pos = previous_position
-                    value = CHECK(this.parse_expression(require=true, exclude=["Reassignment"]))
-                    break
-                } else if type_of(x) is ADK_Error 
-                    return x
-                else
-                    variables.add(x)
-
-                if not (value?) and variables.length is 1 and not this.compare("Operator", "=")
-                    break
-                CHECK(this.eat("Operator", "="))
+            if this.maybe_eat("Operator", "...") {
+                rest_parameter = CHECK(this.parse_typed_variable())
+                break
             }
-            if not (value?) and variables.length > 1
-                return this.Throw("AssignmentError", "No Value was given", position=variables.(-1).position)
-
-            assignments.add({
-                type: "Assignment",
-                variables,
-                value: value?,
-                position: {
-                    start: assignment_start,
-                    end: (value ? variables.(-1)).position.end
-                }
+            let parameter = CHECK(this.parse_typed_variable())
+            let default;
+            if this.maybe_eat("Operator", "=")
+                default = CHECK(this.parse_expression(require=true))
+            parameters.add(structure {
+                ... = parameter
+                default = default?
             })
-            if not this.compare("Delimiter", ",") break
+            this.eat_line_breaks()
+            if (not this.maybe_eat("Delimiter", ",")) or this.compare("Delimiter", ")")
+                break
         }
+        this.eat_line_breaks()
+        if this.maybe_eat("Delimiter", ",")
+            this.eat_line_breaks()
+        CHECK(this.eat("Delimiter", ")"))
+        if this.maybe_eat("Operator", "->")
+            return_type = CHECK(this.parse_typed_variable(require=true))
+        if this.maybe_eat("Operator", "=")
+            body = CHECK(this.parse_expression(require=true))
+        else
+            body = CHECK(this.parse_scope_body())
+
         return structure {
-            type = "Assignments"
-            assignments = assignments
+            type = "FunctionDefinition"
+            parameters = parameters
+            rest_parameter = rest_parameter
+            return_type = return_type
+            body = body
             position = structure {
-                start = starting_position
-                end = assignments.(-1).position.end
+                start = opening_parenthesis.position.start
+                end = body.position.end
             }
         }
     }
 
-    let parse_function_definition(mode="normal", found_static=false, expected_keyword="function") {
-        let is_static = found_static
-        let is_private = false
-        let parameters = []
-        let first_token = this.peek()
-        let label, name, return_type, body, parameter_expansion, function_keyword
-        # the function keyword is required unless we're in a class scope or extending 
-        if not ["extending", "class_scope"].contains(mode)
-            function_keyword = CHECK(this.eat("Keyword", expected_keyword))
-        else # Otherwise it's optional
-            function_keyword = this.maybe_eat("Keyword", expected_keyword)
-        
-        if mode is "class_scope" and this.compare("Delimiter", "$") {
-            function_keyword = this.eat()
-            let token = CHECK(this.eat("Identifier"))
-            name = structure {
-                type = "VariableAccess"
-                name = '$' + token.value
-                position = token.position
-            }
-        }
+    let parse_assignment(implied="") {
+        let starting_position = this.peek().position.start
+        let is_mutable = false
+        if this.maybe_eat("Keyword", "let") or implied is "let"
+            is_mutable = this.maybe_eat("Keyword", "mutable")
+        else if this.maybe_eat("Keyword", "mutable") or implied is "mutable"
+            is_mutable = true
+        else
+            return this.Throw("SyntaxError", "Invalid syntax.", position=this.peek().position, here_message= "Expected 'mutable' or 'let'.")
 
-        if not (name?) and this.compare("Identifier") {
-            let token = this.eat()
-            name = structure {
-                type = "VariableAccess"
-                name = token.value
-                position = token.position
-            }
-        }
-
-        if this.compare("Delimiter", "(") {
-            let opening_parenthesis = this.eat()
-            let ate_comma = false
-            this.eat_line_breaks()
-            while not this.compare("Delimiter", ")") {
-                if parameters.length > 0 and not ate_comma {
-                    CHECK(this.eat("Delimiter", ","))
-                    ate_comma = false
-                    this.eat_line_breaks()
-                }
-                if this.compare("Operator", "...") {
-                    let operator = this.eat()
-                    parameter_expansion = CHECK(this.parse_primary(true))
-                    if not ["VariableAccess", "PropertyAccess"].contains(parameter_expansion.type) 
-                        return this.Throw("SyntaxError", "Invalid syntax.", position=parameter_expansion.position, here_message= $"Expected parameter name.")
-                    # An expansion MUST be the last parameter
+        let assignments = []
+        let exclude = ["Reassignment"]
+        loop {
+            let assignment_start = this.peek().position.start
+            let variables = []
+            let value
+            # For chaining: `let x = y = z`
+            loop {
+                let first_pos = this.pos
+                let to_exclude = exclude.slice()
+                if variables.length is 0
+                    to_exclude.add("FunctionCall")
+                let first = CHECK(this.parse_expression(require=true, exclude=to_exclude, is_deconstruction=true))
+                let second = CHECK(this.parse_expression(require=false, exclude=to_exclude+["Parenthesis"], is_deconstruction=true))
+                if not this.compare("Operator", "=") and variables.length > 0 {
+                    if second
+                        return this.Throw("SyntaxError", "Invalid syntax.", structure {
+                            markers = [structure {
+                                line = first.position.start.line - 1
+                                column = first.position.start.column - 1
+                                length = second.position.end.column - first.position.start.column + 1
+                                message = $"You can't assign {'this' if variables.length is 1 else 'these'} variables to two things squished together."
+                            }]
+                            location = first.position.start
+                        })
+                    value = first
                     break
                 }
-                let parameter = CHECK(this.parse_typed_variable())
-                let default
-                if this.compare("Operator", "=") {
-                    let operator = this.eat()
-                    default = CHECK(this.parse_expression(require=true))
+                if this.compare("Delimiter", "(") and second is null and this.is_valid_variable_definition(first) and variables.length is 0 {
+                    variables.add(first)
+                    value = CHECK(this.parse_function_definition())
+                    break
                 }
-                parameter.default = default?
-                parameters.add(parameter)
-                this.eat_line_breaks()
-                if this.maybe_eat("Delimiter", ",") {
-                    ate_comma = true
-                    this.eat_line_breaks()
-                }
+                let variable = CHECK(this.parse_typed_variable(first=first, second=second))
+                variables.add(variable)
+                CHECK(this.eat("Operator", "="))
             }
-            let closing_parenthesis = this.eat("Delimiter", ")")
+            # The value is optional.
+            if variables.length is 0 
+                return this.Throw("SyntaxError", "Invalid syntax.", position=this.peek().position, here_message="Expected an assignment.")
+            
+            assignments.add(structure {
+                type = "Assignment"
+                variables = variables
+                value = value?
+                position = structure {
+                    start = assignment_start
+                    end = this.peek(-1).position.end
+                }
+            })
+            if not this.maybe_eat("Delimiter", ",")
+                break
         }
-        # Parse labels
-        if this.maybe_eat("Keyword", "as")
-            label = CHECK(this.eat("Identifier"))
 
-        # Parse return type
-        if this.compare("Operator", "->") {
-            let operator = this.eat()
-            return_type = CHECK(this.parse_primary(require=true))
-            if not this.is_valid_type(return_type) {
-                return this.Throw("SyntaxError", "Invalid syntax.", position=return_type.position, here_message= $"Expected a type.")
-            }
-        }
-        body = CHECK(this.parse_statement_or_scope_body())
         return structure {
-            type = "FunctionDefinition" if expected_keyword is "function" else if expected_keyword is "macro" "MacroDefinition"
-            name = name?
-            parameters = parameters
-            parameter_expansion = parameter_expansion?
-            return_type = return_type?
-            body = body
-            label = label?
-            is_static = is_static
-            is_private = is_private
+            type = "Assignment"
+            assignments = assignments
             position = structure {
-                start = first_token.position.start if first_keyword? else body.position.start
-                end = body.position.end
+                start = starting_position
+                end = this.peek(-1).position.end
             }
         }
     }
@@ -1404,6 +1300,7 @@ static class Parser as this {
                     }
                     this.eat_line_breaks()
                     statement = null;
+                    if this.is_EOF() break
                 }
             }
             if not (statement?) break
@@ -1413,38 +1310,13 @@ static class Parser as this {
 
         if enclosing_curly_braces 
             closing_curly_brace = CHECK(this.eat("Delimiter", "}"))
-
-        let start_position, end_position
-        if not enclosing_curly_braces and this.is_EOF() and statements.length is 0 {
-            # There was nothing here at all
-            start_position = null 
-            # It has no start and no end, because it is nothing.
-            end_position = null
-        } else if not enclosing_curly_braces and this.is_EOF() and statements.length > 0 {
-            # There was something, but it ended with an EOF
-            start_position = statements.0.position.start
-            end_position = this.peek(-1).position.end
-        } else if not enclosing_curly_braces and statements.length is 0 {
-            # There wasn't anything here, but there's more to the file.
-            start_position = null 
-            # It has no start and no end, because it is nothing.
-            end_position = null
-        } else if not enclosing_curly_braces and statements.length > 0 {
-            # There was something here, but no curly braces to enclose it. There was no EOF.
-            start_position = (beginning_token ? statements.0).position.start
-            end_position = this.peek(-1).position.end
-        } else if enclosing_curly_braces {
-            # It was enclosed, so the start is the opening curly brace and the end is the closing
-            start_position = opening_curly_brace.position.start
-            end_position = closing_curly_brace.position.end
-        } 
         return structure {
             type = "ScopeBody"
             statements = statements
             enclosing_curly_braces = enclosing_curly_braces
             position = structure {
-                start = start_position
-                end = end_position
+                start = beginning_token.position.start
+                end = this.peek(-1).position.end
             }
         }
     }

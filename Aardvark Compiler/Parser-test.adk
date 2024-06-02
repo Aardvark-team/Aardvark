@@ -64,8 +64,8 @@ let parser_tests = {
     # function_extending_no_parameters_with_return_type_annotation: "extending x -> Number {}",
     # object_extending: "extending x {y: 5, z: 6}",
     # operator_extending: "extending +(Number x, String y) -> String {}",
-    reassignment: "x = y = z = 5",
-    property_reassignment: "this.typename = typename = other_typename.xyz",
+    # reassignment: "x = y = z = 5",
+    # property_reassignment: "this.typename = typename = other_typename.xyz",
     # template_string: "$'Hello, {name}!'",
     # multiline_property_access: "x.\n    y.\n    z",
     # simple_class_definition: "class x {\n\n$constructor() {}\n\nfunction $constructor() {}\nfunction method() {}\nlet x = 5\n let y}",
@@ -103,26 +103,26 @@ let parser_tests = {
     # key_value_deconstruction_in_for_loop: "for key:value in {a: 1, b: 2, c: 3} {
     #     stdout.log(key, value)
     # # }",
-    array_assignment: "let [...Token] output",
-    multi_assignment: "let Boolean useIndents
-    let Boolean tokenizeComments
-    let String data = x
-    let Number index = y
-    let Number line = z
-    let Number column
-    let [...Token] output
-    let Boolean empty
-    let Boolean AtEnd
-    let String current_character
-    let error_stack = []
-    let position
-    this.tbhrbh = jndffdj
-    this.jkfjnk = dfjhjhkdf
-    this.this.this.hhnuf = x.y.dfg8
-    let f(x) = 32
-    let f(x) {
-        return 32
-    }",
+    # array_assignment: "let [...Token] output",
+    # multi_assignment: "let Boolean useIndents
+    # let Boolean tokenizeComments
+    # let String data = x
+    # let Number index = y
+    # let Number line = z
+    # let Number column
+    # let [...Token] output
+    # let Boolean empty
+    # let Boolean AtEnd
+    # let String current_character
+    # let error_stack = []
+    # let position
+    # this.tbhrbh = jndffdj
+    # this.jkfjnk = dfjhjhkdf
+    # this.this.this.hhnuf = x.y.dfg8
+    # let f(x) = 32
+    # let f(x) {
+    #     return 32
+    # }",
     # function_assignment: "class X {
     #     $constructor(useIndents = false, tokenizeComments = false) {
     #         this.useIndents = useIndents
@@ -174,7 +174,9 @@ let parser_tests = {
     # pattern_matching_operator: "if x $= {x: 5, y: [x, 5, $y, ...], $z, e: $uhdf, fb?: 8, ...} {}",
     # nested_template_string: `$"Hello, {($'\"{name}\"')if name else $'{placeholder_name}'}."`,
     # include_sublibrary: "from units.length include inch, px, ft",
-    assignment_chaining: "let Number x = (Number or String) y = z = 35",
+    # assignment_chaining: "let number x = y = z = 35",
+    # assignment: "let number x = y",
+    function_definition: "let f(x) = 32",
     # typed_array: "[Number 5, String \"hello\", Array [1, 2, 3]]",
     # include_all: "include ... from x",
     # await_statement: "await x",
