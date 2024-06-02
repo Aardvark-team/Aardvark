@@ -69,10 +69,10 @@ class Lexer as this {
     this.useIndents = useIndents
     this.tokenizeComments = tokenizeComments
     this.data = ""
-    this.position = {
-        index: 0,
-        line: 0,
-        column: 0
+    this.position = structure {
+        index = 0 
+        line = 0
+        column = 0
     }
     this.output = []
     this.empty = true
@@ -123,7 +123,11 @@ class Lexer as this {
     if this.position.index + amt < this.data.length 
       return this.data.(this.position.index + amt)
   }
-  let pos() = {index: this.position.index, line: this.position.line, column: this.position.column}
+  let pos() = structure {
+    index = this.position.index
+    line = this.position.line
+    column = this.position.column
+  }
 
   let tokenize(data="") {
     #*
