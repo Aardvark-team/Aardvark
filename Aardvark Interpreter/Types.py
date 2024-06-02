@@ -1003,6 +1003,27 @@ class Structure(Type):
         # else:
         return str(self.vars)
 
+    def __iter__(self):
+        return StructureIterator(self)
+
+
+class StructureIterator:
+    def __init__(self, structure):
+        self.structure = structure
+        self.keys = self.structure.keys
+        self.index = 0
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        if self.index < len(self.keys):
+            key = self.keys[self.index]
+            self.index += 1
+            return key
+        else:
+            raise StopIteration
+
 
 class Template(Type):
     def __init__(self, vars, name):
