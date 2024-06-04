@@ -3,7 +3,7 @@ include Errors
 
 
 let Operators_array_sorted = Array(Operators)
-Operators_array_sorted.sort(function (a, b) b.length - a.length)
+Operators_array_sorted.sort(lambda (a, b) b.length - a.length)
 
 let Token = template {
   let String type
@@ -20,13 +20,13 @@ let Token = template {
       return false;
   }
   let to_json() {
-    return {
-      type: type,
-      length: length,
-      position: position,
-      value: value.replace(`"`, `\\"`).replace("\n", "\\n"),
-      variation: variation,
-      insertions: insertions
+    return structure {
+      type = type
+      length = length
+      position = position
+      value = value.replace(`"`, `\\"`).replace("\n", "\\n")
+      variation = variation
+      insertions = insertions
     }
   }
 }

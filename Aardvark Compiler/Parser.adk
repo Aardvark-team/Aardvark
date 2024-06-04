@@ -19,7 +19,7 @@ static class Parser as this {
     let Number pos = 0
     let error_handler 
     let store_errors = true # If false, errors will be thrown immediately.
-    let error_stack = [] 
+    let error_stack = []
     let awaiting_match = [] # If an error occurs on a line with an opening (, [, or {, it will be stored here to prevent errors with unmatched parentheses.
     $constructor(code, tokens, error_handler?, store_errors = true) {
         this.code = code # The code used by the lexer.
@@ -62,21 +62,21 @@ static class Parser as this {
             options.line_number ?= options.lineno?(options.linestart?position.start.line)
             this.error_handler.Throw(type, message, options, note, kill)
         }
-        let error = ADK_Error(this.error_handler, {
-            error_type: type,
-            message,
-            location: options.location?structure {
+        let error = ADK_Error(this.error_handler, structure {
+            ... = options
+            error_type = type
+            message = message
+            location = options.location?structure {
                 line = position.start.line - 1 # The error formatter starts line counting at 0.
                 column = position.start.column - 1 # The error formatter starts column counting at 0.
-            },
-            markers: options.markers?[structure {
+            }
+            markers = options.markers?[structure {
                 line = position.start.line - 1 # The error formatter starts line counting at 0.
                 column = position.start.column - 1 # The error formatter starts column counting at 0.
                 length = (position.end.column - position.start.column + 1) if (position.end.line is position.start.line) else (this.code_lines.(position.start.line - 1).length - position.start.column + 2)
                 message = here_message
-            }],
-            show,
-            ...options
+            }]
+            show = show
         })
         if this.store_errors {
             error_stack.add(error)
@@ -282,13 +282,13 @@ static class Parser as this {
                 else # End of the line
                     length = this.code_lines.(opening_bracket.position.start.line - 1).length - opening_bracket.position.end.column + 1
 
-                return this.Throw("SyntaxError", "Incorrect property access", {
-                    markers: [
-                        {
-                            line: opening_bracket.position.start.line - 1,
-                            column: opening_bracket.position.start.column - 1,
-                            length,
-                            message: "Use `x.(y)` syntax instead of `x[y]`"
+                return this.Throw("SyntaxError", "Incorrect property access", structure {
+                    markers = [
+                        structure {
+                            line = opening_bracket.position.start.line - 1
+                            column = opening_bracket.position.start.column - 1
+                            length = length
+                            message = "Use `x.(y)` syntax instead of `x[y]`"
                         }
                     ]
                 }, position=opening_bracket.position)

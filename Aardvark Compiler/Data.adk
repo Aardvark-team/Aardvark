@@ -119,11 +119,11 @@ let Delimiters = [
     "$"   # dollar sign, used for special variables and methods
 ]
 
-let Parenthesis = {
-    "(": ")",
-    "{": "}",
-    "[": "]"
-}
+# let Parenthesis = {
+#     "(": ")",
+#     "{": "}",
+#     "[": "]"
+# }
 
 let Keywords = [
     'class',     # Delete
