@@ -21,90 +21,90 @@ let prettify_ast(ast, indent=0) {
         return text + indent * " " + "]"
     } else if type_of(ast) is Object {
         if keys(ast).length is 0 return "{}"
-        else if keys(ast).length is 1 return "{" + keys(ast).0 + ": " + prettify_ast(ast.(keys(ast).0), indent) + "}"
+        else if keys(ast).length is 1 return "{" + keys(ast).0 + "= " + prettify_ast(ast.(keys(ast).0), indent) + "}"
         let text = "{\n"
         # indent += 2
         for key:value in ast {
             if key is "position" continue
-            text += indent * " " + key + ": " + prettify_ast(value, indent+2) + ",\n"
+            text += indent * " " + key + "= " + prettify_ast(value, indent+2) + ",\n"
         }
         indent -= 2 
         return text + indent * " " + "}"
     }
 }
 # Comment out the ones we are not working on to save test time.
-let parser_tests = {
-    # function_definition: "
+let parser_tests = structure {
+    # function_definition= "
     # let f(x) = 32
     # let f(x) {
     #     return 32
     # }
-    # ",
-    # operator: "-x + y - 7*z?",
-    # expand_operator: "...x",
-    # simple_array: "[x, y, \"string\", 7, ...z]",
-    # simple_declaration: "let x",
-    # empty_object: "{\n\n}",
-    # empty_scope: "\n\n",
-    # property_access: "x.y.z",
-    # function_definition: "private static function x(Number x, y, {Number a, b, c:d}, [String a, b, c], this.y=z, ...args) -> Number {\n\n}",
-    # macro_definition: "macro x(y) {}",
-    # simple_function_definition: "function x {do_something()}",
-    # multi_function: "function x() {\n\nreturn a_value\n}\nfunction y() {\n\nreturn a_value\n}\nfunction z() {\n\nreturn a_value\n}",
-    # if_else_statement: "if condition {\nthis.jdg=enj;hdj.jdfj=jndf.f\nx(y, z, ...a)\n } else if condition { \ny()\n } \n\nelse { z() }",
-    # inline_if: "x if condition else y",
-    # object_type: "let {Number x, String y} x",
-    # optional_type: "let String? x",
-    # optional_type_no_annotations: "let x? = y",
-    # typed_deconstruction: "let [String a, b, Number c, ...d] = x",
-    # object: "{x: 5, y: 6, Number z: 7, d, ...y, }",
-    # array_extending: "extending x [5, 6, 7, 8, 9, 10]",
-    # function_extending: "extending x(y, z) -> Number {}",
-    # function_extending_no_parameters: "extending x {}",
-    # function_extending_no_parameters_with_return_type_annotation: "extending x -> Number {}",
-    # object_extending: "extending x {y: 5, z: 6}",
-    # operator_extending: "extending +(Number x, String y) -> String {}",
-    # reassignment: "x = y = z = 5",
-    # property_reassignment: "this.typename = typename = other_typename.xyz",
-    # template_string: "$'Hello, {name}!'",
-    # multiline_property_access: "x.\n    y.\n    z",
-    # simple_class_definition: "class x {\n\n$constructor() {}\n\nfunction $constructor() {}\nfunction method() {}\nlet x = 5\n let y}",
-    # class_definition: "private static class x as this {\n\n$constructor() {}\n\nfunction $constructor() {}\nfunction method() {\n\nreturn a_value\n}\n$string {\nreturn $'Hello, world! {value}'\n}\nlet x = 5\n let y}",
-    # empty_class: "class {\n\n\n}",
-    # function_call: "x(
+    # "
+    # operator= "-x + y - 7*z?"
+    # expand_operator= "...x"
+    # simple_array= "[x, y, \"string\", 7, ...z]"
+    # simple_declaration= "let x"
+    # empty_object= "{\n\n}"
+    # empty_scope= "\n\n"
+    # property_access= "x.y.z"
+    # function_definition= "private static function x(Number x, y, {Number a, b, c=d}, [String a, b, c], this.y=z, ...args) -> Number {\n\n}"
+    # macro_definition= "macro x(y) {}"
+    # simple_function_definition= "function x {do_something()}"
+    # multi_function= "function x() {\n\nreturn a_value\n}\nfunction y() {\n\nreturn a_value\n}\nfunction z() {\n\nreturn a_value\n}"
+    # if_else_statement= "if condition {\nthis.jdg=enj;hdj.jdfj=jndf.f\nx(y, z, ...a)\n } else if condition { \ny()\n } \n\nelse { z() }"
+    # inline_if= "x if condition else y"
+    # object_type= "let {Number x, String y} x"
+    # optional_type= "let String? x"
+    # optional_type_no_annotations= "let x? = y"
+    # typed_deconstruction= "let [String a, b, Number c, ...d] = x"
+    # object= "{x= 5, y= 6, Number z= 7, d, ...y, }"
+    # array_extending= "extending x [5, 6, 7, 8, 9, 10]"
+    # function_extending= "extending x(y, z) -> Number {}"
+    # function_extending_no_parameters= "extending x {}"
+    # function_extending_no_parameters_with_return_type_annotation= "extending x -> Number {}"
+    # object_extending= "extending x {y= 5, z= 6}"
+    # operator_extending= "extending +(Number x, String y) -> String {}"
+    # reassignment= "x = y = z = 5"
+    # property_reassignment= "this.typename = typename = other_typename.xyz"
+    # template_string= "$'Hello, {name}!'"
+    # multiline_property_access= "x.\n    y.\n    z"
+    # simple_class_definition= "class x {\n\n$constructor() {}\n\nfunction $constructor() {}\nfunction method() {}\nlet x = 5\n let y}"
+    # class_definition= "private static class x as this {\n\n$constructor() {}\n\nfunction $constructor() {}\nfunction method() {\n\nreturn a_value\n}\n$string {\nreturn $'Hello, world! {value}'\n}\nlet x = 5\n let y}"
+    # empty_class= "class {\n\n\n}"
+    # function_call= "x(
     #     x, 
     #     y, 
-    #     ...z, a=b, c=d, {e, f:g})",
-    # simple_include: "include x",
-    # include_from: "from x include y",
-    # include_a_lot: "include x, y, z from a
+    #     ...z, a=b, c=d, {e, f=g})"
+    # simple_include= "include x"
+    # include_from= "from x include y"
+    # include_a_lot= "include x, y, z from a
     # include x as b, y as b, z
     # include x as y
     # from x include a, b, c as d
-    # from x include {x: a, y: b, z}
-    # include {x: a, y: b, z}
-    # include {x: a, y: b, z} from x
+    # from x include {x= a, y= b, z}
+    # include {x= a, y= b, z}
+    # include {x= a, y= b, z} from x
     # include [a, b, c] from x
     # include [a, b, c]
     # include [a, b, c] as d from x
-    # include {x: a, y: b, z} as d from x
+    # include {x= a, y= b, z} as d from x
     # from x include [a, b, c]
-    # from Data include OrderOfOps, Parenthesis",
-    # return_value: "return whatever()",
-    # break_test: "break",
-    # continue_test: "continue",
-    # for_loop: "for x in y z",
-    # for_loop_with_block: "for x in y {\n\n z \n\n}",
-    # inline_for_loop: "z for x in y",
-    # while_loop: "while condition code",
-    # while_loop_with_block: "while condition {\n\n z \n\n}",
-    # inline_while_loop: "z while condition",
-    # key_value_deconstruction: "let keys:values = {x: 1, y: 2, z: 3}",
-    # key_value_deconstruction_in_for_loop: "for key:value in {a: 1, b: 2, c: 3} {
+    # from Data include OrderOfOps, Parenthesis"
+    # return_value= "return whatever()"
+    # break_test= "break"
+    # continue_test= "continue"
+    # for_loop= "for x in y z"
+    # for_loop_with_block= "for x in y {\n\n z \n\n}"
+    # inline_for_loop= "z for x in y"
+    # while_loop= "while condition code"
+    # while_loop_with_block= "while condition {\n\n z \n\n}"
+    # inline_while_loop= "z while condition"
+    # key_value_deconstruction= "let keys=values = {x= 1, y= 2, z= 3}"
+    # key_value_deconstruction_in_for_loop= "for key=value in {a= 1, b= 2, c= 3} {
     #     stdout.log(key, value)
-    # # }",
-    # array_assignment: "let [...Token] output",
-    # multi_assignment: "let Boolean useIndents
+    # # }"
+    # array_assignment= "let [...Token] output"
+    # multi_assignment= "let Boolean useIndents
     # let Boolean tokenizeComments
     # let String data = x
     # let Number index = y
@@ -122,37 +122,37 @@ let parser_tests = {
     # let f(x) = 32
     # let f(x) {
     #     return 32
-    # }",
-    # function_assignment: "class X {
+    # }"
+    # function_assignment= "class X {
     #     $constructor(useIndents = false, tokenizeComments = false) {
     #         this.useIndents = useIndents
     #         this.tokenizeComments = tokenizeComments
     #     }
-    # }",
-    # if_thing: "
+    # }"
+    # if_thing= "
     # for operator in Operators_array_sorted
     # if this.detect(operator) {
     #     break
     # }
 
     # # Comment
-    # if this.isNewline() {}",
-    # return_in_if: "
+    # if this.isNewline() {}"
+    # return_in_if= "
     # function x() {
     #     if x and y or not z
     #         return 5;
-    # }",
-    # string_property: "'hello'.x",
-    # number_property: "5.x",
-    # operations: "while (x.y() or '._'.x()) and not this.AtEnd {}",
-    # match_case: "match x {
+    # }"
+    # string_property= "'hello'.x"
+    # number_property= "5.x"
+    # operations= "while (x.y() or '._'.x()) and not this.AtEnd {}"
+    # match_case= "match x {
     #     case 5 {}
-    #     case {x: $y, ...} {}
+    #     case {x= $y, ...} {}
     #     case [x, $y, ...] {}
     #     case $default {}
     #     case $ {}
-    # }",
-    # for_in_while: "
+    # }"
+    # for_in_while= "
     # while x < y {
     #     # Code
     #     for x in y
@@ -160,42 +160,42 @@ let parser_tests = {
     #     }
     #     # Code 2
     #     if z {}
-    # }",
-    # multiline_object_with_comments: "
+    # }"
+    # multiline_object_with_comments= "
     # {
-    #     line: x, # Comment
-    #     column: y, # Comment
-    # }",
-    # array: `[
+    #     line= x, # Comment
+    #     column= y, # Comment
+    # }"
+    # array= `[
     #     "(", 
     #     "[", 
-    #     "{",
-    # ]`,
-    # pattern_matching_operator: "if x $= {x: 5, y: [x, 5, $y, ...], $z, e: $uhdf, fb?: 8, ...} {}",
-    # nested_template_string: `$"Hello, {($'\"{name}\"')if name else $'{placeholder_name}'}."`,
-    # include_sublibrary: "from units.length include inch, px, ft",
-    # assignment_chaining: "let number x = y = z = 35",
-    # assignment: "let number x = y",
-    function_definition: "let f(x) = 32",
-    # typed_array: "[Number 5, String \"hello\", Array [1, 2, 3]]",
-    # include_all: "include ... from x",
-    # await_statement: "await x",
+    #     "{"
+    # ]`
+    # pattern_matching_operator= "if x $= {x= 5, y= [x, 5, $y, ...], $z, e= $uhdf, fb?= 8, ...} {}"
+    # nested_template_string= `$"Hello, {($'\"{name}\"')if name else $'{placeholder_name}'}."`
+    # include_sublibrary= "from units.length include inch, px, ft"
+    # assignment_chaining= "let number x = y = z = 35"
+    # assignment= "let number x = y"
+    function_definition= "let f(x) = 32"
+    # typed_array= "[Number 5, String \"hello\", Array [1, 2, 3]]"
+    # include_all= "include ... from x"
+    # await_statement= "await x"
     
 }
-let error_tests = {
-    multiple_decimal_points: "5.4.3",
-    multiple_underscore: "5_4_3",
-    assign_value: "let 52 = x",
-    else_without_if: "else { x }",
-    anonymous_function_extension: "extending function {}",
-    # many_errors: "5.4.3\n5_4_3\nlet 5 = x\n\nelse {}\n\n",
-    expression_in_class_scope: "class x {\nstdout.log(5 * 5)\n}", 
-    include_double_from: "from me include that from you",
-    lone_operator: "+",
-    incorrect_property_access: "my_array[-1]",
-    unsupported_number_base: "43_39f",
+let error_tests = structure {
+    multiple_decimal_points= "5.4.3"
+    multiple_underscore= "5_4_3"
+    assign_value= "let 52 = x"
+    else_without_if= "else { x }"
+    anonymous_function_extension= "extending function {}"
+    # many_errors= "5.4.3\n5_4_3\nlet 5 = x\n\nelse {}\n\n"
+    expression_in_class_scope= "class x {\nstdout.log(5 * 5)\n}"
+    include_double_from= "from me include that from you"
+    lone_operator= "+"
+    incorrect_property_access= "my_array[-1]"
+    unsupported_number_base= "43_39f"
 }
-function show_errors(error_stack, error_handler) {
+let show_errors(error_stack, error_handler) {
     for error in error_stack {
         if type_of(error) is not ADK_Error 
             error = ADK_Error(error_handler, error)
@@ -206,7 +206,7 @@ function show_errors(error_stack, error_handler) {
 }
 let lexer_time = 0
 let parser_time = 0
-function test(String code, String filename="<main>") {
+let test(String code, String filename="<main>") {
     let lexer_start = time.time()
     let lexer = Lexer(false, false)
     let tokens = lexer.tokenize(code)
@@ -258,10 +258,10 @@ let parse_file(String filename) {
 }
 # include json as native_json
 # let python_json = python.import("json") # Native Aardvark json is slow
-# let json = {
-#     render: json_render, # A temporary builtin
-#     load_from_file: python_json.load,
-#     load_from_string: python_json.loads
+# let json = structure {
+#     render = json_render, # A temporary builtin
+#     load_from_file = python_json.load
+#     load_from_string = python_json.loads
 # }
 # parse_file("Lexer.adk")
 

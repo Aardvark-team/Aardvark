@@ -50,13 +50,13 @@ static class Parser as this {
         let legacy_errors = false
         if legacy_errors {
             if not (options.underline? or options.marker?) {
-                options.underline = {
-                    start: position.start.column + 1,
-                    end: position.end.column + 1
+                options.underline = structure {
+                    start = position.start.column + 1
+                    end = position.end.column + 1
                 }
-                options.marker = {
-                    start: position.start.column + 1,
-                    length: 1 + position.end.column - position.start.column
+                options.marker = structure{
+                    start = position.start.column + 1
+                    length = 1 + position.end.column - position.start.column
                 }
             }
             options.line_number ?= options.lineno?(options.linestart?position.start.line)
@@ -102,20 +102,20 @@ static class Parser as this {
         else 
             suggestion = expected_token_type
 
-        let error = this.error_handler.create({
-            error_type: "UnexpectedEndOfFile",
-            message: "We didn't expect the file to end so soon!",
-            location: {
-                line: this.code_lines.length - 1,
-                column: current_line.length - 1
-            },
-            markers: [{
-                line: this.code_lines.length - 1,
-                column: current_line.length,
-                length: expected_token_value.length?1,
-                message: $"Expected {suggestion}"
-            }],
-            error_number: 2
+        let error = this.error_handler.create(structure {
+            error_type = "UnexpectedEndOfFile"
+            message = "We didn't expect the file to end so soon!"
+            location = structure {
+                line = this.code_lines.length - 1
+                column = current_line.length - 1
+            }
+            markers = [structure {
+                line = this.code_lines.length - 1
+                column = current_line.length - 1
+                length = expected_token_value.length?1
+                message = $"Expected {suggestion}"
+            }]
+            error_number = 2
         }, true)
         this.error_stack.add(error)
         if not this.store_errors {
@@ -172,11 +172,11 @@ static class Parser as this {
         
         else if this.maybe_eat("Number") {
             let multiplied_by = CHECK(this.parse_expression(2, require=false, exclude=["Keyword", "Object", "Array"]))
-            ast_node = {
-                type: "NumberLiteral",
-                value: current_token.value,
-                base: current_token.variation,
-                position: current_token.position,
+            ast_node = structure {
+                type = "NumberLiteral"
+                value = current_token.value
+                base = current_token.variation
+                position = current_token.position
             }
             if (multiplied_by?)
                 ast_node = structure {
@@ -190,10 +190,10 @@ static class Parser as this {
                 }
         }
         else if this.maybe_eat("Boolean")
-            ast_node = {
-                type: "BooleanLiteral",
-                value: current_token.value is "true",
-                position: current_token.position
+            ast_node = structure {
+                type = "BooleanLiteral"
+                value = current_token.value is "true"
+                position = current_token.position
             }
         else if is_structural_pattern and this.maybe_eat("Delimiter", "$") {
             let value = "";
@@ -214,10 +214,10 @@ static class Parser as this {
         
         # Variables
         else if not exclude.contains('VariableAccess') and this.maybe_eat("Identifier")
-            ast_node = {
-                type: 'VariableAccess',
-                name: current_token.value,
-                position: current_token.position
+            ast_node = structure {
+                type = 'VariableAccess'
+                name = current_token.value
+                position = current_token.position
             }
         # Statements surrounded by ()
         else if not exclude.contains('Parenthesis') and this.maybe_eat('Delimiter', '(') {
@@ -232,28 +232,10 @@ static class Parser as this {
         # Statements that return a value?????
         else if this.compare('Keyword') and not exclude.contains('Keyword')
         match this.peek().value {
-            case 'static' {
-                let next_token = this.peek(1)
-                if compare_token(next_token, 'Keyword', 'private')
-                    next_token = this.peek(2)
-                if compare_token(next_token, 'Keyword', 'function')
-                    ast_node = CHECK(this.parse_function_definition())
-                else
-                    return this.Throw('SyntaxError', 'Expected "function" or "class" after "static"', position=next_token.position)
-            }
-            case 'private' {
-                let next_token = this.peek(1)
-                if compare_token(next_token, 'Keyword', 'static')
-                    next_token = this.peek(2)
-                if compare_token(next_token, 'Keyword', 'function')
-                    ast_node = CHECK(this.parse_function_definition())
-                else
-                    return this.Throw('SyntaxError', 'Expected "function" or "class" after "private"', position=next_token.position)
-            }
-            case 'function'
-                ast_node = CHECK(this.parse_function_definition())
             case 'if'
                 ast_node = CHECK(this.parse_if_statement())
+            case 'loop'
+                ast_node = CHECK(this.parse_loop())
             case 'while'
                 ast_node = CHECK(this.parse_while_loop())
             case 'for'
@@ -268,8 +250,10 @@ static class Parser as this {
                 ast_node = CHECK(this.parse_layout_type())
             case 'embed'
                 ast_node = CHECK(this.parse_embed())
-            case 'macro'
-                ast_node = CHECK(this.parse_function_definition("normal", false, "macro"))
+            case 'structure'
+                ast_node = CHECK(this.parse_structure())
+            case 'template'
+                ast_node = CHECK(this.parse_structure_template())
         }
         # If there were lines after the statement, just return
         if not (this.peek(-1).type is "LineBreak" and not eat_line_breaks)
@@ -357,14 +341,14 @@ static class Parser as this {
             let right = CHECK(this.parse_expression(level - 1, false, excluded, eat_line_breaks, is_deconstruction, is_structural_pattern))
             if not (left or right)
                 return this.Throw('SyntaxError', "Operators are invalid when lonely.", here_message="🤨 That's just an operator with nothing for it to operator on.", position=operator.position)
-            left = {
-                type: 'Operator',
-                left: left,
-                right: right,
-                operator: operator.value,
-                position: {
-                    start: left.position.start if left else operator.position.start,
-                    end: right.position.end if right else operator.position.end
+            left = structure {
+                type = 'Operator'
+                left = left
+                right = right
+                operator = operator.value
+                position = structure {
+                    start = left.position.start if left else operator.position.start
+                    end = right.position.end if right else operator.position.end
                 }
             }
         }
@@ -374,33 +358,8 @@ static class Parser as this {
     }
     # Parse a statement
     let parse_statement(require=false, is_deconstruction=false, mode="normal", mode_entry?) {
-
         this.eat_line_breaks()
-        if mode is "class_scope" {
-            if this.compare('Delimiter', "$")
-                return this.parse_function_definition("class_scope")
-            else if this.compare("Keyword", "function")
-                return this.parse_function_definition("class_scope")
-            else if this.compare("Keyword", "let")
-                return this.parse_assignment()
-            else
-                return this.Throw("SyntaxError", "I mean, did you want me to execute this on class creation or something? It's pointless either way.", {
-                    markers: [
-                        {
-                            line: mode_entry.position.start.line - 1,
-                            column: mode_entry.position.start.column - 1,
-                            length: mode_entry.position.end.column - mode_entry.position.start.column + 1,
-                            message: "The troublesome class begins here"
-                        },
-                        {
-                            line: this.peek().position.start.line - 1,
-                            column: this.peek().position.start.column - 1,
-                            length: this.peek().position.end.column - this.peek().position.start.column + 1,
-                            message: "This is not valid in the class' scope"
-                        }
-                    ]
-                }, position=this.peek().position)
-        } else if mode is "match_scope" {
+        if mode is "match_scope" {
             if this.compare("Keyword", "case")
                 return this.parse_case_statement()
             else
@@ -437,9 +396,9 @@ static class Parser as this {
             let new_parser = Parser(insertion.expression_text, insertion.tokens, this.error_handler)
             let insertion_ast_node = new_parser.parse_expression()
             this.error_stack += new_parser.error_stack
-            insertions.add({
-                position: insertion.position,
-                ast_node: insertion_ast_node
+            insertions.add(structure {
+                position = insertion.position
+                ast_node = insertion_ast_node
             })
         }
         return structure {
@@ -472,12 +431,12 @@ static class Parser as this {
             if this.maybe_eat("Operator", "...")
                 expansions.add(CHECK(this.parse_expression(require=false, eat_line_breaks=true, is_structural_pattern=is_structural_pattern)))
             else if this.maybe_eat("Delimiter", "$")
-                pairs.add({
-                    type: "ValueRetrieval",
-                    value: CHECK(this.eat("Identifier")),
-                    position: {
-                        start: this.peek(-2).position.start,
-                        end: this.peek().position.end
+                pairs.add(structure {
+                    type = "ValueRetrieval"
+                    value = CHECK(this.eat("Identifier"))
+                    position = structure {
+                        start = this.peek(-2).position.start
+                        end = this.peek().position.end
                     }
                 })
             else {
@@ -494,14 +453,14 @@ static class Parser as this {
                     value = CHECK(this.parse_expression(require=true, eat_line_breaks=true, is_structural_pattern=is_structural_pattern))
                 } else # Otherwise, the value is a variable access to the key value
                     value = key.variable
-                pairs.add({
-                    type: "KeyValuePair",
-                    key: key.variable,
-                    given_type: key.given_type,
-                    value,
-                    position: {
-                        start: key.position.start,
-                        end: value.position.end
+                pairs.add(structure {
+                    type = "KeyValuePair"
+                    key = key.variable
+                    given_type = key.given_type
+                    value = value
+                    position = structure {
+                        start = key.position.start
+                        end = value.position.end
                     }
                 })
             }
@@ -607,22 +566,44 @@ static class Parser as this {
             else
                 return this.throw_EOF_error()
         }
-        return {
-            type: "PropertyAccess",
-            property: property,
-            value: ast_node,
-            position: {
-                start: ast_node.position.start,
-                end: property.position.end
+        return structure {
+            type = "PropertyAccess"
+            property = property
+            value = ast_node
+            position = structure {
+                start = ast_node.position.start
+                end = property.position.end
             }
         }
     }
 
     let parse_embed() {
-        this.eat("Keyword", "embed")
+        CHECK(this.eat("Keyword", "embed"))
         # TODO
     }
-
+    let parse_structure() {
+        CHECK(this.eat("Keyword", "structure"))
+        if this.compare('Keyword', 'template')
+            return this.parse_structure_template()
+        # TODO
+        CHECK(this.eat('Delimiter', '{'))
+    }
+    let parse_structure_template() {
+        CHECK(this.eat('Keyword', 'template'))
+        # TODO
+    }
+    let parse_loop() {
+        let kw = CHECK(this.eat("Keyword", "loop"))
+        let body = CHECK(this.parse_statement_or_scope_body())
+        return structure {
+            type = "LoopStatement"
+            body = body
+            position = structure {
+                start = kw.position.start
+                end = body.position.end
+            }
+        }
+    }
     let parse_for_loop(ast_node?) {
         let for_keyword = CHECK(this.eat("Keyword", "for"))
         let variable = CHECK(this.parse_typed_variable(["KeyValuePair"]))
@@ -634,15 +615,15 @@ static class Parser as this {
             let else_keyword = this.eat()
             else_body = CHECK(this.parse_statement_or_scope_body())
         }
-        return {
-            type: "ForStatement",
-            iterable,
-            variable,
-            body,
-            else_body: else_body?,
-            position: {
-                start: for_keyword.position.start,
-                end: body.position.end
+        return structure{
+            type = "ForStatement"
+            iterable = iterable
+            variable = variable
+            body = body
+            else_body = else_body?
+            position = structure {
+                start = for_keyword.position.start 
+                end = body.position.end
             }
         }
     }
@@ -656,14 +637,14 @@ static class Parser as this {
             let else_keyword = this.eat()
             else_body = CHECK(this.parse_statement_or_scope_body())
         }
-        return {
-            type: "WhileStatement",
-            condition,
-            body,
-            else_body: else_body?,
-            position: {
-                start: while_keyword.position.start,
-                end: body.position.end
+        return structure {
+            type = "WhileStatement"
+            condition = condition
+            body = body
+            else_body = else_body?
+            position = structure {
+                start = while_keyword.position.start
+                end = body.position.end
             }
         }
     }
@@ -675,25 +656,25 @@ static class Parser as this {
         this.eat("Delimiter", `)`)
         this.eat_line_breaks()
         let layout_obj = CHECK(this.parse_object())
-        return {
-            type: "LayoutType",
-            layout_type: type,
-            "layout": layout_obj,
-            position: {
-                start: layout_keyword.position.start,
-                end: layout_obj.position.end
+        return structure {
+            type = "LayoutType"
+            layout_type = type
+            layout = layout_obj
+            position = structure {
+                start = layout_keyword.position.start
+                end = layout_obj.position.end
             }
         }
     }
     let parse_await_statement() {
         let await_keyword = CHECK(this.eat("Keyword", "await"))
         let expression = CHECK(this.parse_expression(require=true))
-        return {
-            type: "AwaitStatement",
-            expression,
-            position: {
-                start: await_keyword.position.start,
-                end: expression.position.end
+        return structure {
+            type = "AwaitStatement"
+            expression = expression
+            position = structure {
+                start = await_keyword.position.start
+                end = expression.position.end
             }
         }
     }
@@ -972,34 +953,34 @@ static class Parser as this {
     let parse_return_statement() {
         let return_keyword = CHECK(this.eat("Keyword", "return"))
         let value = CHECK(this.parse_expression(require=true))
-        return {
-            type: "ReturnStatement",
-            value,
-            position: {
-                start: return_keyword.position.start,
-                end: value.position.end
+        return structure {
+            type = "ReturnStatement"
+            value = value
+            position = structure {
+                start = return_keyword.position.start
+                end = value.position.end
             }
         }
     }
 
     let parse_continue_statement() {
         let continue_keyword = CHECK(this.eat("Keyword", "continue"))
-        return {
-            type: "ContinueStatement",
-            position: {
-                start: continue_keyword.position.start,
-                end: continue_keyword.position.end
+        return structure {
+            type = "ContinueStatement"
+            position = structure {
+                start = continue_keyword.position.start
+                end = continue_keyword.position.end
             }
         }
     }
 
     let parse_break_statement() {
         let break_keyword = CHECK(this.eat("Keyword", "break"))
-        return {
-            type: "BreakStatement",
-            position: {
-                start: break_keyword.position.start,
-                end: break_keyword.position.end
+        return structure {
+            type = "BreakStatement"
+            position = structure {
+                start = break_keyword.position.start
+                end = break_keyword.position.end
             }
         }
     }
@@ -1007,12 +988,12 @@ static class Parser as this {
     let parse_yield_statement() {
         let yield_keyword = CHECK(this.eat("Keyword", "yield"))
         let value = CHECK(this.parse_expression(require=true))
-        return {
-            type: "YieldStatement",
-            value,
-            position: {
-                start: yield_keyword.position.start,
-                end: value.position.end
+        return structure {
+            type = "YieldStatement"
+            value = value
+            position = structure {
+                start = yield_keyword.position.start
+                end = value.position.end
             }
         }
     }
@@ -1033,9 +1014,9 @@ static class Parser as this {
                 if included_things.length > 0
                     CHECK(this.eat("Delimiter", ","))
                 if this.compare("Operator", "...")
-                    thing = {
-                        type: "AllExpansion",
-                        position: this.eat().position
+                    thing = structure {
+                        type = "AllExpansion"
+                        position = this.eat().position
                     }
                 else {
                     thing = CHECK(this.parse_primary(require=true, exclude=["as"], is_deconstruction=true))
@@ -1107,13 +1088,13 @@ static class Parser as this {
                 if not this.is_valid_variable_definition(key)
                     return this.Throw("SyntaxError", $"Invalid syntax.", position=first.position, here_message= $"Expected parameter name.")
                 let value = CHECK(this.parse_expression())
-                keyword_arguments.add({
-                    type: "KeyValuePair",
-                    key: key,
-                    value,
-                    position: {
-                        start: key.position.start,
-                        end: value.position.end
+                keyword_arguments.add(structure {
+                    type = "KeyValuePair"
+                    key = key
+                    value = value
+                    position = structure {
+                        start = key.position.start
+                        end = value.position.end
                     }
                 })
             } else 
@@ -1126,14 +1107,14 @@ static class Parser as this {
         }
         if this.compare("Delimiter", ",") this.eat()
         let closing_parenthesis = this.eat("Delimiter", ")")
-        return {
-            type: "FunctionCall",
-            object: ast_node,
-            arguments,
-            keyword_arguments,
-            position: {
-                start: opening_parenthesis.position.start,
-                end: closing_parenthesis.position.end
+        return structure {
+            type = "FunctionCall"
+            object = ast_node
+            arguments = arguments
+            keyword_arguments = keyword_arguments
+            position = structure {
+                start = opening_parenthesis.position.start
+                end = closing_parenthesis.position.end
             }
         }
     }
@@ -1157,13 +1138,13 @@ static class Parser as this {
             if not this.compare("Operator", "=") break
         }
 
-        return {
-            type: "Reassignment",
-            objects,
-            value,
-            position: {
-                start: ast_node.position.start,
-                end: value.position.end
+        return structure {
+            type = "Reassignment"
+            objects = objects
+            value = value
+            position = structure {
+                start = ast_node.position.start
+                end = value.position.end
             }
         }
     }
@@ -1171,13 +1152,13 @@ static class Parser as this {
         let case_keyword = CHECK(this.eat("Keyword", "case"))
         let expression = CHECK(this.parse_expression(require=true, is_structural_pattern=true))
         let body = CHECK(this.parse_statement_or_scope_body())
-        return {
-            type: "CaseStatement",
-            value: expression,
-            body,
-            position: {
-                start: case_keyword.position.start,
-                end: body.position.end
+        return structure {
+            type = "CaseStatement"
+            value = expression
+            body = body
+            position = structure {
+                start = case_keyword.position.start
+                end = body.position.end
             }
         }
     }
@@ -1185,13 +1166,13 @@ static class Parser as this {
         let match_keyword = CHECK(this.eat("Keyword", "match"))
         let expression = CHECK(this.parse_expression())
         let body = CHECK(this.parse_scope_body(true, "match_scope"))
-        return {
-            type: "MatchStatement",
-            expression,
-            body,
-            position: {
-                start: match_keyword.position.start,
-                end: body.position.end
+        return structure {
+            type = "MatchStatement"
+            expression = expression
+            body = body
+            position = structure {
+                start = match_keyword.position.start
+                end = body.position.end
             }
         }
     }
