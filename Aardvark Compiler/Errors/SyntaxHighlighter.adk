@@ -2,24 +2,23 @@ include "../Lexer"
 from ansi include fg, bg, ef, rs
 
 let styles = structure {
-    String = rs.all + fg(152, 195, 121),
-    Function = rs.all + fg(97, 175, 239),
-    Number = rs.all + fg(229, 192, 123),
-    Keyword = rs.all + fg(224, 108, 117),
-    Operator = rs.all + fg(86, 182, 194) + ef.bold,
-    Boolean = rs.all + fg(229, 192, 123),
-    background = rs.all + bg(36, 39, 55),
-    Comment = rs.all + fg(92, 99, 112) + ef.italic,
-    Delimiter = rs.all + fg(245, 245, 255),
-    default = rs.all + fg(171, 178, 191),
+    String = rs.all + fg(152, 195, 121)
+    Function = rs.all + fg(97, 175, 239)
+    Number = rs.all + fg(229, 192, 123)
+    Keyword = rs.all + fg(224, 108, 117)
+    Operator = rs.all + fg(86, 182, 194) + ef.bold
+    Boolean = rs.all + fg(229, 192, 123)
+    background = rs.all + bg(36, 39, 55)
+    Comment = rs.all + fg(92, 99, 112) + ef.italic
+    Delimiter = rs.all + fg(245, 245, 255)
+    default = rs.all + fg(171, 178, 191)
     suggestion = rs.all + fg(255, 165, 0)
 }
 
-function genLine(linenum, digits)
-    " " * (Number(digits) - linenum.digits.length) + $"{styles.default}{linenum} │ "
+let genLine(linenum, digits) = " " * (Number(digits) - linenum.digits.length) + $"{styles.default}{linenum} │ "
 
 
-function Highlight(code, tokens, opts={}) {
+let Highlight(code, tokens, opts={}) {
     # let lexer = Lexer.Lexer(false, true, null)
     # let tokens = lexer.tokenize(code)
     let line = opts.startline?1

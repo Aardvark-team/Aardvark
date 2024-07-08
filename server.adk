@@ -1,0 +1,14 @@
+# Example 1: Webserver
+include webr
+
+let server = webr.Server(protocols=[webr.protocol.HTTP])
+
+let users = {
+    
+}
+
+
+sever.route("/", lambda handler(request) {
+    return "Hello, World!"
+})
+server.listen("localhost", 8000)

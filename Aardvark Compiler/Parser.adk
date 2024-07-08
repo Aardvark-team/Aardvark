@@ -3,15 +3,10 @@ from Lexer include Token, Lexer
 from Errors include ErrorHandler, ADK_Error
 
 
-
 construct CHECK(x) {
     (return x) if type_of(x) is ADK_Error else x
 }
-let compare_token(token, expected_type, expected_value, expected_startcol) {
-if (not expected_type or token.type is expected_type) and (not expected_value or token.value is expected_value) and (not expected_startcol or token.position.start.column is expected_startcol)
-        return true;
-      return false;
-}
+
 static class Parser as this {
     let String code
     let [...String] code_lines
@@ -417,7 +412,7 @@ static class Parser as this {
         let ate_comma = false
         this.eat_line_breaks()
         # While there is no }
-        while (this.peek() and not this.compare("Delimiter", "}")) {
+        while not (this.is_EOF() or this.compare("Delimiter", "}")) {
             if pairs.length > 0 and not ate_comma {
                 let comma = this.eat("Delimiter", ",")
                 if type_of(comma) is ADK_Error {
