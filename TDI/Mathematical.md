@@ -1,3 +1,5 @@
+https://chatgpt.com/share/52046b7c-1247-43b6-b4ec-360a52ab1b54
+
 Note: the following text was stuff I wrote in a conversation with ChatGPT. It helps to talk about what I'm thinking about even if I'm just talking to myself or to ChatGPT.
 
 My programming language also allows easy definition of types.
