@@ -421,15 +421,15 @@ class Number(Type):
 
     def __init__(
         self,
-        value=0,
+        value: int | float = 0,
         base=10,
         map=String("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"),
     ):
         if type(value) in [str, String]:
-            try:
-                value = get_number(value, base, map)
-            except Exception as e:
-                value = int(value, base)
+            # try:
+            #     value = get_number(value, base, map)
+            # except Exception as e:
+            value = int(value, base)
         self.value = value
         float.__init__(self)
         self.vars = {
@@ -471,9 +471,6 @@ class Number(Type):
     def __int__(self):
         return int(self.value)
 
-    def __str__(self):
-        return str(self.value)
-
     def __abs__(self):
         return Number(abs(self.value))
 
@@ -482,9 +479,6 @@ class Number(Type):
 
     def __pos__(self):
         return Number(+self.value)
-
-    def __invert__(self):
-        return ~int(self.value)
 
     def __truediv__(self, other):
         if isinstance(other, Number):

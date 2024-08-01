@@ -36,7 +36,7 @@ let object_like_in_js = structure {
 
 let SuperString = structure template {
   let String content
-  let replace(x, y) => {
+  let replace(x, y) {
     # Code to replace x with y
   }
 }
