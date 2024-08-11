@@ -1,3 +1,5 @@
+Written by Spencer Rosas-Gunn. This paper creates a programming language from formal mathematics.
+
 ### Formal Specification
 
 Let's firstly define the abstraction calculus. Here's our expression grammar.

@@ -187,12 +187,12 @@ Hudson.name # "Hudson"
 Structure types:
 
 ```
-template three_numbers = [number, number, number] # This is a template for an unlabeled structure.
-template three_numbers = [number..*3]
+type three_numbers = [number, number, number] # This is a template for an unlabeled structure.
+type three_numbers = [number..*3]
 let three_numbers x = [1, 2, 3]
 
 # A labeled structure type
-template Person = [
+type Person = [
     let string name = "Placeholder" # This one has a default value
     mutable number age
 ] # A template is a template for a structure. It can be used like a type.
@@ -297,7 +297,7 @@ Memory management is handled automatically. There should generally be no need fo
 ```
 type character = ({x | 0 <= x <= 127} U {x | 192 <= x <= 223} U {x | 224 <= x <= 239} U {x | 240 <= x <= 247} U {x | 128 <= x <= 191}) \ {x | 248 <= x <= 255}
 
-template string = [...utf8_character]
+type string = [...utf8_character]
 
 type null # A type with only one value: null
 let null null # Define the value null with a type of null.
@@ -385,16 +385,16 @@ This code allows the user to optionally give the loop a name.
 ## Structures of types.
 
 ```
-type Choice = [
-    type Rock
-    type Paper
-    type Scissors
+option Choice = [
+    Rock
+    Paper
+    Scissors
 ] # Defines 3 types, all grouped under the structure Choice
 
-type Shape = [
-    template Circle = [number]
-    template Square = [number]
-    template Rectangle = [number, number]
+option Shape = [
+    Circle = [number]
+    Square = [number]
+    Rectangle = [number, number]
 ]
 let Shape.Circle circle = [5]
 ```
@@ -523,10 +523,10 @@ let number result = string_to_integer(input)
 Using unlabeled templates:
 
 ```
-type Shape = [
-    template Circle = [number]
-    template Square = [number]
-    template Rectangle = [number, number]
+option Shape = [
+    Circle = [number]
+    Square = [number]
+    Rectangle = [number, number]
 ]
 
 let get_area(Shape x) -> number {
@@ -544,10 +544,10 @@ let area = get_area(my_circle)
 Using labeled templates:
 
 ```
-type Shape = [
-    template Circle = [number radius]
-    template Square = [number side]
-    template Rectangle = [number width, number height]
+option Shape = [
+    Circle = [number radius]
+    Square = [number side]
+    Rectangle = [number width, number height]
 ]
 
 let get_area(Shape x) -> number = match x with Shape {
@@ -564,10 +564,10 @@ OR, you can use `type`:
 
 ```
 let positive = {x | x > 0}
-type Shape = [
-    type Circle = positive
-    type Square = positive
-    template Rectangle = [number width, number height]
+option Shape = [
+    Circle = positive
+    Square = positive
+    Rectangle = [number width, number height]
 ]
 
 let get_area(Shape x) -> number = match x with Shape {

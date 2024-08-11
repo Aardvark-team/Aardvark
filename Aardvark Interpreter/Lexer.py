@@ -94,8 +94,6 @@ class Lexer:
         return char in Delimiters
 
     def detect(self, text):
-        # return ''.join(self.data[self.index:self.index+len(text)]) == text
-        # return all(self.peek(i) == text[i] for i in range(len(text) - 1))
         i = 0
         for char in text:
             if self.peek(i) != char:

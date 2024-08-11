@@ -1,6 +1,6 @@
 import Run
 
-import cProfile
+# import cProfile
 from pathlib import Path
 import os
 
@@ -11,7 +11,10 @@ path = path.resolve()
 
 
 def test():
-    Run.runFile(path)
+    for i in range(10):
+        Run.runFile(path)
 
 
-cProfile.run("test()", sort="tottime")
+test()
+# cProfile.run("test()", sort="tottime")
+#
