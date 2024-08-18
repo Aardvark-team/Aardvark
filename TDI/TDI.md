@@ -42,7 +42,13 @@ Type-like items include: types, templates, structures (of type-like items), and 
 
 ## Design
 
-I have come across an issue.
+### Principals of Design:
+
+- To be as readable and easy to understand as possible.
+- To be easy to use for any and every task.
+- To, when it conforms to the above principles, use formal mathematical notation and otherwise use a design that complements a general mathematical understanding.
+
+<!-- I have come across an issue.
 There are many different designs that conform to my theory.
 I think the theory works great.
 But then what design do we want?
@@ -52,6 +58,7 @@ I have separated the possible designs into categories:
 - **Traditional:** Looks kinda like Rust but a little more consistent, readable and following this theory. I didn't really like this one. Maybe its because I'm not that traditional of a person? You can go many ways with this.
 - **Power:** This is a very minimal design built mostly with constructs. It seems too powerful imo.
 - **Balanced:** This is what I was working on before. I partly went mathematical with a little syntax, but then I reigned myself into traditional stuff for the actual functionality and added a lot of construct systems. But it just doesn't seem to all fit together.
-  Which of those general design categories sound best to you?
-  Of course, there are infinitely many possible designs, but I put them into categories based on what our team had already expressed as our goals.
-  Also, would you like to see the mathematical design I was exploring? It was just for a little bit but nevertheless it is super cool.
+
+Which of those general design categories sound best to you?
+Of course, there are infinitely many possible designs, but I put them into categories based on what our team had already expressed as our goals.
+Also, would you like to see the mathematical design I was exploring? It was just for a little bit but nevertheless it is super cool. -->

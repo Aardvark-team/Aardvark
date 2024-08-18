@@ -530,7 +530,7 @@ option Shape = [
 ]
 
 let get_area(Shape x) -> number {
-    match x {
+    return match x {
         Circle [r] = π * r ^ 2
         Square [s] = s ^ 2
         Rectangle [w, h] = w * h
@@ -579,3 +579,15 @@ let get_area(Shape x) -> number = match x with Shape {
 let my_circle = Shape.Circle [radius = 5]
 let area = get_area(my_circle)
 ```
+
+## Type functions:
+
+A type function is a function, but for types. It can be used to generate types.
+
+```
+type Pair(T) = [T, T]
+```
+
+## $
+
+The `$` operator is used to insert a value where a variable definition is expected.

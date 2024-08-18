@@ -20,10 +20,10 @@ let z = "b"
 $y.$z # 6
 
 let n = 0
-function f($n) then # $n means that this is only valid for f(0)
+function f(0) then
     ret 0
 end
-overload f($n+1) then # Overload for f(1)
+overload f(1) then
     ret 1
 end
 overload f(n) then # Overload for any other n
