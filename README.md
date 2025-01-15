@@ -27,6 +27,9 @@ Documentation is avaliable on the documentation repo: https://github.com/Aardvar
 
 More, information, some of which is outdated can be found on our old documentation website: https://aardvark-docs.replit.app/.
 
+# Why Python?
+We don't care what language it is written in, we just wanted to make a version of the language as soon as possible so that we can get to work on the self-hosted compiler.
+
 # AdkCode
 AdkCode is an online Aardvark code editor with the ability to run code. It is currently updated to Aardvark  Test 5.1
 You can try AdkCode [here](https://adkcode.replit.app/).
